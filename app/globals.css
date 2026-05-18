@@ -110,3 +110,31 @@
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-8px); }
 }
+
+/* Jungle scene animations */
+@keyframes sway-slow {
+  0%, 100% { transform: rotate(-1deg); }
+  50% { transform: rotate(1deg); }
+}
+@keyframes sway-medium {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: rotate(2.5deg); }
+}
+@keyframes sway-fast {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+@keyframes fog-drift {
+  0%, 100% { transform: translateX(-4%); }
+  50% { transform: translateX(4%); }
+}
+@keyframes light-breathe {
+  0%, 100% { opacity: 0.18; }
+  50% { opacity: 0.38; }
+}
+@keyframes leaf-float {
+  0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.85; }
+  90%  { opacity: 0.5; }
+  100% { transform: translateY(-340px) translateX(var(--leaf-drift, 40px)) rotate(220deg); opacity: 0; }
+}

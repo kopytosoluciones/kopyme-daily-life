@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Egg from "@/components/avatar/Egg";
+import { Waves, BookOpen, Leaf, Target } from "lucide-react";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -8,6 +9,13 @@ function getGreeting() {
   if (hour < 19) return "Buenas tardes";
   return "Buenas noches";
 }
+
+const quickActions = [
+  { href: "/mood",   Icon: Waves,    label: "¿Cómo estás hoy?" },
+  { href: "/diary",  Icon: BookOpen, label: "Escribir algo"     },
+  { href: "/habits", Icon: Leaf,     label: "Mis hábitos"       },
+  { href: "/goals",  Icon: Target,   label: "Mis metas"         },
+];
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -25,21 +33,21 @@ export default async function DashboardPage() {
   const points = profile?.avatar_points || 0;
 
   const nextStagePoints: Record<string, number> = {
-    egg: 50,
-    cracking: 150,
-    hatching: 350,
-    emerging: 700,
-    self: Infinity,
+    egg: 50, cracking: 150, hatching: 350, emerging: 700, self: Infinity,
   };
   const nextPoints = nextStagePoints[stage] ?? 50;
   const progress = Math.min((points / nextPoints) * 100, 100);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-8 py-12">
+
       {/* Greeting */}
       <div className="text-center mb-10">
-        <p className="text-[#7A6E5F] text-sm mb-1">{getGreeting()},</p>
-        <h1 className="font-[family-name:var(--font-lora)] text-3xl font-semibold text-[#2C2416]">
+        <p className="text-sm mb-1" style={{ color: "rgba(255,255,255,0.75)", textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>{getGreeting()},</p>
+        <h1
+          className="font-[family-name:var(--font-lora)] text-3xl font-semibold"
+          style={{ color: "#FFFFFF", textShadow: "0 2px 8px rgba(0,0,0,0.35)" }}
+        >
           {name}
         </h1>
       </div>
@@ -50,11 +58,11 @@ export default async function DashboardPage() {
       {/* Progress bar */}
       {stage !== "self" && (
         <div className="mt-10 w-full max-w-xs">
-          <div className="flex justify-between text-xs text-[#7A6E5F] mb-1.5">
+          <div className="flex justify-between text-xs mb-1.5" style={{ color: "rgba(255,255,255,0.8)", textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}>
             <span>{points} puntos</span>
             <span>próxima etapa: {nextPoints}</span>
           </div>
-          <div className="h-2 bg-[#E2D9C8] rounded-full overflow-hidden">
+          <div className="h-2 bg-white/15 rounded-full overflow-hidden">
             <div
               className="h-full bg-[#E07B4A] rounded-full transition-all duration-700"
               style={{ width: `${progress}%` }}
@@ -65,19 +73,15 @@ export default async function DashboardPage() {
 
       {/* Quick actions */}
       <div className="mt-10 grid grid-cols-2 gap-3 w-full max-w-xs">
-        {[
-          { href: "/mood",  icon: "🌊", label: "¿Cómo estás hoy?" },
-          { href: "/diary", icon: "📖", label: "Escribir algo"     },
-          { href: "/habits",icon: "🌱", label: "Mis hábitos"       },
-          { href: "/goals", icon: "🎯", label: "Mis metas"         },
-        ].map(({ href, icon, label }) => (
+        {quickActions.map(({ href, Icon, label }) => (
           <a
             key={href}
             href={href}
-            className="flex items-center gap-2.5 bg-[#FDFAF4] border border-[#E2D9C8] rounded-xl px-4 py-3 text-sm text-[#2C2416] hover:border-[#E07B4A] hover:shadow-sm transition-all active:scale-[0.97]"
+            className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm text-[#E8DFC8] hover:text-white transition-all active:scale-[0.97] border border-white/15 hover:border-white/30 hover:bg-white/10"
+            style={{ background: "rgba(10, 22, 8, 0.55)", backdropFilter: "blur(8px)" }}
           >
-            <span className="text-base">{icon}</span>
-            <span className="font-medium">{label}</span>
+            <Icon size={16} strokeWidth={1.8} className="shrink-0 text-[#A8C890]" />
+            <span className="font-medium leading-tight">{label}</span>
           </a>
         ))}
       </div>

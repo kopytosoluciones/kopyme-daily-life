@@ -101,12 +101,12 @@ export default function Egg({ stage = "egg", message }: EggProps) {
         </svg>
 
         {/* Stage badge */}
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#FDFAF4] border border-[#E2D9C8] rounded-full px-3 py-0.5 text-xs text-[#7A6E5F] whitespace-nowrap shadow-sm">
-          {stage === "egg" && "🥚 descubriéndote"}
-          {stage === "cracking" && "🔥 algo se mueve"}
-          {stage === "hatching" && "✨ casi listo"}
-          {stage === "emerging" && "👁 tomando forma"}
-          {stage === "self" && "🌟 sos vos"}
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#FDFAF4]/90 border border-[#E2D9C8] rounded-full px-3 py-0.5 text-xs text-[#7A6E5F] whitespace-nowrap shadow-sm backdrop-blur-sm">
+          {stage === "egg"      && "descubriéndote"}
+          {stage === "cracking" && "algo se mueve"}
+          {stage === "hatching" && "casi listo"}
+          {stage === "emerging" && "tomando forma"}
+          {stage === "self"     && "sos vos"}
         </div>
       </div>
 

@@ -1,7 +1,8 @@
 "use client";
 
-import { useTransition, useState, useRef } from "react";
+import { useState, useTransition } from "react";
 import { toggleTodo, deleteTodo, updateTodoTitle, updateTodoDueDate } from "./actions";
+import { Trash2, Calendar } from "lucide-react";
 
 interface Todo {
   id: string;
@@ -18,136 +19,131 @@ function daysSince(dateStr: string) {
 }
 
 function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("es-AR", { day: "numeric", month: "short" });
-}
-
-function isOverdue(due_date: string | null, completed: boolean) {
-  return due_date && !completed && new Date(due_date) < new Date();
+  const date = new Date(dateStr + "T00:00:00");
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.round((date.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  if (diff === 0) return "Hoy";
+  if (diff === 1) return "Mañana";
+  if (diff === -1) return "Ayer";
+  if (diff < 0) return `Hace ${Math.abs(diff)}d`;
+  return date.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
 }
 
 export default function TodoItem({ todo }: { todo: Todo }) {
-  const [isPending, startTransition] = useTransition();
-  const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(todo.title);
+  const [, startTransition] = useTransition();
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [titleVal, setTitleVal] = useState(todo.title);
   const [editingDate, setEditingDate] = useState(false);
-  const inputRef = useRef<HTMLInputElement>(null);
-
   const days = daysSince(todo.created_at);
-  const overdue = isOverdue(todo.due_date, todo.completed);
 
-  function handleToggle() {
-    startTransition(() => toggleTodo(todo.id, !todo.completed));
-  }
+  const isOverdue = todo.due_date && !todo.completed &&
+    new Date(todo.due_date + "T00:00:00") < new Date(new Date().toDateString());
 
-  function handleDelete() {
-    startTransition(() => deleteTodo(todo.id));
-  }
-
-  function handleTitleClick() {
-    if (todo.completed) return;
-    setEditing(true);
-    setTimeout(() => inputRef.current?.focus(), 0);
-  }
-
-  function handleTitleSave() {
-    setEditing(false);
-    if (editValue.trim() && editValue.trim() !== todo.title) {
-      startTransition(() => updateTodoTitle(todo.id, editValue));
+  function saveTitle() {
+    setEditingTitle(false);
+    if (titleVal.trim() && titleVal !== todo.title) {
+      startTransition(() => updateTodoTitle(todo.id, titleVal));
     } else {
-      setEditValue(todo.title);
+      setTitleVal(todo.title);
     }
   }
 
-  function handleDateChange(e: React.ChangeEvent<HTMLInputElement>) {
-    setEditingDate(false);
-    startTransition(() => updateTodoDueDate(todo.id, e.target.value || null));
-  }
-
   return (
-    <div className={`group flex items-center gap-3 py-2.5 px-4 transition-opacity ${isPending ? "opacity-40" : ""}`}>
+    <div className={`group flex items-start gap-3 px-4 py-3 rounded-xl transition-all hover:bg-[#FDFAF4] ${
+      todo.completed ? "opacity-60" : ""
+    }`}>
+
       {/* Checkbox */}
       <button
-        onClick={handleToggle}
-        className={`shrink-0 w-4 h-4 rounded-full border transition-all mt-0.5 ${
+        onClick={() => startTransition(() => toggleTodo(todo.id, !todo.completed))}
+        className={`shrink-0 mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
           todo.completed
             ? "bg-[#7CB87A] border-[#7CB87A]"
-            : "border-[#C8BFB0] hover:border-[#E07B4A]"
+            : "border-[#D9D0C0] hover:border-[#7CB87A]"
         }`}
       >
         {todo.completed && (
-          <svg viewBox="0 0 10 8" fill="none" className="w-full p-[2px]">
-            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          <svg viewBox="0 0 10 8" fill="none" className="w-3">
+            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </button>
 
-      {/* Title */}
+      {/* Content */}
       <div className="flex-1 min-w-0">
-        {editing ? (
+        {editingTitle ? (
           <input
-            ref={inputRef}
-            value={editValue}
-            onChange={e => setEditValue(e.target.value)}
-            onBlur={handleTitleSave}
-            onKeyDown={e => { if (e.key === "Enter") handleTitleSave(); if (e.key === "Escape") { setEditValue(todo.title); setEditing(false); } }}
-            className="w-full bg-transparent text-sm text-[#2C2416] focus:outline-none border-b border-[#E07B4A]"
+            autoFocus
+            value={titleVal}
+            onChange={e => setTitleVal(e.target.value)}
+            onBlur={saveTitle}
+            onKeyDown={e => {
+              if (e.key === "Enter") saveTitle();
+              if (e.key === "Escape") { setEditingTitle(false); setTitleVal(todo.title); }
+            }}
+            className="w-full bg-transparent text-sm text-[#2C2416] focus:outline-none border-b border-[#E07B4A] pb-0.5"
           />
         ) : (
           <span
-            onClick={handleTitleClick}
-            className={`text-sm leading-snug cursor-text select-none ${
-              todo.completed
-                ? "line-through text-[#B8B0A4]"
-                : "text-[#2C2416] hover:text-[#E07B4A]"
-            }`}
+            onClick={() => !todo.completed && setEditingTitle(true)}
+            className={`text-sm text-[#2C2416] cursor-text ${
+              todo.completed ? "line-through text-[#B8B0A4]" : "hover:text-[#E07B4A]"
+            } transition-colors`}
           >
             {todo.title}
           </span>
         )}
-      </div>
 
-      {/* Meta: days + due date */}
-      <div className="flex items-center gap-2 shrink-0 text-xs text-[#C8BFB0]">
-        {days > 0 && (
-          <span className={days >= 7 ? "text-[#E07B4A]" : ""}>{days}d</span>
-        )}
-        {todo.due_date ? (
-          <button
-            onClick={() => setEditingDate(true)}
-            className={`hover:underline ${overdue ? "text-red-400" : "text-[#B8B0A4]"}`}
-          >
-            {overdue ? "⚠ " : ""}{formatDate(todo.due_date)}
-          </button>
-        ) : (
-          !todo.completed && (
+        {/* Meta */}
+        <div className="flex items-center gap-3 mt-1">
+          {days > 0 && (
+            <span className="text-[10px] text-[#C8BFB0]">
+              {days === 1 ? "ayer" : `hace ${days}d`}
+            </span>
+          )}
+
+          {editingDate ? (
+            <input
+              autoFocus
+              type="date"
+              defaultValue={todo.due_date ?? ""}
+              onBlur={e => {
+                setEditingDate(false);
+                startTransition(() => updateTodoDueDate(todo.id, e.target.value || null));
+              }}
+              onKeyDown={e => { if (e.key === "Escape") setEditingDate(false); }}
+              className="text-[10px] bg-transparent text-[#B8B0A4] focus:outline-none"
+            />
+          ) : todo.due_date ? (
             <button
               onClick={() => setEditingDate(true)}
-              className="opacity-0 group-hover:opacity-100 text-[#D9D0C0] hover:text-[#7A6E5F] transition-opacity text-xs"
+              className={`flex items-center gap-1 text-[10px] transition-colors ${
+                isOverdue ? "text-red-400" : "text-[#B8B0A4] hover:text-[#E07B4A]"
+              }`}
             >
-              + fecha
+              <Calendar size={10} />
+              {formatDate(todo.due_date)}
+              {isOverdue && " · vencida"}
             </button>
-          )
-        )}
-        {editingDate && (
-          <input
-            type="date"
-            defaultValue={todo.due_date || ""}
-            autoFocus
-            onBlur={() => setEditingDate(false)}
-            onChange={handleDateChange}
-            className="w-28 text-xs bg-[#F5F0E8] border border-[#E2D9C8] rounded px-1 py-0.5 focus:outline-none focus:border-[#E07B4A]"
-          />
-        )}
+          ) : (
+            <button
+              onClick={() => setEditingDate(true)}
+              className="flex items-center gap-1 text-[10px] text-[#E2D9C8] hover:text-[#B8B0A4] transition-colors opacity-0 group-hover:opacity-100"
+            >
+              <Calendar size={10} />
+              fecha
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Delete */}
       <button
-        onClick={handleDelete}
-        className="opacity-0 group-hover:opacity-100 text-[#D9D0C0] hover:text-red-400 transition-all p-0.5"
+        onClick={() => startTransition(() => deleteTodo(todo.id))}
+        className="shrink-0 opacity-0 group-hover:opacity-100 text-[#E2D9C8] hover:text-red-400 transition-all mt-0.5"
       >
-        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-          <path d="M1 1L11 11M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-        </svg>
+        <Trash2 size={14} />
       </button>
     </div>
   );
