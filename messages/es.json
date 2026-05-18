@@ -1,0 +1,20 @@
+{
+  "nav": {
+    "habits": "Hábitos",
+    "mood": "Estado de ánimo",
+    "diary": "Diario",
+    "goals": "Metas",
+    "connections": "Vínculos",
+    "memories": "Recuerdos",
+    "letters": "Cartas & Regalos"
+  },
+  "dashboard": {
+    "greeting_morning": "Buenos días",
+    "greeting_afternoon": "Buenas tardes",
+    "greeting_evening": "Buenas noches"
+  },
+  "avatar": {
+    "egg_welcome": "Hola. Soy tu huevo. Todavía no sé quién soy... pero vos me vas a ayudar a descubrirlo.",
+    "first_crack": "¡Apareció una grieta! Algo pasó."
+  }
+}

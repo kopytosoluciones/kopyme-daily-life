@@ -1,0 +1,20 @@
+{
+  "nav": {
+    "habits": "Habits",
+    "mood": "Mood",
+    "diary": "Diary",
+    "goals": "Goals",
+    "connections": "Connections",
+    "memories": "Memories",
+    "letters": "Letters & Gifts"
+  },
+  "dashboard": {
+    "greeting_morning": "Good morning",
+    "greeting_afternoon": "Good afternoon",
+    "greeting_evening": "Good evening"
+  },
+  "avatar": {
+    "egg_welcome": "Hi. I'm your egg. I don't know who I am yet... but you're going to help me find out.",
+    "first_crack": "A crack appeared! Something happened."
+  }
+}
