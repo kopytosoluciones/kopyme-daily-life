@@ -50,28 +50,28 @@ export default function TodoItem({ todo }: { todo: Todo }) {
   }
 
   return (
-    <div className={`group flex items-start gap-3 px-4 py-3 rounded-xl transition-all hover:bg-[#FDFAF4] ${
-      todo.completed ? "opacity-60" : ""
+    <div className={`group flex items-center gap-2.5 px-3 py-1.5 rounded-lg transition-all hover:bg-[#F5F5F5] ${
+      todo.completed ? "opacity-50" : ""
     }`}>
 
       {/* Checkbox */}
       <button
         onClick={() => startTransition(() => toggleTodo(todo.id, !todo.completed))}
-        className={`shrink-0 mt-0.5 w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+        className={`shrink-0 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
           todo.completed
-            ? "bg-[#7CB87A] border-[#7CB87A]"
-            : "border-[#D9D0C0] hover:border-[#7CB87A]"
+            ? "bg-[#0A0A0A] border-[#0A0A0A]"
+            : "border-[#D1D5DB] hover:border-[#0A0A0A]"
         }`}
       >
         {todo.completed && (
-          <svg viewBox="0 0 10 8" fill="none" className="w-3">
+          <svg viewBox="0 0 10 8" fill="none" className="w-2.5">
             <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         )}
       </button>
 
       {/* Content */}
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex items-center gap-3">
         {editingTitle ? (
           <input
             autoFocus
@@ -82,24 +82,24 @@ export default function TodoItem({ todo }: { todo: Todo }) {
               if (e.key === "Enter") saveTitle();
               if (e.key === "Escape") { setEditingTitle(false); setTitleVal(todo.title); }
             }}
-            className="w-full bg-transparent text-sm text-[#2C2416] focus:outline-none border-b border-[#E07B4A] pb-0.5"
+            className="flex-1 bg-transparent text-sm text-[#0A0A0A] focus:outline-none border-b border-[#9D4EDD] pb-0.5"
           />
         ) : (
           <span
             onClick={() => !todo.completed && setEditingTitle(true)}
-            className={`text-sm text-[#2C2416] cursor-text ${
-              todo.completed ? "line-through text-[#B8B0A4]" : "hover:text-[#E07B4A]"
+            className={`text-sm cursor-text truncate ${
+              todo.completed ? "line-through text-[#9CA3AF]" : "text-[#0A0A0A] hover:text-[#9D4EDD]"
             } transition-colors`}
           >
             {todo.title}
           </span>
         )}
 
-        {/* Meta */}
-        <div className="flex items-center gap-3 mt-1">
-          {days > 0 && (
-            <span className="text-[10px] text-[#C8BFB0]">
-              {days === 1 ? "ayer" : `hace ${days}d`}
+        {/* Meta — inline */}
+        <div className="flex items-center gap-2 shrink-0">
+          {days > 0 && !todo.completed && (
+            <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#D1D5DB]">
+              {days === 1 ? "ayer" : `${days}d`}
             </span>
           )}
 
@@ -113,25 +113,25 @@ export default function TodoItem({ todo }: { todo: Todo }) {
                 startTransition(() => updateTodoDueDate(todo.id, e.target.value || null));
               }}
               onKeyDown={e => { if (e.key === "Escape") setEditingDate(false); }}
-              className="text-[10px] bg-transparent text-[#B8B0A4] focus:outline-none"
+              className="font-[family-name:var(--font-mono)] text-[10px] bg-transparent text-[#9CA3AF] focus:outline-none"
             />
           ) : todo.due_date ? (
             <button
               onClick={() => setEditingDate(true)}
-              className={`flex items-center gap-1 text-[10px] transition-colors ${
-                isOverdue ? "text-red-400" : "text-[#B8B0A4] hover:text-[#E07B4A]"
+              className={`flex items-center gap-1 font-[family-name:var(--font-mono)] text-[10px] transition-colors ${
+                isOverdue ? "text-[#FF1493]" : "text-[#9CA3AF] hover:text-[#9D4EDD]"
               }`}
             >
-              <Calendar size={10} />
+              <Calendar size={9} />
               {formatDate(todo.due_date)}
               {isOverdue && " · vencida"}
             </button>
           ) : (
             <button
               onClick={() => setEditingDate(true)}
-              className="flex items-center gap-1 text-[10px] text-[#E2D9C8] hover:text-[#B8B0A4] transition-colors opacity-0 group-hover:opacity-100"
+              className="flex items-center gap-1 font-[family-name:var(--font-mono)] text-[10px] text-[#E5E7EB] hover:text-[#9CA3AF] transition-colors opacity-0 group-hover:opacity-100"
             >
-              <Calendar size={10} />
+              <Calendar size={9} />
               fecha
             </button>
           )}
@@ -141,9 +141,9 @@ export default function TodoItem({ todo }: { todo: Todo }) {
       {/* Delete */}
       <button
         onClick={() => startTransition(() => deleteTodo(todo.id))}
-        className="shrink-0 opacity-0 group-hover:opacity-100 text-[#E2D9C8] hover:text-red-400 transition-all mt-0.5"
+        className="shrink-0 opacity-0 group-hover:opacity-100 text-[#E5E7EB] hover:text-[#FF1493] transition-all"
       >
-        <Trash2 size={14} />
+        <Trash2 size={13} />
       </button>
     </div>
   );

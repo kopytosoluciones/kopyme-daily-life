@@ -445,7 +445,7 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
               </p>
             </div>
           ) : (
-            <div className="space-y-0.5">
+            <div>
               {shown.map(todo => (
                 <TodoItem key={todo.id} todo={todo} />
               ))}
