@@ -3,13 +3,18 @@
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
-export async function createEntry(content: string, entryDate: string, emoji: string | null) {
+export async function createEntry(
+  content: string,
+  entryDate: string,
+  emoji: string | null,
+  mood: number | null,
+) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return;
   const { error } = await supabase
     .from("diary_entries")
-    .insert({ user_id: user.id, content, entry_date: entryDate, emoji });
+    .insert({ user_id: user.id, content, entry_date: entryDate, emoji, mood });
   if (error) throw new Error(error.message);
   revalidatePath("/diary");
 }
