@@ -12,7 +12,7 @@ import { X, Trash2, Smile } from "lucide-react";
 
 interface Entry {
   id: string;
-  content: string;
+  body: string;
   entry_date: string;
   emoji: string | null;
   mood: number | null;
@@ -185,7 +185,7 @@ interface TooltipProps {
 interface ChartPoint {
   date: string;
   mood: number | null;
-  content: string;
+  body: string;
   emoji: string | null;
   fullDate: string;
 }
@@ -207,9 +207,9 @@ function ChartTooltip({ active, payload }: TooltipProps) {
       >
         {moodEmoji(d.mood)} {d.mood}/10
       </p>
-      {d.content && (
+      {d.body && (
         <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] max-w-[180px] truncate">
-          {d.content}
+          {d.body}
         </p>
       )}
     </div>
@@ -377,9 +377,9 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
                   </span>
                 )}
               </div>
-              {tip.entry.content && (
+              {tip.entry.body && (
                 <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#9CA3AF] mt-1 max-w-[180px] truncate">
-                  {tip.entry.content}
+                  {tip.entry.body}
                 </p>
               )}
             </>
@@ -429,7 +429,7 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
 
   async function handleSave() {
     if (!content.trim() && mood === null) return;
-    const snap = { content: content.trim(), date, emoji, mood };
+    const snap = { body: content.trim(), date, emoji, mood };
     setContent("");
     setEmoji(null);
     setMood(null);
@@ -437,7 +437,7 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
     setSaveError(null);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     startTransition(async () => {
-      const result = await createEntry(snap.content, snap.date, snap.emoji, snap.mood);
+      const result = await createEntry(snap.body, snap.date, snap.emoji, snap.mood);
       if (result.error) {
         setSaveError(result.error);
       } else {
@@ -460,7 +460,7 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
       date: shortDate(d),
       fullDate: d,
       mood: entry?.mood ?? null,
-      content: entry?.content ?? "",
+      body: entry?.body ?? "",
       emoji: entry?.emoji ?? null,
     };
   });
@@ -707,7 +707,7 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
                 {/* Preview */}
                 <span className="flex-1 font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] truncate group-hover:text-[#6B7280] transition-colors">
                   {entry.emoji && <span className="mr-1">{entry.emoji}</span>}
-                  {entry.content || <span className="italic text-[#D1D5DB]">sin texto</span>}
+                  {entry.body || <span className="italic text-[#D1D5DB]">sin texto</span>}
                 </span>
 
                 {/* Days ago */}
@@ -801,9 +801,9 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
 
             <div className="h-px bg-[#F3F4F6] mb-4" />
 
-            {selected.content ? (
+            {selected.body ? (
               <p className="text-[#374151] text-[15px] leading-relaxed whitespace-pre-wrap">
-                {selected.content}
+                {selected.body}
               </p>
             ) : (
               <p className="text-[#D1D5DB] text-sm font-[family-name:var(--font-mono)] italic">

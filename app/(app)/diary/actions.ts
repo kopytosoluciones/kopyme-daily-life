@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export async function createEntry(
-  content: string,
+  body: string,
   entryDate: string,
   emoji: string | null,
   mood: number | null,
@@ -16,7 +16,7 @@ export async function createEntry(
 
     const { error } = await supabase
       .from("diary_entries")
-      .insert({ user_id: user.id, content, entry_date: entryDate, emoji, mood });
+      .insert({ user_id: user.id, body, entry_date: entryDate, emoji, mood });
 
     if (error) return { error: error.message };
 

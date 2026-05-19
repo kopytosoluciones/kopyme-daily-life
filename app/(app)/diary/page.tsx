@@ -9,7 +9,7 @@ export default async function DiaryPage() {
 
   const { data: entries } = await supabase
     .from("diary_entries")
-    .select("id, content, entry_date, emoji, mood")
+    .select("id, body, entry_date, emoji, mood")
     .eq("user_id", user.id)
     .order("entry_date", { ascending: false })
     .order("created_at", { ascending: false });
