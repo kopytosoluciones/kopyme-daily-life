@@ -8,19 +8,38 @@ export async function createEntry(
   entryDate: string,
   emoji: string | null,
   mood: number | null,
-) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
-  const { error } = await supabase
-    .from("diary_entries")
-    .insert({ user_id: user.id, content, entry_date: entryDate, emoji, mood });
-  if (error) throw new Error(error.message);
-  revalidatePath("/diary");
+): Promise<{ error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { error: "No autenticado" };
+
+    const { error } = await supabase
+      .from("diary_entries")
+      .insert({ user_id: user.id, content, entry_date: entryDate, emoji, mood });
+
+    if (error) return { error: error.message };
+
+    revalidatePath("/diary");
+    return { error: null };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Error desconocido" };
+  }
 }
 
-export async function deleteEntry(id: string) {
-  const supabase = await createClient();
-  await supabase.from("diary_entries").delete().eq("id", id);
-  revalidatePath("/diary");
+export async function deleteEntry(id: string): Promise<{ error: string | null }> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("diary_entries")
+      .delete()
+      .eq("id", id);
+
+    if (error) return { error: error.message };
+
+    revalidatePath("/diary");
+    return { error: null };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Error desconocido" };
+  }
 }

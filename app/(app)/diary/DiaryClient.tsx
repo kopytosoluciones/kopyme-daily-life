@@ -226,6 +226,7 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
   const [showPicker,    setShowPicker]  = useState(false);
   const [selected,      setSelected]    = useState<Entry | null>(null);
   const [saved,         setSaved]       = useState(false);
+  const [saveError,     setSaveError]   = useState<string | null>(null);
   const [isPending,     startTransition] = useTransition();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -257,11 +258,16 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
     setEmoji(null);
     setMood(null);
     setDate(todayStr());
+    setSaveError(null);
     if (textareaRef.current) textareaRef.current.style.height = "auto";
     startTransition(async () => {
-      await createEntry(snap.content, snap.date, snap.emoji, snap.mood);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 1800);
+      const result = await createEntry(snap.content, snap.date, snap.emoji, snap.mood);
+      if (result.error) {
+        setSaveError(result.error);
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 1800);
+      }
     });
   }
 
@@ -408,6 +414,18 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
             </button>
           </div>
         </div>
+
+        {/* ── Save error ── */}
+        {saveError && (
+          <div className="mb-6 -mt-4 px-4 py-2.5 bg-[#FFF0F5] border border-[#FF1493]/20 rounded-xl flex items-center justify-between">
+            <span className="font-[family-name:var(--font-mono)] text-[11px] text-[#FF1493]">
+              Error al guardar: {saveError}
+            </span>
+            <button onClick={() => setSaveError(null)} className="text-[#FF1493]/50 hover:text-[#FF1493]">
+              <X size={12} />
+            </button>
+          </div>
+        )}
 
         {/* ── Mood chart ── */}
         {hasChart && (
