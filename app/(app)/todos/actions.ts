@@ -56,13 +56,38 @@ export async function createTodo(listId: string, title: string, dueDate?: string
   const trimmed = title.trim();
   if (!trimmed) return;
 
+  const { data: last } = await supabase
+    .from("todos")
+    .select("position")
+    .eq("list_id", listId)
+    .order("position", { ascending: false })
+    .limit(1)
+    .single();
+
   await supabase.from("todos").insert({
     user_id: user.id,
     list_id: listId,
     title: trimmed,
     due_date: dueDate || null,
+    position: (last?.position ?? 0) + 1,
   });
 
+  revalidatePath("/todos");
+}
+
+export async function reorderTodos(orderedIds: string[]) {
+  const supabase = await createClient();
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from("todos").update({ position: index }).eq("id", id)
+    )
+  );
+  revalidatePath("/todos");
+}
+
+export async function updateList(id: string, name: string, color: string) {
+  const supabase = await createClient();
+  await supabase.from("todo_lists").update({ name: name.trim(), color }).eq("id", id);
   revalidatePath("/todos");
 }
 

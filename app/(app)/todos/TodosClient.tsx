@@ -1,9 +1,27 @@
 "use client";
 
-import { useState, useTransition, useRef, useOptimistic } from "react";
+import { useState, useTransition, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, X, Trash2, Calendar, Check, ChevronDown } from "lucide-react";
-import { createList, deleteList, updateListName, createTodo, toggleTodo, deleteTodo, updateTodoTitle, updateTodoDueDate } from "./actions";
+import { Plus, X, Trash2, Calendar, Check, Pencil } from "lucide-react";
+import {
+  createList, deleteList, updateList,
+  createTodo, toggleTodo, deleteTodo, updateTodoTitle, updateTodoDueDate,
+  reorderTodos,
+} from "./actions";
+import TodoItem from "./TodoItem";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
 
 interface Todo {
   id: string;
@@ -13,6 +31,7 @@ interface Todo {
   due_date: string | null;
   created_at: string;
   list_id: string;
+  position: number;
 }
 
 interface List {
@@ -47,131 +66,6 @@ function formatDate(dateStr: string) {
   return date.toLocaleDateString("es-AR", { day: "numeric", month: "short" });
 }
 
-function daysSince(dateStr: string) {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24));
-}
-
-// ─── TodoItem ─────────────────────────────────────────────────────────────────
-
-function TodoItem({ todo }: { todo: Todo }) {
-  const [, startTransition] = useTransition();
-  const [editingTitle, setEditingTitle] = useState(false);
-  const [titleVal, setTitleVal] = useState(todo.title);
-  const [editingDate, setEditingDate] = useState(false);
-  const dateRef = useRef<HTMLInputElement>(null);
-  const days = daysSince(todo.created_at);
-
-  const isOverdue = todo.due_date && !todo.completed &&
-    new Date(todo.due_date + "T00:00:00") < new Date(new Date().toDateString());
-
-  function saveTitle() {
-    setEditingTitle(false);
-    if (titleVal.trim() && titleVal !== todo.title) {
-      startTransition(() => updateTodoTitle(todo.id, titleVal));
-    } else {
-      setTitleVal(todo.title);
-    }
-  }
-
-  return (
-    <div className={`group flex items-start gap-3 px-3 py-2.5 rounded-lg transition-all hover:bg-[#F5F5F5] ${todo.completed ? "opacity-50" : ""}`}>
-      {/* Checkbox */}
-      <button
-        onClick={() => startTransition(() => toggleTodo(todo.id, !todo.completed))}
-        className={`shrink-0 mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center transition-all ${
-          todo.completed
-            ? "bg-[#0A0A0A] border-[#0A0A0A]"
-            : "border-[#D1D5DB] hover:border-[#0A0A0A]"
-        }`}
-      >
-        {todo.completed && <Check size={10} strokeWidth={3} className="text-white" />}
-      </button>
-
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        {editingTitle ? (
-          <input
-            autoFocus
-            value={titleVal}
-            onChange={e => setTitleVal(e.target.value)}
-            onBlur={saveTitle}
-            onKeyDown={e => {
-              if (e.key === "Enter") saveTitle();
-              if (e.key === "Escape") { setEditingTitle(false); setTitleVal(todo.title); }
-            }}
-            className="w-full bg-transparent text-sm text-[#0A0A0A] focus:outline-none border-b-2 border-[#9D4EDD] pb-0.5"
-          />
-        ) : (
-          <span
-            onClick={() => !todo.completed && setEditingTitle(true)}
-            className={`text-sm cursor-text select-none ${
-              todo.completed
-                ? "line-through text-[#9CA3AF]"
-                : "text-[#0A0A0A] hover:text-[#9D4EDD]"
-            } transition-colors`}
-          >
-            {todo.title}
-          </span>
-        )}
-
-        {/* Meta */}
-        <div className="flex items-center gap-3 mt-0.5">
-          {days > 0 && !todo.completed && (
-            <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF]">
-              {days === 1 ? "ayer" : `${days}d`}
-            </span>
-          )}
-
-          {editingDate ? (
-            <input
-              ref={dateRef}
-              autoFocus
-              type="date"
-              defaultValue={todo.due_date ?? ""}
-              onBlur={e => {
-                setEditingDate(false);
-                startTransition(() => updateTodoDueDate(todo.id, e.target.value || null));
-              }}
-              onKeyDown={e => { if (e.key === "Escape") setEditingDate(false); }}
-              className="font-[family-name:var(--font-mono)] text-[10px] bg-transparent text-[#9CA3AF] focus:outline-none"
-            />
-          ) : todo.due_date ? (
-            <button
-              onClick={() => setEditingDate(true)}
-              className={`flex items-center gap-1 font-[family-name:var(--font-mono)] text-[10px] transition-colors ${
-                isOverdue ? "text-[#FF1493]" : "text-[#9CA3AF] hover:text-[#9D4EDD]"
-              }`}
-            >
-              <Calendar size={9} />
-              {formatDate(todo.due_date)}
-              {isOverdue && " · vencida"}
-            </button>
-          ) : (
-            <button
-              onClick={() => setEditingDate(true)}
-              className="flex items-center gap-1 font-[family-name:var(--font-mono)] text-[10px] text-[#E5E7EB] hover:text-[#9CA3AF] transition-colors opacity-0 group-hover:opacity-100"
-            >
-              <Calendar size={9} />
-              fecha
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Delete */}
-      <button
-        onClick={() => startTransition(() => deleteTodo(todo.id))}
-        className="shrink-0 opacity-0 group-hover:opacity-100 text-[#E5E7EB] hover:text-[#FF1493] transition-all mt-0.5"
-      >
-        <Trash2 size={13} />
-      </button>
-    </div>
-  );
-}
-
-// ─── Main Component ───────────────────────────────────────────────────────────
-
 export default function TodosClient({ lists, activeListId, todos }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
@@ -181,6 +75,11 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
   const [newListName, setNewListName] = useState("");
   const [selectedColor, setSelectedColor] = useState(LIST_COLORS[0]);
 
+  // List editing
+  const [editingList, setEditingList] = useState<List | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editColor, setEditColor] = useState("");
+
   // Task creation
   const [newTitle, setNewTitle] = useState("");
   const [newDate, setNewDate] = useState("");
@@ -189,21 +88,40 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
   // Filter
   const [filter, setFilter] = useState<"pending" | "completed">("pending");
 
-  // List rename
-  const [renamingListId, setRenamingListId] = useState<string | null>(null);
-  const [renameVal, setRenameVal] = useState("");
+  // Local todo order for optimistic drag
+  const [localTodos, setLocalTodos] = useState<Todo[]>(todos);
+  // Sync when server data changes
+  if (todos.map(t => t.id).join() !== localTodos.map(t => t.id).join() &&
+      todos.length !== localTodos.length) {
+    setLocalTodos(todos);
+  }
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
 
   const activeList = lists.find(l => l.id === activeListId);
   const now = Date.now();
 
-  const pending = todos.filter(t =>
+  const pending = localTodos.filter(t =>
     !t.completed || (t.completed_at && now - new Date(t.completed_at).getTime() < TWELVE_HOURS_MS)
   );
-  const completed = todos.filter(t =>
+  const completed = localTodos.filter(t =>
     t.completed && t.completed_at && now - new Date(t.completed_at).getTime() >= TWELVE_HOURS_MS
   );
   const pendingCount = pending.filter(t => !t.completed).length;
   const shown = filter === "completed" ? completed : pending;
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = localTodos.findIndex(t => t.id === active.id);
+    const newIndex = localTodos.findIndex(t => t.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = arrayMove(localTodos, oldIndex, newIndex);
+    setLocalTodos(reordered);
+    startTransition(() => reorderTodos(reordered.map(t => t.id)));
+  }
 
   function handleCreateList(e: React.FormEvent) {
     e.preventDefault();
@@ -222,16 +140,86 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
     setNewDate("");
   }
 
-  function handleRenameList(id: string) {
-    if (renameVal.trim() && renameVal !== lists.find(l => l.id === id)?.name) {
-      startTransition(() => updateListName(id, renameVal.trim()));
-    }
-    setRenamingListId(null);
+  function openEditList(list: List) {
+    setEditingList(list);
+    setEditName(list.name);
+    setEditColor(list.color);
+  }
+
+  function handleSaveList(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editingList || !editName.trim()) return;
+    startTransition(() => updateList(editingList.id, editName, editColor));
+    setEditingList(null);
   }
 
   return (
     <div className="min-h-screen bg-white">
-      {/* ── Page header ─────────────────────────────────────────────────────── */}
+
+      {/* Edit list modal */}
+      {editingList && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+          onClick={e => { if (e.target === e.currentTarget) setEditingList(null); }}
+        >
+          <form
+            onSubmit={handleSaveList}
+            className="bg-white rounded-xl border-2 border-[#0A0A0A] shadow-[0_8px_24px_rgba(0,0,0,0.15)] w-full max-w-sm mx-4 p-6"
+          >
+            <div className="flex justify-between items-center mb-5">
+              <h3 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#0A0A0A]">
+                Editar lista
+              </h3>
+              <button type="button" onClick={() => setEditingList(null)} className="text-[#D1D5DB] hover:text-[#0A0A0A] transition-colors">
+                <X size={16} />
+              </button>
+            </div>
+
+            <label className="block text-xs text-[#6B7280] mb-1.5">Nombre</label>
+            <input
+              autoFocus
+              value={editName}
+              onChange={e => setEditName(e.target.value)}
+              className="w-full px-4 py-2.5 rounded-lg border border-[#0A0A0A] bg-[#F5F5F5] text-[#0A0A0A] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] text-sm transition-all mb-4"
+            />
+
+            <label className="block text-xs text-[#6B7280] mb-2">Color</label>
+            <div className="flex items-center gap-2 mb-6 flex-wrap">
+              {LIST_COLORS.map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setEditColor(c)}
+                  className={`w-7 h-7 rounded-full border-2 transition-all ${
+                    editColor === c ? "border-[#0A0A0A] scale-110" : "border-transparent hover:scale-105"
+                  }`}
+                  style={{ background: c }}
+                />
+              ))}
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => { setEditingList(null); startTransition(() => deleteList(editingList.id)); }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#E5E7EB] text-sm text-[#9CA3AF] hover:text-[#FF1493] hover:border-[#FF1493] transition-all"
+              >
+                <Trash2 size={13} />
+                Eliminar
+              </button>
+              <button
+                type="submit"
+                disabled={!editName.trim()}
+                className="flex-1 py-2 rounded-lg bg-[#0A0A0A] text-white text-sm font-medium border-2 border-[#0A0A0A] hover:bg-[#1f1f1f] transition-all disabled:opacity-40"
+              >
+                Guardar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Page header */}
       <div className="border-b border-[#F5F5F5] px-8 pt-10 pb-6">
         <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-bold text-[#0A0A0A] mb-1">
           Mis listas
@@ -242,67 +230,50 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
         </p>
       </div>
 
-      {/* ── Lists bar ───────────────────────────────────────────────────────── */}
+      {/* Lists bar */}
       <div className="px-8 py-4 border-b border-[#F5F5F5]">
         <div className="flex items-center gap-2 flex-wrap">
           {lists.map(list => (
-            <div key={list.id} className="relative group/chip">
-              {renamingListId === list.id ? (
-                <input
-                  autoFocus
-                  value={renameVal}
-                  onChange={e => setRenameVal(e.target.value)}
-                  onBlur={() => handleRenameList(list.id)}
-                  onKeyDown={e => {
-                    if (e.key === "Enter") handleRenameList(list.id);
-                    if (e.key === "Escape") setRenamingListId(null);
-                  }}
-                  className="px-4 py-2 rounded-lg border-2 border-[#9D4EDD] text-sm font-medium text-[#0A0A0A] focus:outline-none min-w-[80px]"
+            <div key={list.id} className="relative group/chip flex items-center">
+              <button
+                onClick={() => router.push(`/todos?list=${list.id}`)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all select-none pr-3 ${
+                  list.id === activeListId
+                    ? "bg-[#0A0A0A] border-[#0A0A0A] text-white shadow-sm"
+                    : "bg-white border-[#0A0A0A] text-[#0A0A0A] hover:bg-[#F5F5F5]"
+                }`}
+              >
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{ background: list.id === activeListId ? "white" : list.color }}
                 />
-              ) : (
-                <button
-                  onClick={() => router.push(`/todos?list=${list.id}`)}
-                  onDoubleClick={() => { setRenamingListId(list.id); setRenameVal(list.name); }}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border-2 text-sm font-medium transition-all select-none ${
-                    list.id === activeListId
-                      ? "bg-[#0A0A0A] border-[#0A0A0A] text-white shadow-sm"
-                      : "bg-white border-[#0A0A0A] text-[#0A0A0A] hover:bg-[#F5F5F5]"
-                  }`}
-                >
-                  <span
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ background: list.id === activeListId ? "white" : list.color }}
-                  />
-                  {list.name}
-                  {list._count > 0 && (
-                    <span className={`font-[family-name:var(--font-mono)] text-[10px] px-1.5 py-0.5 rounded ${
-                      list.id === activeListId
-                        ? "bg-white/20 text-white"
-                        : "bg-[#F5F5F5] text-[#6B7280]"
-                    }`}>
-                      {list._count}
-                    </span>
-                  )}
-                </button>
-              )}
-
-              {/* Delete list — appears on hover */}
-              {list.id !== activeListId && (
-                <button
-                  onClick={() => startTransition(() => deleteList(list.id))}
-                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center opacity-0 group-hover/chip:opacity-100 transition-opacity hover:bg-[#FF1493] hover:border-[#FF1493] hover:text-white text-[#9CA3AF]"
-                >
-                  <X size={8} />
-                </button>
-              )}
+                {list.name}
+                {list._count > 0 && (
+                  <span className={`font-[family-name:var(--font-mono)] text-[10px] px-1.5 py-0.5 rounded ${
+                    list.id === activeListId ? "bg-white/20 text-white" : "bg-[#F5F5F5] text-[#6B7280]"
+                  }`}>
+                    {list._count}
+                  </span>
+                )}
+              </button>
+              {/* Edit button */}
+              <button
+                onClick={() => openEditList(list)}
+                className={`ml-0.5 p-1.5 rounded-lg transition-all opacity-0 group-hover/chip:opacity-100 ${
+                  list.id === activeListId
+                    ? "text-white/60 hover:text-white hover:bg-white/10"
+                    : "text-[#9CA3AF] hover:text-[#0A0A0A] hover:bg-[#F5F5F5]"
+                }`}
+              >
+                <Pencil size={11} />
+              </button>
             </div>
           ))}
 
           {/* Create new list */}
           {creatingList ? (
             <form onSubmit={handleCreateList} className="flex items-center gap-2">
-              {/* Color picker */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 {LIST_COLORS.map(c => (
                   <button
                     key={c}
@@ -332,9 +303,9 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
               <button
                 type="button"
                 onClick={() => { setCreatingList(false); setNewListName(""); }}
-                className="px-3 py-2 text-sm text-[#9CA3AF] hover:text-[#0A0A0A] transition-colors"
+                className="text-[#9CA3AF] hover:text-[#0A0A0A] transition-colors"
               >
-                Cancelar
+                <X size={16} />
               </button>
             </form>
           ) : (
@@ -347,32 +318,25 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
             </button>
           )}
         </div>
-
-        {lists.length === 0 && !creatingList && (
-          <p className="text-sm text-[#9CA3AF] mt-2">
-            Creá tu primera lista para empezar.
-          </p>
-        )}
       </div>
 
-      {/* ── Active list content ─────────────────────────────────────────────── */}
+      {/* Active list content */}
       {activeList ? (
         <div className="px-8 py-6 max-w-2xl">
-          {/* List title + count */}
-          <div className="flex items-center gap-3 mb-5">
+
+          {/* List header */}
+          <div className="flex items-center gap-3 mb-4">
             <span className="w-3 h-3 rounded-full" style={{ background: activeList.color }} />
             <h2 className="font-[family-name:var(--font-playfair)] text-xl font-bold text-[#0A0A0A]">
               {activeList.name}
             </h2>
             <span className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">
-              {pendingCount === 0
-                ? "sin pendientes"
-                : `${pendingCount} pendiente${pendingCount !== 1 ? "s" : ""}`}
+              {pendingCount === 0 ? "sin pendientes" : `${pendingCount} pendiente${pendingCount !== 1 ? "s" : ""}`}
             </span>
           </div>
 
           {/* Filter tabs */}
-          <div className="flex gap-1 mb-5">
+          <div className="flex gap-1 mb-4">
             {(["pending", "completed"] as const).map(f => (
               <button
                 key={f}
@@ -388,10 +352,10 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
             ))}
           </div>
 
-          {/* New task input — only on pending tab */}
+          {/* New task input */}
           {filter === "pending" && (
-            <form onSubmit={handleAddTodo} className="flex items-center gap-2 mb-4">
-              <div className="flex-1 flex items-center gap-2 border-2 border-[#E5E7EB] rounded-lg px-3 py-2.5 focus-within:border-[#0A0A0A] transition-all bg-white">
+            <form onSubmit={handleAddTodo} className="flex items-center gap-2 mb-3">
+              <div className="flex-1 flex items-center gap-2 border-2 border-[#E5E7EB] rounded-lg px-3 py-2 focus-within:border-[#0A0A0A] transition-all bg-white">
                 <span className="shrink-0 w-4 h-4 rounded border-2 border-dashed border-[#D1D5DB]" />
                 <input
                   value={newTitle}
@@ -405,8 +369,7 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
                     onClick={() => setNewDate("")}
                     className="shrink-0 font-[family-name:var(--font-mono)] text-xs text-[#9D4EDD] hover:text-[#FF1493] transition-colors flex items-center gap-1"
                   >
-                    {formatDate(newDate)}
-                    <X size={10} />
+                    {formatDate(newDate)} <X size={10} />
                   </button>
                 ) : (
                   <button
@@ -428,7 +391,7 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
               <button
                 type="submit"
                 disabled={!newTitle.trim()}
-                className="shrink-0 px-4 py-2.5 bg-[#0A0A0A] text-white text-sm font-medium rounded-lg hover:bg-[#1f1f1f] transition-all disabled:opacity-30 border-2 border-[#0A0A0A]"
+                className="shrink-0 px-4 py-2 bg-[#0A0A0A] text-white text-sm font-medium rounded-lg hover:bg-[#1f1f1f] transition-all disabled:opacity-30 border-2 border-[#0A0A0A]"
               >
                 Agregar
               </button>
@@ -437,13 +400,21 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
 
           {/* Task list */}
           {shown.length === 0 ? (
-            <div className="py-12 text-center">
+            <div className="py-10 text-center">
               <p className="text-sm text-[#D1D5DB]">
-                {filter === "completed"
-                  ? "Nada completado todavía."
-                  : "Sin tareas. ¡Agregá la primera arriba!"}
+                {filter === "completed" ? "Nada completado todavía." : "Sin tareas. ¡Agregá la primera arriba!"}
               </p>
             </div>
+          ) : filter === "pending" ? (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={shown.map(t => t.id)} strategy={verticalListSortingStrategy}>
+                <div>
+                  {shown.map(todo => (
+                    <TodoItem key={todo.id} todo={todo} />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
           ) : (
             <div>
               {shown.map(todo => (
@@ -453,7 +424,7 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
           )}
 
           {filter === "pending" && pending.some(t => t.completed) && (
-            <p className="font-[family-name:var(--font-mono)] text-xs text-[#D1D5DB] text-center mt-4">
+            <p className="font-[family-name:var(--font-mono)] text-xs text-[#D1D5DB] text-center mt-3">
               Las completadas desaparecen a las 12 horas.
             </p>
           )}
@@ -463,9 +434,7 @@ export default function TodosClient({ lists, activeListId, todos }: Props) {
           <p className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-[#0A0A0A] mb-3">
             Sin listas todavía
           </p>
-          <p className="text-sm text-[#9CA3AF] mb-6">
-            Creá una lista para empezar a organizar tus tareas.
-          </p>
+          <p className="text-sm text-[#9CA3AF] mb-6">Creá una lista para empezar a organizar tus tareas.</p>
           <button
             onClick={() => setCreatingList(true)}
             className="inline-flex items-center gap-2 px-6 py-3 bg-[#0A0A0A] text-white text-sm font-medium rounded-lg hover:bg-[#1f1f1f] transition-all border-2 border-[#0A0A0A]"

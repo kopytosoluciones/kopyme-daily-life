@@ -21,8 +21,9 @@ export default async function TodosPage({
 
   const { data: allTodos } = await supabase
     .from("todos")
-    .select("id, title, completed, completed_at, due_date, created_at, list_id")
+    .select("id, title, completed, completed_at, due_date, created_at, list_id, position")
     .eq("user_id", user.id)
+    .order("position", { ascending: true })
     .order("created_at", { ascending: true });
 
   const todos = allTodos ?? [];
