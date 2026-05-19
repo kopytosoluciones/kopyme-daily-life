@@ -216,6 +216,182 @@ function ChartTooltip({ active, payload }: TooltipProps) {
   );
 }
 
+// ─── Year Heatmap ─────────────────────────────────────────────────────────────
+
+const MONTHS_ES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+const DAYS_ES   = ["L","M","X","J","V","S","D"];
+const CELL = 10;
+const GAP  = 2;
+const STEP = CELL + GAP;
+
+interface HeatDay {
+  date: string;
+  inYear: boolean;
+  entry?: Entry;
+}
+
+function buildYearGrid(entries: Entry[], year: number): HeatDay[][] {
+  const byDate: Record<string, Entry> = {};
+  entries.forEach(e => { if (e.entry_date.startsWith(`${year}-`)) byDate[e.entry_date] = e; });
+
+  // Start from the Monday of the week containing Jan 1
+  const jan1   = new Date(year, 0, 1);
+  const dow    = jan1.getDay(); // 0=Sun
+  const offset = dow === 0 ? -6 : 1 - dow;
+  const cursor = new Date(jan1);
+  cursor.setDate(jan1.getDate() + offset);
+
+  const weeks: HeatDay[][] = [];
+  while (true) {
+    const week: HeatDay[] = [];
+    for (let d = 0; d < 7; d++) {
+      const dateStr = cursor.toISOString().split("T")[0];
+      week.push({ date: dateStr, inYear: cursor.getFullYear() === year, entry: byDate[dateStr] });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+    weeks.push(week);
+    // Stop once we've passed Dec 31
+    if (cursor.getFullYear() > year) break;
+  }
+  return weeks;
+}
+
+function YearHeatmap({ entries }: { entries: Entry[] }) {
+  const year = new Date().getFullYear();
+  const [tip, setTip] = useState<{ date: string; entry?: Entry; x: number; y: number } | null>(null);
+
+  const weeks = buildYearGrid(entries, year);
+
+  // Month label positions
+  const monthLabels: { label: string; col: number }[] = [];
+  let lastMonth = -1;
+  weeks.forEach((week, wi) => {
+    const first = week.find(d => d.inYear);
+    if (!first) return;
+    const m = new Date(first.date + "T00:00:00").getMonth();
+    if (m !== lastMonth) { monthLabels.push({ label: MONTHS_ES[m], col: wi }); lastMonth = m; }
+  });
+
+  return (
+    <div className="mt-10">
+      <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest mb-3">
+        {year} — mapa emocional
+      </p>
+
+      {/* Mood legend */}
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="font-[family-name:var(--font-mono)] text-[8px] text-[#D1D5DB]">menos</span>
+        {MOOD_COLORS.map((c, i) => (
+          <div key={i} style={{ width: CELL, height: CELL, backgroundColor: c, borderRadius: 2, opacity: 0.5 + (i / 9) * 0.5 }} />
+        ))}
+        <span className="font-[family-name:var(--font-mono)] text-[8px] text-[#D1D5DB]">más</span>
+      </div>
+
+      <div className="overflow-x-auto pb-1">
+        <div style={{ minWidth: weeks.length * STEP + 20 }}>
+          {/* Month labels */}
+          <div className="flex mb-0.5 pl-5">
+            {weeks.map((_, wi) => {
+              const lbl = monthLabels.find(m => m.col === wi);
+              return (
+                <div key={wi} style={{ width: STEP, flexShrink: 0 }}>
+                  {lbl && (
+                    <span className="font-[family-name:var(--font-mono)] text-[8px] text-[#9CA3AF]">
+                      {lbl.label}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Grid rows (Mon–Sun) */}
+          <div className="flex gap-0">
+            {/* Day labels */}
+            <div className="flex flex-col mr-1" style={{ gap: GAP }}>
+              {DAYS_ES.map((d, i) => (
+                <div
+                  key={d}
+                  className="font-[family-name:var(--font-mono)] text-[7px] text-[#D1D5DB] flex items-center justify-end pr-1"
+                  style={{ height: CELL, width: 14, opacity: i % 2 === 0 ? 1 : 0 }}
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {/* Week columns */}
+            {weeks.map((week, wi) => (
+              <div key={wi} className="flex flex-col" style={{ gap: GAP, marginRight: GAP }}>
+                {week.map((day, di) => {
+                  if (!day.inYear) {
+                    return <div key={di} style={{ width: CELL, height: CELL }} />;
+                  }
+                  const hasMood = day.entry?.mood != null;
+                  const bg = hasMood ? moodColor(day.entry!.mood!) : "#F3F4F6";
+                  const op = hasMood ? 0.35 + (day.entry!.mood! / 10) * 0.65 : 1;
+                  return (
+                    <div
+                      key={di}
+                      style={{
+                        width: CELL, height: CELL,
+                        backgroundColor: bg,
+                        opacity: op,
+                        borderRadius: 2,
+                        cursor: "crosshair",
+                        flexShrink: 0,
+                      }}
+                      onMouseEnter={e => {
+                        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setTip({ date: day.date, entry: day.entry, x: r.left, y: r.top });
+                      }}
+                      onMouseLeave={() => setTip(null)}
+                    />
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Floating tooltip */}
+      {tip && (
+        <div
+          className="fixed z-50 bg-white border border-[#E5E7EB] rounded-xl p-3 shadow-xl pointer-events-none"
+          style={{ left: tip.x + 14, top: Math.max(8, tip.y - 60) }}
+        >
+          <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A] text-xs mb-1">
+            {formatDate(tip.date)}
+          </p>
+          {tip.entry ? (
+            <>
+              <div className="flex items-center gap-1.5">
+                {tip.entry.emoji && <span className="text-sm">{tip.entry.emoji}</span>}
+                {tip.entry.mood && (
+                  <span
+                    className="font-[family-name:var(--font-mono)] text-[11px] font-bold"
+                    style={{ color: moodColor(tip.entry.mood) }}
+                  >
+                    {moodEmoji(tip.entry.mood)} {tip.entry.mood}/10
+                  </span>
+                )}
+              </div>
+              {tip.entry.content && (
+                <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#9CA3AF] mt-1 max-w-[180px] truncate">
+                  {tip.entry.content}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB]">sin registro</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function DiaryClient({ entries }: { entries: Entry[] }) {
@@ -542,6 +718,10 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
             ))}
           </div>
         )}
+
+        {/* ── Year heatmap ── */}
+        <YearHeatmap entries={entries} />
+
       </div>
 
       {/* ── Entry modal ── */}
