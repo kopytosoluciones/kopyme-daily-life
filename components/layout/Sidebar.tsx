@@ -7,6 +7,7 @@ import {
   Home,
   Leaf,
   CheckSquare,
+  CalendarDays,
   Waves,
   BookOpen,
   Target,
@@ -18,9 +19,10 @@ import {
 } from "lucide-react";
 
 const modules = [
-  { href: "/dashboard",   Icon: Home,        label: "Inicio"           },
+  { href: "/dashboard",   Icon: Home,         label: "Inicio"           },
   { href: "/habits",      Icon: Leaf,         label: "Hábitos"          },
   { href: "/todos",       Icon: CheckSquare,  label: "To-dos"           },
+  { href: "/calendar",    Icon: CalendarDays, label: "Calendario"       },
   { href: "/mood",        Icon: Waves,        label: "Estado de ánimo"  },
   { href: "/diary",       Icon: BookOpen,     label: "Diario"           },
   { href: "/goals",       Icon: Target,       label: "Metas"            },
