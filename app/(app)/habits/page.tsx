@@ -52,10 +52,10 @@ export default async function HabitsPage({
   return (
     <div className="max-w-5xl mx-auto px-6 py-10 space-y-6">
       <div>
-        <h1 className="font-[family-name:var(--font-lora)] text-3xl font-semibold text-[#2C2416]">
+        <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-bold text-[#0A0A0A]">
           Hábitos
         </h1>
-        <p className="text-[#B8B0A4] text-sm mt-1">Tu semana de un vistazo.</p>
+        <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] mt-1">Tu semana de un vistazo.</p>
       </div>
 
       <HabitsGrid

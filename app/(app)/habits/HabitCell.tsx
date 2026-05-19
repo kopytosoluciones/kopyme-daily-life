@@ -2,11 +2,12 @@
 
 import { useTransition, useState, useRef } from "react";
 import { upsertHabitLog, deleteHabitLog } from "./actions";
+import { Check } from "lucide-react";
 
 interface Props {
   habitId: string;
-  date: string;         // YYYY-MM-DD
-  value: string | null; // existing log value
+  date: string;
+  value: string | null;
   goalType: "boolean" | "numeric" | "dropdown";
   goalOptions: string[];
   isToday: boolean;
@@ -39,17 +40,15 @@ export default function HabitCell({ habitId, date, value, goalType, goalOptions,
         title={isFuture ? "Día futuro" : ""}
         className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all mx-auto ${
           isFuture
-            ? "border-[#F0EBE2] cursor-not-allowed"
+            ? "border-[#F5F5F5] cursor-not-allowed"
             : checked
-            ? "bg-[#7CB87A] border-[#7CB87A] hover:opacity-80"
-            : "border-[#D9D0C0] hover:border-[#7CB87A] hover:bg-[#7CB87A]/10"
-        } ${isToday && !checked ? "border-[#E07B4A]/50" : ""}`}
+            ? "bg-[#39FF14] border-[#39FF14] hover:opacity-80"
+            : isToday
+            ? "border-[#9D4EDD]/50 hover:border-[#39FF14] hover:bg-[#39FF14]/10"
+            : "border-[#E5E7EB] hover:border-[#39FF14] hover:bg-[#39FF14]/10"
+        }`}
       >
-        {checked && (
-          <svg viewBox="0 0 10 8" fill="none" className="w-3.5">
-            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        )}
+        {checked && <Check size={12} strokeWidth={3} className="text-black" />}
       </button>
     );
   }
@@ -61,13 +60,15 @@ export default function HabitCell({ habitId, date, value, goalType, goalOptions,
         disabled={isFuture || pending}
         value={value ?? ""}
         onChange={e => save(e.target.value)}
-        className={`w-full text-xs text-center bg-transparent border rounded-lg px-1 py-1 focus:outline-none transition-all ${
+        className={`w-full font-[family-name:var(--font-mono)] text-[10px] text-center bg-transparent border rounded-lg px-1 py-1 focus:outline-none transition-all ${
           isFuture
-            ? "border-transparent text-[#E2D9C8] cursor-not-allowed"
+            ? "border-transparent text-[#E5E7EB] cursor-not-allowed"
             : hasValue
-            ? "border-[#7CB87A] text-[#2C2416] bg-[#7CB87A]/5"
-            : "border-[#E2D9C8] text-[#B8B0A4] hover:border-[#7CB87A]"
-        } ${isToday && !hasValue ? "border-[#E07B4A]/40" : ""}`}
+            ? "border-[#39FF14] text-[#0A0A0A] bg-[#39FF14]/5"
+            : isToday
+            ? "border-[#9D4EDD]/40 text-[#9CA3AF] hover:border-[#39FF14]"
+            : "border-[#E5E7EB] text-[#9CA3AF] hover:border-[#39FF14]"
+        }`}
       >
         <option value="">—</option>
         {goalOptions.map(opt => (
@@ -88,8 +89,11 @@ export default function HabitCell({ habitId, date, value, goalType, goalOptions,
         autoFocus
         onChange={e => setInputVal(e.target.value)}
         onBlur={() => { setEditing(false); save(inputVal); }}
-        onKeyDown={e => { if (e.key === "Enter") { setEditing(false); save(inputVal); } if (e.key === "Escape") { setEditing(false); setInputVal(value ?? ""); } }}
-        className="w-full text-xs text-center bg-[#FDFAF4] border border-[#E07B4A] rounded-lg px-1 py-1 focus:outline-none"
+        onKeyDown={e => {
+          if (e.key === "Enter") { setEditing(false); save(inputVal); }
+          if (e.key === "Escape") { setEditing(false); setInputVal(value ?? ""); }
+        }}
+        className="w-full font-[family-name:var(--font-mono)] text-[10px] text-center bg-white border border-[#9D4EDD] rounded-lg px-1 py-1 focus:outline-none"
       />
     );
   }
@@ -98,13 +102,15 @@ export default function HabitCell({ habitId, date, value, goalType, goalOptions,
     <button
       disabled={isFuture || pending}
       onClick={() => { if (!isFuture) { setEditing(true); setTimeout(() => inputRef.current?.focus(), 0); } }}
-      className={`w-full text-xs rounded-lg px-1 py-1 border transition-all ${
+      className={`w-full font-[family-name:var(--font-mono)] text-[10px] rounded-lg px-1 py-1 border transition-all ${
         isFuture
-          ? "border-transparent text-[#E2D9C8] cursor-not-allowed"
+          ? "border-transparent text-[#E5E7EB] cursor-not-allowed"
           : hasValue
-          ? "border-[#7CB87A] text-[#2C2416] bg-[#7CB87A]/5 hover:opacity-80"
-          : "border-[#E2D9C8] text-[#B8B0A4] hover:border-[#7CB87A]"
-      } ${isToday && !hasValue ? "border-[#E07B4A]/40" : ""}`}
+          ? "border-[#39FF14] text-[#0A0A0A] bg-[#39FF14]/5 hover:opacity-80"
+          : isToday
+          ? "border-[#9D4EDD]/40 text-[#9CA3AF] hover:border-[#39FF14]"
+          : "border-[#E5E7EB] text-[#9CA3AF] hover:border-[#39FF14]"
+      }`}
     >
       {hasValue ? value : "—"}
     </button>

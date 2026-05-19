@@ -39,32 +39,37 @@ export default async function DashboardPage() {
   const progress = Math.min((points / nextPoints) * 100, 100);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-8 py-12">
+    <div className="min-h-screen bg-white px-8 py-12 max-w-lg mx-auto">
 
       {/* Greeting */}
-      <div className="text-center mb-10">
-        <p className="text-sm mb-1" style={{ color: "rgba(255,255,255,0.75)", textShadow: "0 1px 4px rgba(0,0,0,0.4)" }}>{getGreeting()},</p>
-        <h1
-          className="font-[family-name:var(--font-lora)] text-3xl font-semibold"
-          style={{ color: "#FFFFFF", textShadow: "0 2px 8px rgba(0,0,0,0.35)" }}
-        >
+      <div className="mb-10">
+        <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] mb-1">
+          {getGreeting()},
+        </p>
+        <h1 className="font-[family-name:var(--font-playfair)] text-4xl font-bold text-[#0A0A0A]">
           {name}
         </h1>
       </div>
 
       {/* Egg */}
-      <Egg stage={stage as "egg" | "cracking" | "hatching" | "emerging" | "self"} />
+      <div className="flex justify-center">
+        <Egg stage={stage as "egg" | "cracking" | "hatching" | "emerging" | "self"} />
+      </div>
 
       {/* Progress bar */}
       {stage !== "self" && (
-        <div className="mt-10 w-full max-w-xs">
-          <div className="flex justify-between text-xs mb-1.5" style={{ color: "rgba(255,255,255,0.8)", textShadow: "0 1px 3px rgba(0,0,0,0.4)" }}>
-            <span>{points} puntos</span>
-            <span>próxima etapa: {nextPoints}</span>
+        <div className="mt-10 w-full">
+          <div className="flex justify-between mb-1.5">
+            <span className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">
+              {points} pts
+            </span>
+            <span className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">
+              próxima etapa: {nextPoints}
+            </span>
           </div>
-          <div className="h-2 bg-white/15 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-[#F5F5F5] rounded-full overflow-hidden border border-[#E5E7EB]">
             <div
-              className="h-full bg-[#E07B4A] rounded-full transition-all duration-700"
+              className="h-full bg-[#39FF14] rounded-full transition-all duration-700"
               style={{ width: `${progress}%` }}
             />
           </div>
@@ -72,16 +77,15 @@ export default async function DashboardPage() {
       )}
 
       {/* Quick actions */}
-      <div className="mt-10 grid grid-cols-2 gap-3 w-full max-w-xs">
+      <div className="mt-10 grid grid-cols-2 gap-3">
         {quickActions.map(({ href, Icon, label }) => (
           <a
             key={href}
             href={href}
-            className="flex items-center gap-2.5 rounded-xl px-4 py-3 text-sm text-[#E8DFC8] hover:text-white transition-all active:scale-[0.97] border border-white/15 hover:border-white/30 hover:bg-white/10"
-            style={{ background: "rgba(10, 22, 8, 0.55)", backdropFilter: "blur(8px)" }}
+            className="flex items-center gap-2.5 bg-white border-2 border-[#0A0A0A] rounded-xl px-4 py-3 text-sm text-[#0A0A0A] font-medium hover:bg-[#F5F5F5] active:scale-[0.97] transition-all"
           >
-            <Icon size={16} strokeWidth={1.8} className="shrink-0 text-[#A8C890]" />
-            <span className="font-medium leading-tight">{label}</span>
+            <Icon size={16} strokeWidth={1.8} className="shrink-0 text-[#9D4EDD]" />
+            <span className="leading-tight">{label}</span>
           </a>
         ))}
       </div>

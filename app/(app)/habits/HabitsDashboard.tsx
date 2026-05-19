@@ -39,19 +39,21 @@ export default function HabitsDashboard({ habits, allLogs }: Props) {
   const totalDays = period === "week" ? 7 : period === "month" ? 30 : 365;
 
   return (
-    <div className="bg-[#FDFAF4] rounded-2xl border border-[#E2D9C8]">
+    <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#F0EBE2]">
-        <h2 className="font-[family-name:var(--font-lora)] text-lg font-semibold text-[#2C2416]">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[#F5F5F5]">
+        <h2 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#0A0A0A]">
           Progreso
         </h2>
-        <div className="flex gap-1 bg-[#EDE8DF] p-1 rounded-xl text-xs">
+        <div className="flex gap-1 bg-[#F5F5F5] p-1 rounded-lg text-xs">
           {(["week", "month", "year"] as Period[]).map(p => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                period === p ? "bg-[#FDFAF4] text-[#2C2416] font-medium shadow-sm" : "text-[#7A6E5F]"
+              className={`px-3 py-1 rounded-md transition-all ${
+                period === p
+                  ? "bg-white text-[#0A0A0A] font-medium shadow-sm"
+                  : "text-[#6B7280] hover:text-[#0A0A0A]"
               }`}
             >
               {p === "week" ? "Semana" : p === "month" ? "Mes" : "Año"}
@@ -100,15 +102,15 @@ export default function HabitsDashboard({ habits, allLogs }: Props) {
 
 function BooleanCard({ name, done, total, pct }: { name: string; done: number; total: number; pct: number }) {
   return (
-    <div className="p-4 bg-[#F5F0E8] rounded-xl">
+    <div className="p-4 bg-[#F5F5F5] rounded-xl">
       <div className="flex justify-between items-start mb-3">
-        <p className="text-sm font-medium text-[#2C2416]">{name}</p>
-        <span className="text-xs text-[#7A6E5F]">{done}/{total} días</span>
+        <p className="text-sm font-medium text-[#0A0A0A]">{name}</p>
+        <span className="font-[family-name:var(--font-mono)] text-xs text-[#6B7280]">{done}/{total} días</span>
       </div>
-      <div className="h-2 bg-[#E2D9C8] rounded-full overflow-hidden mb-1.5">
-        <div className="h-full bg-[#7CB87A] rounded-full transition-all" style={{ width: `${pct}%` }} />
+      <div className="h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden mb-1.5">
+        <div className="h-full bg-[#39FF14] rounded-full transition-all" style={{ width: `${pct}%` }} />
       </div>
-      <p className="text-xs text-[#B8B0A4]">{pct}% completado</p>
+      <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">{pct}% completado</p>
     </div>
   );
 }
@@ -118,27 +120,30 @@ function NumericCard({ name, avg, values, unit, target }: { name: string; avg: n
   const last8 = values.slice(-8);
 
   return (
-    <div className="p-4 bg-[#F5F0E8] rounded-xl">
+    <div className="p-4 bg-[#F5F5F5] rounded-xl">
       <div className="flex justify-between items-start mb-3">
-        <p className="text-sm font-medium text-[#2C2416]">{name}</p>
-        <span className="text-xs text-[#7A6E5F]">
-          promedio: {avg.toFixed(1)}{unit ? ` ${unit}` : ""}
+        <p className="text-sm font-medium text-[#0A0A0A]">{name}</p>
+        <span className="font-[family-name:var(--font-mono)] text-xs text-[#6B7280]">
+          prom: {avg.toFixed(1)}{unit ? ` ${unit}` : ""}
         </span>
       </div>
-      {/* Mini sparkline */}
       <div className="flex items-end gap-1 h-10">
-        {last8.length === 0 && <p className="text-xs text-[#C8BFB0]">Sin datos aún</p>}
+        {last8.length === 0 && (
+          <p className="font-[family-name:var(--font-mono)] text-xs text-[#D1D5DB]">Sin datos aún</p>
+        )}
         {last8.map((v, i) => (
           <div
             key={i}
-            className="flex-1 rounded-sm bg-[#4A8FA8] transition-all"
-            style={{ height: `${Math.max((v / max) * 100, 4)}%`, opacity: 0.6 + (i / last8.length) * 0.4 }}
+            className="flex-1 rounded-sm bg-[#9D4EDD] transition-all"
+            style={{ height: `${Math.max((v / max) * 100, 4)}%`, opacity: 0.4 + (i / last8.length) * 0.6 }}
             title={`${v}${unit ? ` ${unit}` : ""}`}
           />
         ))}
       </div>
       {target && (
-        <p className="text-xs text-[#B8B0A4] mt-1.5">objetivo: {target}{unit ? ` ${unit}` : ""}</p>
+        <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] mt-1.5">
+          objetivo: {target}{unit ? ` ${unit}` : ""}
+        </p>
       )}
     </div>
   );
@@ -146,11 +151,11 @@ function NumericCard({ name, avg, values, unit, target }: { name: string; avg: n
 
 function DropdownCard({ name, counts, options }: { name: string; counts: Record<string, number>; options: string[] }) {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const colors = ["#7CB87A", "#4A8FA8", "#E8C84A", "#C17A9E", "#E07B4A"];
+  const colors = ["#39FF14", "#9D4EDD", "#F4A9D6", "#D9B3E8", "#B8E8C1"];
 
   return (
-    <div className="p-4 bg-[#F5F0E8] rounded-xl">
-      <p className="text-sm font-medium text-[#2C2416] mb-3">{name}</p>
+    <div className="p-4 bg-[#F5F5F5] rounded-xl">
+      <p className="text-sm font-medium text-[#0A0A0A] mb-3">{name}</p>
       <div className="space-y-2">
         {options.map((opt, i) => {
           const count = counts[opt] ?? 0;
@@ -158,10 +163,10 @@ function DropdownCard({ name, counts, options }: { name: string; counts: Record<
           return (
             <div key={opt}>
               <div className="flex justify-between text-xs mb-0.5">
-                <span className="text-[#7A6E5F]">{opt}</span>
-                <span className="text-[#B8B0A4]">{count}×</span>
+                <span className="text-[#6B7280]">{opt}</span>
+                <span className="font-[family-name:var(--font-mono)] text-[#9CA3AF]">{count}×</span>
               </div>
-              <div className="h-1.5 bg-[#E2D9C8] rounded-full overflow-hidden">
+              <div className="h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
                 <div
                   className="h-full rounded-full transition-all"
                   style={{ width: `${pct}%`, backgroundColor: colors[i % colors.length] }}
@@ -171,7 +176,9 @@ function DropdownCard({ name, counts, options }: { name: string; counts: Record<
           );
         })}
       </div>
-      {total === 0 && <p className="text-xs text-[#C8BFB0] mt-2">Sin datos aún</p>}
+      {total === 0 && (
+        <p className="font-[family-name:var(--font-mono)] text-xs text-[#D1D5DB] mt-2">Sin datos aún</p>
+      )}
     </div>
   );
 }

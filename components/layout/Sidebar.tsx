@@ -33,18 +33,10 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside
-      className="w-56 shrink-0 h-screen sticky top-0 flex flex-col border-r border-white/10"
-      style={{
-        background: "rgba(10, 22, 8, 0.82)",
-        backdropFilter: "blur(12px)",
-        WebkitBackdropFilter: "blur(12px)",
-        zIndex: 10,
-      }}
-    >
+    <aside className="w-56 shrink-0 h-screen sticky top-0 flex flex-col border-r border-[#E5E7EB] bg-white z-10">
       {/* Logo */}
-      <div className="px-5 py-6 border-b border-white/10">
-        <span className="font-[family-name:var(--font-lora)] text-2xl font-bold text-[#E8DFC8] tracking-tight">
+      <div className="px-5 py-6 border-b border-[#E5E7EB]">
+        <span className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-[#0A0A0A] tracking-tight">
           kopyme
         </span>
       </div>
@@ -57,10 +49,10 @@ export default function Sidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
                 active
-                  ? "bg-[#E07B4A] text-white font-medium shadow-md"
-                  : "text-[#A8C898] hover:bg-white/10 hover:text-[#E8DFC8]"
+                  ? "bg-[#0A0A0A] text-white font-medium"
+                  : "text-[#6B7280] hover:bg-[#F5F5F5] hover:text-[#0A0A0A]"
               }`}
             >
               <Icon size={16} strokeWidth={1.8} className="shrink-0" />
@@ -71,10 +63,10 @@ export default function Sidebar() {
       </nav>
 
       {/* Bottom */}
-      <div className="px-3 py-4 border-t border-white/10 space-y-0.5">
+      <div className="px-3 py-4 border-t border-[#E5E7EB] space-y-0.5">
         <Link
           href="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#A8C898] hover:bg-white/10 hover:text-[#E8DFC8] transition-all"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#6B7280] hover:bg-[#F5F5F5] hover:text-[#0A0A0A] transition-all"
         >
           <Settings size={16} strokeWidth={1.8} className="shrink-0" />
           <span>Ajustes</span>
@@ -82,7 +74,7 @@ export default function Sidebar() {
         <form action={logout}>
           <button
             type="submit"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#A8C898] hover:bg-white/10 hover:text-[#E8DFC8] transition-all text-left"
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#6B7280] hover:bg-[#F5F5F5] hover:text-[#0A0A0A] transition-all text-left"
           >
             <LogOut size={16} strokeWidth={1.8} className="shrink-0" />
             <span>Salir</span>

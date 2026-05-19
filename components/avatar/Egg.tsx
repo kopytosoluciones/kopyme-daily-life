@@ -4,7 +4,6 @@ type EggStage = "egg" | "cracking" | "hatching" | "emerging" | "self";
 
 interface EggProps {
   stage?: EggStage;
-  points?: number;
   message?: string;
 }
 
@@ -24,7 +23,7 @@ export default function Egg({ stage = "egg", message }: EggProps) {
       <div
         className="relative"
         style={{
-          animation: "egg-breathe 3s ease-in-out infinite, egg-glow 3s ease-in-out infinite, float 6s ease-in-out infinite",
+          animation: "egg-breathe 3s ease-in-out infinite, float 6s ease-in-out infinite",
         }}
       >
         <svg
@@ -41,7 +40,7 @@ export default function Egg({ stage = "egg", message }: EggProps) {
             rx="62"
             ry="78"
             fill="url(#eggGradient)"
-            stroke="#E2D9C8"
+            stroke="#E5E7EB"
             strokeWidth="1.5"
           />
 
@@ -52,7 +51,7 @@ export default function Egg({ stage = "egg", message }: EggProps) {
             rx="42"
             ry="55"
             fill="url(#innerGlow)"
-            opacity="0.5"
+            opacity="0.4"
           />
 
           {/* Highlight */}
@@ -62,46 +61,44 @@ export default function Egg({ stage = "egg", message }: EggProps) {
             rx="14"
             ry="18"
             fill="white"
-            opacity="0.35"
+            opacity="0.5"
             transform="rotate(-15 62 75)"
           />
 
-          {/* Cracks — appear per stage */}
+          {/* Cracks */}
           {(stage === "cracking" || stage === "hatching" || stage === "emerging" || stage === "self") && (
-            <g stroke="#C4A882" strokeWidth="1.5" strokeLinecap="round" fill="none"
-               style={{ animation: "crack-appear 1s ease forwards", strokeDasharray: 100 }}>
+            <g stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" fill="none">
               <path d="M80 60 L74 75 L82 85 L76 100" />
               <path d="M82 85 L90 90" />
             </g>
           )}
           {(stage === "hatching" || stage === "emerging" || stage === "self") && (
-            <g stroke="#C4A882" strokeWidth="1.5" strokeLinecap="round" fill="none"
-               style={{ animation: "crack-appear 1.2s ease forwards", strokeDasharray: 100 }}>
+            <g stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" fill="none">
               <path d="M55 110 L62 120 L55 132" />
               <path d="M105 105 L98 118 L108 128" />
             </g>
           )}
 
           {/* Speckles */}
-          <circle cx="95" cy="145" r="2.5" fill="#D4C9B8" opacity="0.6" />
-          <circle cx="65" cy="155" r="1.8" fill="#D4C9B8" opacity="0.5" />
-          <circle cx="105" cy="130" r="1.5" fill="#D4C9B8" opacity="0.4" />
+          <circle cx="95" cy="145" r="2.5" fill="#E5E7EB" opacity="0.8" />
+          <circle cx="65" cy="155" r="1.8" fill="#E5E7EB" opacity="0.6" />
+          <circle cx="105" cy="130" r="1.5" fill="#E5E7EB" opacity="0.5" />
 
           <defs>
             <radialGradient id="eggGradient" cx="40%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="#FDF6EC" />
-              <stop offset="60%" stopColor="#F0E6D3" />
-              <stop offset="100%" stopColor="#DDD0BC" />
+              <stop offset="0%" stopColor="#FFFFFF" />
+              <stop offset="60%" stopColor="#F5F5F5" />
+              <stop offset="100%" stopColor="#E5E7EB" />
             </radialGradient>
             <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#E07B4A" stopOpacity="0.15" />
-              <stop offset="100%" stopColor="#E07B4A" stopOpacity="0" />
+              <stop offset="0%" stopColor="#9D4EDD" stopOpacity="0.12" />
+              <stop offset="100%" stopColor="#9D4EDD" stopOpacity="0" />
             </radialGradient>
           </defs>
         </svg>
 
         {/* Stage badge */}
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#FDFAF4]/90 border border-[#E2D9C8] rounded-full px-3 py-0.5 text-xs text-[#7A6E5F] whitespace-nowrap shadow-sm backdrop-blur-sm">
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white border border-[#E5E7EB] rounded-full px-3 py-0.5 text-xs text-[#6B7280] whitespace-nowrap shadow-sm">
           {stage === "egg"      && "descubriéndote"}
           {stage === "cracking" && "algo se mueve"}
           {stage === "hatching" && "casi listo"}
@@ -115,13 +112,13 @@ export default function Egg({ stage = "egg", message }: EggProps) {
         <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0
           border-l-[8px] border-l-transparent
           border-r-[8px] border-r-transparent
-          border-b-[10px] border-b-[#E2D9C8]" />
+          border-b-[10px] border-b-[#E5E7EB]" />
         <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-0 h-0
           border-l-[7px] border-l-transparent
           border-r-[7px] border-r-transparent
-          border-b-[9px] border-b-[#FDFAF4]" />
-        <div className="bg-[#FDFAF4] border border-[#E2D9C8] rounded-2xl px-5 py-3.5 shadow-sm">
-          <p className="font-[family-name:var(--font-lora)] italic text-[#2C2416] text-sm leading-relaxed text-center">
+          border-b-[9px] border-b-white" />
+        <div className="bg-white border border-[#E5E7EB] rounded-2xl px-5 py-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
+          <p className="font-[family-name:var(--font-playfair)] italic text-[#0A0A0A] text-sm leading-relaxed text-center">
             "{displayMessage}"
           </p>
         </div>

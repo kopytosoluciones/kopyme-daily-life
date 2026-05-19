@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { createHabit } from "./actions";
+import { X } from "lucide-react";
 
 type GoalType = "boolean" | "numeric" | "dropdown";
 
@@ -39,25 +40,31 @@ export default function NewHabitModal({ onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="bg-[#FDFAF4] rounded-2xl border border-[#E2D9C8] shadow-lg w-full max-w-sm mx-4 overflow-hidden">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div className="bg-white rounded-xl border-2 border-[#0A0A0A] shadow-[0_8px_24px_rgba(0,0,0,0.15)] w-full max-w-sm mx-4 overflow-hidden">
 
         {/* Header */}
-        <div className="px-6 pt-6 pb-4 border-b border-[#F0EBE2]">
+        <div className="px-6 pt-6 pb-4 border-b border-[#F5F5F5]">
           <div className="flex justify-between items-center">
-            <h3 className="font-[family-name:var(--font-lora)] text-lg font-semibold text-[#2C2416]">
+            <h3 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#0A0A0A]">
               Nuevo hábito
             </h3>
-            <button onClick={onClose} className="text-[#C8BFB0] hover:text-[#7A6E5F] transition-colors">
-              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                <path d="M2 2L14 14M14 2L2 14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
+            <button onClick={onClose} className="text-[#D1D5DB] hover:text-[#0A0A0A] transition-colors">
+              <X size={16} />
             </button>
           </div>
           {/* Steps */}
           <div className="flex gap-1.5 mt-4">
             {[1, 2, 3].map(s => (
-              <div key={s} className={`h-1 flex-1 rounded-full transition-all ${s <= step ? "bg-[#E07B4A]" : "bg-[#E2D9C8]"}`} />
+              <div
+                key={s}
+                className={`h-1 flex-1 rounded-full transition-all ${
+                  s <= step ? "bg-[#9D4EDD]" : "bg-[#E5E7EB]"
+                }`}
+              />
             ))}
           </div>
         </div>
@@ -68,14 +75,14 @@ export default function NewHabitModal({ onClose }: Props) {
           {/* Step 1: Name */}
           {step === 1 && (
             <div>
-              <label className="block text-sm text-[#7A6E5F] mb-2">¿Cómo se llama el hábito?</label>
+              <label className="block text-sm text-[#6B7280] mb-2">¿Cómo se llama el hábito?</label>
               <input
                 autoFocus
                 value={name}
                 onChange={e => setName(e.target.value)}
                 onKeyDown={e => { if (e.key === "Enter" && name.trim()) setStep(2); }}
                 placeholder="ej: Horas dormidas, Gym, Meditar..."
-                className="w-full px-4 py-2.5 rounded-xl border border-[#E2D9C8] bg-[#F5F0E8] text-[#2C2416] placeholder-[#C8BFB0] focus:outline-none focus:ring-2 focus:ring-[#E07B4A]/30 text-sm"
+                className="w-full px-4 py-2.5 rounded-lg border border-[#0A0A0A] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] text-sm transition-all"
               />
             </div>
           )}
@@ -83,26 +90,25 @@ export default function NewHabitModal({ onClose }: Props) {
           {/* Step 2: Type */}
           {step === 2 && (
             <div>
-              <label className="block text-sm text-[#7A6E5F] mb-3">¿Cómo vas a medirlo?</label>
+              <label className="block text-sm text-[#6B7280] mb-3">¿Cómo vas a medirlo?</label>
               <div className="space-y-2">
                 {([
-                  { type: "boolean",  icon: "✓", label: "Sí / No",       desc: "Lo hiciste o no" },
-                  { type: "numeric",  icon: "🔢", label: "Número",        desc: "Una cantidad (hs, km, vasos...)" },
-                  { type: "dropdown", icon: "📋", label: "Opciones",      desc: "Elegís entre opciones que vos definís" },
-                ] as { type: GoalType; icon: string; label: string; desc: string }[]).map(({ type, icon, label, desc }) => (
+                  { type: "boolean",  label: "Sí / No",  desc: "Lo hiciste o no" },
+                  { type: "numeric",  label: "Número",   desc: "Una cantidad (hs, km, vasos...)" },
+                  { type: "dropdown", label: "Opciones", desc: "Elegís entre opciones que vos definís" },
+                ] as { type: GoalType; label: string; desc: string }[]).map(({ type, label, desc }) => (
                   <button
                     key={type}
                     onClick={() => setGoalType(type)}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-left ${
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg border-2 transition-all text-left ${
                       goalType === type
-                        ? "border-[#E07B4A] bg-[#E07B4A]/5"
-                        : "border-[#E2D9C8] hover:border-[#E07B4A]/40"
+                        ? "border-[#9D4EDD] bg-[#9D4EDD]/5"
+                        : "border-[#E5E7EB] hover:border-[#9D4EDD]/40"
                     }`}
                   >
-                    <span className="text-lg">{icon}</span>
                     <div>
-                      <p className="text-sm font-medium text-[#2C2416]">{label}</p>
-                      <p className="text-xs text-[#B8B0A4]">{desc}</p>
+                      <p className="text-sm font-medium text-[#0A0A0A]">{label}</p>
+                      <p className="text-xs text-[#9CA3AF]">{desc}</p>
                     </div>
                   </button>
                 ))}
@@ -110,45 +116,46 @@ export default function NewHabitModal({ onClose }: Props) {
             </div>
           )}
 
-          {/* Step 3: Configure */}
+          {/* Step 3: Configure boolean */}
           {step === 3 && goalType === "boolean" && (
             <div className="text-center py-4">
-              <p className="text-4xl mb-3">✓</p>
-              <p className="text-sm text-[#7A6E5F]">
-                <span className="font-medium text-[#2C2416]">{name}</span> — vas a marcar si lo hiciste cada día.
+              <p className="text-sm text-[#6B7280]">
+                <span className="font-medium text-[#0A0A0A]">{name}</span> — vas a marcar si lo hiciste cada día.
               </p>
             </div>
           )}
 
+          {/* Step 3: Configure numeric */}
           {step === 3 && goalType === "numeric" && (
             <div className="space-y-3">
-              <p className="text-sm text-[#7A6E5F] mb-1">Configurá el número</p>
+              <p className="text-sm text-[#6B7280] mb-1">Configurá el número</p>
               <div>
-                <label className="block text-xs text-[#B8B0A4] mb-1">Unidad</label>
+                <label className="block text-xs text-[#9CA3AF] mb-1">Unidad</label>
                 <input
                   autoFocus
                   value={unit}
                   onChange={e => setUnit(e.target.value)}
                   placeholder="ej: hs, km, vasos"
-                  className="w-full px-3 py-2 rounded-xl border border-[#E2D9C8] bg-[#F5F0E8] text-[#2C2416] placeholder-[#C8BFB0] focus:outline-none focus:ring-2 focus:ring-[#E07B4A]/30 text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-[#0A0A0A] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] text-sm transition-all"
                 />
               </div>
               <div>
-                <label className="block text-xs text-[#B8B0A4] mb-1">Objetivo (opcional)</label>
+                <label className="block text-xs text-[#9CA3AF] mb-1">Objetivo (opcional)</label>
                 <input
                   type="number"
                   value={target}
                   onChange={e => setTarget(e.target.value)}
                   placeholder="ej: 8"
-                  className="w-full px-3 py-2 rounded-xl border border-[#E2D9C8] bg-[#F5F0E8] text-[#2C2416] placeholder-[#C8BFB0] focus:outline-none focus:ring-2 focus:ring-[#E07B4A]/30 text-sm"
+                  className="w-full px-3 py-2 rounded-lg border border-[#0A0A0A] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] text-sm transition-all"
                 />
               </div>
             </div>
           )}
 
+          {/* Step 3: Configure dropdown */}
           {step === 3 && goalType === "dropdown" && (
             <div>
-              <p className="text-sm text-[#7A6E5F] mb-3">Definí las opciones</p>
+              <p className="text-sm text-[#6B7280] mb-3">Definí las opciones</p>
               <div className="space-y-2">
                 {options.map((opt, i) => (
                   <div key={i} className="flex gap-2">
@@ -156,15 +163,20 @@ export default function NewHabitModal({ onClose }: Props) {
                       value={opt}
                       onChange={e => setOption(i, e.target.value)}
                       placeholder={`Opción ${i + 1}`}
-                      className="flex-1 px-3 py-2 rounded-xl border border-[#E2D9C8] bg-[#F5F0E8] text-[#2C2416] placeholder-[#C8BFB0] focus:outline-none focus:ring-2 focus:ring-[#E07B4A]/30 text-sm"
+                      className="flex-1 px-3 py-2 rounded-lg border border-[#0A0A0A] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] text-sm transition-all"
                     />
                     {options.length > 2 && (
-                      <button onClick={() => removeOption(i)} className="text-[#C8BFB0] hover:text-red-400 transition-colors px-2">×</button>
+                      <button
+                        onClick={() => removeOption(i)}
+                        className="text-[#D1D5DB] hover:text-[#FF1493] transition-colors px-2"
+                      >
+                        <X size={14} />
+                      </button>
                     )}
                   </div>
                 ))}
               </div>
-              <button onClick={addOption} className="mt-2 text-xs text-[#E07B4A] hover:underline">
+              <button onClick={addOption} className="mt-2 text-xs text-[#9D4EDD] hover:underline">
                 + agregar opción
               </button>
             </div>
@@ -176,7 +188,7 @@ export default function NewHabitModal({ onClose }: Props) {
           {step > 1 && (
             <button
               onClick={() => setStep(s => (s - 1) as 1 | 2 | 3)}
-              className="flex-1 py-2.5 rounded-xl border border-[#E2D9C8] text-sm text-[#7A6E5F] hover:bg-[#F5F0E8] transition-all"
+              className="flex-1 py-2.5 rounded-lg border border-[#E5E7EB] text-sm text-[#6B7280] hover:bg-[#F5F5F5] transition-all"
             >
               Atrás
             </button>
@@ -185,7 +197,7 @@ export default function NewHabitModal({ onClose }: Props) {
             <button
               disabled={step === 1 && !name.trim()}
               onClick={() => setStep(s => (s + 1) as 2 | 3)}
-              className="flex-1 py-2.5 rounded-xl bg-[#E07B4A] text-white text-sm font-medium hover:bg-[#cc6d3e] transition-all disabled:opacity-40"
+              className="flex-1 py-2.5 rounded-lg bg-[#0A0A0A] text-white text-sm font-medium border-2 border-[#0A0A0A] hover:bg-[#1f1f1f] transition-all disabled:opacity-40"
             >
               Siguiente
             </button>
@@ -193,7 +205,7 @@ export default function NewHabitModal({ onClose }: Props) {
             <button
               disabled={pending || (goalType === "dropdown" && options.filter(o => o.trim()).length < 2)}
               onClick={handleCreate}
-              className="flex-1 py-2.5 rounded-xl bg-[#E07B4A] text-white text-sm font-medium hover:bg-[#cc6d3e] transition-all disabled:opacity-40"
+              className="flex-1 py-2.5 rounded-lg bg-[#0A0A0A] text-white text-sm font-medium border-2 border-[#0A0A0A] hover:bg-[#1f1f1f] transition-all disabled:opacity-40"
             >
               {pending ? "Creando..." : "Crear hábito"}
             </button>

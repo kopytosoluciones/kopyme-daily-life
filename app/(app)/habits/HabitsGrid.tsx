@@ -6,6 +6,7 @@ import HabitCell from "./HabitCell";
 import NewHabitModal from "./NewHabitModal";
 import { updateHabitName, updateHabitGoal, archiveHabit } from "./actions";
 import { DAY_LABELS, toDateStr } from "@/lib/utils/dates";
+import { X } from "lucide-react";
 
 interface Habit {
   id: string;
@@ -41,7 +42,6 @@ export default function HabitsGrid({ habits, logs, weekDays, weekStart, prevWeek
 
   const today = toDateStr(new Date());
 
-  // Index logs by habitId + date
   const logMap: Record<string, Record<string, string>> = {};
   for (const log of logs) {
     if (!logMap[log.habit_id]) logMap[log.habit_id] = {};
@@ -66,20 +66,22 @@ export default function HabitsGrid({ habits, logs, weekDays, weekStart, prevWeek
     <>
       {showModal && <NewHabitModal onClose={() => { setShowModal(false); router.refresh(); }} />}
 
-      <div className="bg-[#FDFAF4] rounded-2xl border border-[#E2D9C8] overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
         {/* Week navigation */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#F0EBE2]">
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5F5F5]">
           <button
             onClick={() => router.push(`/habits?week=${prevWeek}`)}
-            className="text-[#B8B0A4] hover:text-[#2C2416] transition-colors px-2 py-1 rounded-lg hover:bg-[#F5F0E8] text-sm"
+            className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] hover:text-[#0A0A0A] transition-colors px-2 py-1 rounded-lg hover:bg-[#F5F5F5]"
           >
             ← anterior
           </button>
-          <span className="text-sm text-[#7A6E5F] font-medium">{weekLabel}</span>
+          <span className="font-[family-name:var(--font-mono)] text-xs font-medium text-[#0A0A0A]">
+            {weekLabel}
+          </span>
           <button
             disabled={!canGoNext}
             onClick={() => router.push(`/habits?week=${nextWeek}`)}
-            className="text-[#B8B0A4] hover:text-[#2C2416] transition-colors px-2 py-1 rounded-lg hover:bg-[#F5F0E8] text-sm disabled:opacity-30 disabled:cursor-not-allowed"
+            className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] hover:text-[#0A0A0A] transition-colors px-2 py-1 rounded-lg hover:bg-[#F5F5F5] disabled:opacity-30 disabled:cursor-not-allowed"
           >
             siguiente →
           </button>
@@ -89,16 +91,16 @@ export default function HabitsGrid({ habits, logs, weekDays, weekStart, prevWeek
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-[#F0EBE2]">
-                <th className="text-left px-5 py-2.5 text-xs font-medium text-[#B8B0A4] w-44">Hábito</th>
-                <th className="text-center px-2 py-2.5 text-xs font-medium text-[#B8B0A4] w-20">Objetivo</th>
+              <tr className="border-b border-[#F5F5F5]">
+                <th className="text-left px-5 py-2.5 text-xs font-medium text-[#9CA3AF] w-44">Hábito</th>
+                <th className="text-center px-2 py-2.5 text-xs font-medium text-[#9CA3AF] w-20">Objetivo</th>
                 {weekDays.map((day, i) => {
                   const ds = toDateStr(day);
                   const isToday = ds === today;
                   return (
-                    <th key={ds} className={`text-center px-1 py-2.5 w-14 ${isToday ? "text-[#E07B4A]" : "text-[#B8B0A4]"}`}>
-                      <div className="text-xs font-medium">{DAY_LABELS[i]}</div>
-                      <div className={`text-[10px] mt-0.5 ${isToday ? "font-bold" : "font-normal"}`}>
+                    <th key={ds} className={`text-center px-1 py-2.5 w-14 ${isToday ? "text-[#9D4EDD]" : "text-[#9CA3AF]"}`}>
+                      <div className="font-[family-name:var(--font-mono)] text-[10px] font-medium">{DAY_LABELS[i]}</div>
+                      <div className={`font-[family-name:var(--font-mono)] text-[10px] mt-0.5 ${isToday ? "font-bold" : "font-normal"}`}>
                         {day.getDate()}
                       </div>
                     </th>
@@ -110,13 +112,13 @@ export default function HabitsGrid({ habits, logs, weekDays, weekStart, prevWeek
             <tbody>
               {habits.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="text-center py-10 text-[#C8BFB0] text-sm">
+                  <td colSpan={10} className="text-center py-10 text-[#D1D5DB] text-sm">
                     Todavía no hay hábitos. ¡Creá el primero!
                   </td>
                 </tr>
               )}
               {habits.map(habit => (
-                <tr key={habit.id} className="border-b border-[#F5F0E8] last:border-0 hover:bg-[#FDFAF4] group">
+                <tr key={habit.id} className="border-b border-[#F5F5F5] last:border-0 hover:bg-[#F5F5F5]/50 group">
                   {/* Name */}
                   <td className="px-5 py-2.5">
                     {editingName === habit.id ? (
@@ -126,12 +128,12 @@ export default function HabitsGrid({ habits, logs, weekDays, weekStart, prevWeek
                         onChange={e => setNameVal(e.target.value)}
                         onBlur={() => handleNameSave(habit.id)}
                         onKeyDown={e => { if (e.key === "Enter") handleNameSave(habit.id); if (e.key === "Escape") setEditingName(null); }}
-                        className="w-full bg-transparent text-[#2C2416] text-sm focus:outline-none border-b border-[#E07B4A]"
+                        className="w-full bg-transparent text-[#0A0A0A] text-sm focus:outline-none border-b border-[#9D4EDD]"
                       />
                     ) : (
                       <span
                         onClick={() => { setEditingName(habit.id); setNameVal(habit.name); }}
-                        className="text-[#2C2416] cursor-text hover:text-[#E07B4A] transition-colors"
+                        className="text-[#0A0A0A] cursor-text hover:text-[#9D4EDD] transition-colors"
                       >
                         {habit.name}
                       </span>
@@ -168,11 +170,9 @@ export default function HabitsGrid({ habits, logs, weekDays, weekStart, prevWeek
                     <button
                       onClick={() => startTransition(() => archiveHabit(habit.id))}
                       title="Archivar hábito"
-                      className="opacity-0 group-hover:opacity-100 text-[#D9D0C0] hover:text-[#B8B0A4] transition-all"
+                      className="opacity-0 group-hover:opacity-100 text-[#D1D5DB] hover:text-[#FF1493] transition-all"
                     >
-                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                        <path d="M2 2L12 12M12 2L2 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
-                      </svg>
+                      <X size={14} />
                     </button>
                   </td>
                 </tr>
@@ -182,10 +182,10 @@ export default function HabitsGrid({ habits, logs, weekDays, weekStart, prevWeek
         </div>
 
         {/* Add habit */}
-        <div className="px-5 py-3 border-t border-[#F0EBE2]">
+        <div className="px-5 py-3 border-t border-[#F5F5F5]">
           <button
             onClick={() => setShowModal(true)}
-            className="text-sm text-[#E07B4A] hover:underline font-medium"
+            className="text-sm text-[#9D4EDD] hover:underline font-medium"
           >
             + Nuevo hábito
           </button>
@@ -214,7 +214,7 @@ function GoalTarget({ habit }: { habit: Habit }) {
     : "—";
 
   if (habit.goal_type !== "numeric") {
-    return <span className="text-xs text-[#C8BFB0]">{display}</span>;
+    return <span className="font-[family-name:var(--font-mono)] text-xs text-[#D1D5DB]">{display}</span>;
   }
 
   if (editing) {
@@ -226,7 +226,7 @@ function GoalTarget({ habit }: { habit: Habit }) {
         onChange={e => setVal(e.target.value)}
         onBlur={save}
         onKeyDown={e => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
-        className="w-16 text-xs text-center bg-[#F5F0E8] border border-[#E07B4A] rounded-lg px-1 py-0.5 focus:outline-none"
+        className="w-16 font-[family-name:var(--font-mono)] text-xs text-center bg-[#F5F5F5] border border-[#9D4EDD] rounded-lg px-1 py-0.5 focus:outline-none"
       />
     );
   }
@@ -234,7 +234,7 @@ function GoalTarget({ habit }: { habit: Habit }) {
   return (
     <button
       onClick={() => setEditing(true)}
-      className="text-xs text-[#B8B0A4] hover:text-[#E07B4A] transition-colors"
+      className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] hover:text-[#9D4EDD] transition-colors"
       title="Editar objetivo"
     >
       {display}

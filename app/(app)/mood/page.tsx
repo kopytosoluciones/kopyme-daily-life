@@ -1,1 +1,10 @@
-export default function Page() { return <div className='p-8'><h1 className='font-[family-name:var(--font-lora)] text-2xl text-[#2C2416]'>Próximamente: mood</h1></div> }
+export default function Page() {
+  return (
+    <div className="min-h-screen bg-white px-8 py-12">
+      <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-bold text-[#0A0A0A] mb-2">
+        Estado de ánimo
+      </h1>
+      <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">próximamente</p>
+    </div>
+  );
+}

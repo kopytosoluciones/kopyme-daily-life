@@ -20,40 +20,40 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="bg-[#FDFAF4] rounded-2xl border border-[#E2D9C8] shadow-sm p-8">
-      <h2 className="font-[family-name:var(--font-lora)] text-2xl font-semibold text-[#2C2416] mb-2">
+    <div className="bg-white rounded-xl border-2 border-[#0A0A0A] shadow-[0_4px_12px_rgba(0,0,0,0.1)] p-8">
+      <h2 className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-[#0A0A0A] mb-1">
         Empezá tu historia
       </h2>
-      <p className="text-sm text-[#7A6E5F] mb-6">
+      <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] mb-6">
         Tu huevo te espera.
       </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-sm text-[#7A6E5F] mb-1.5">Email</label>
+          <label className="block text-xs text-[#6B7280] mb-1.5">Email</label>
           <input
             name="email"
             type="email"
             required
             placeholder="tu@email.com"
-            className="w-full px-4 py-2.5 rounded-xl border border-[#E2D9C8] bg-[#F5F0E8] text-[#2C2416] placeholder-[#B8B0A4] focus:outline-none focus:ring-2 focus:ring-[#E07B4A]/40 transition"
+            className="w-full px-4 py-2.5 rounded-lg border border-[#0A0A0A] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] transition-all"
           />
         </div>
 
         <div>
-          <label className="block text-sm text-[#7A6E5F] mb-1.5">Contraseña</label>
+          <label className="block text-xs text-[#6B7280] mb-1.5">Contraseña</label>
           <input
             name="password"
             type="password"
             required
             minLength={6}
             placeholder="mínimo 6 caracteres"
-            className="w-full px-4 py-2.5 rounded-xl border border-[#E2D9C8] bg-[#F5F0E8] text-[#2C2416] placeholder-[#B8B0A4] focus:outline-none focus:ring-2 focus:ring-[#E07B4A]/40 transition"
+            className="w-full px-4 py-2.5 rounded-lg border border-[#0A0A0A] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] transition-all"
           />
         </div>
 
         {error && (
-          <p className="text-sm text-red-500 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+          <p className="text-sm text-[#FF1493] bg-[#FF1493]/5 border border-[#FF1493]/20 rounded-lg px-3 py-2">
             {error}
           </p>
         )}
@@ -61,15 +61,15 @@ export default function RegisterPage() {
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-2.5 px-4 rounded-xl bg-[#E07B4A] text-[#FDFAF4] font-medium hover:bg-[#cc6d3e] active:scale-[0.98] transition-all disabled:opacity-60 mt-2"
+          className="w-full py-2.5 px-4 rounded-lg bg-[#0A0A0A] text-white font-medium border-2 border-[#0A0A0A] hover:bg-[#1f1f1f] active:scale-[0.98] transition-all disabled:opacity-50 mt-2"
         >
           {loading ? "Creando cuenta..." : "Crear cuenta"}
         </button>
       </form>
 
-      <p className="text-center text-sm text-[#7A6E5F] mt-6">
+      <p className="text-center text-sm text-[#6B7280] mt-6">
         ¿Ya tenés cuenta?{" "}
-        <Link href="/login" className="text-[#E07B4A] hover:underline font-medium">
+        <Link href="/login" className="text-[#9D4EDD] hover:underline font-medium">
           Entrar
         </Link>
       </p>
