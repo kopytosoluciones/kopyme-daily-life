@@ -1,12 +1,8 @@
 "use client";
 
 import { useState, useRef, useTransition, useEffect, useCallback } from "react";
-import {
-  AreaChart, Area, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, CartesianGrid, Dot,
-} from "recharts";
-import { createEntry, deleteEntry } from "./actions";
-import { X, Trash2, Smile } from "lucide-react";
+import { createEntry, updateEntry, deleteEntry } from "./actions";
+import { X, Trash2, Smile, Pencil } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,33 +65,30 @@ function todayStr(): string {
   return new Date().toISOString().split("T")[0];
 }
 
-function last14Days(): string[] {
-  return Array.from({ length: 14 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (13 - i));
-    return d.toISOString().split("T")[0];
-  });
-}
-
 // ─── Emoji palette ────────────────────────────────────────────────────────────
 
 const EMOJIS = [
-  "😊", "😢", "😴", "😤", "😰", "🥰",
-  "😌", "😔", "😎", "🥺", "🤔", "😮",
-  "💪", "❤️", "✨", "🔥", "💡", "🙏",
-  "🎉", "🌟", "⚡", "🌈", "🌙", "☀️",
-  "🏋️", "📚", "🎵", "🌿", "🌊", "💭",
+  // Positivos
+  "😊", "😄", "😁", "🥹", "🤩", "🥰", "😍", "😎", "🤗", "😌",
+  // Neutrales
+  "😶", "🤔", "😐", "🫠", "🥱", "😴", "😑", "🧐", "🫡", "🤭",
+  // Tristes
+  "😔", "😢", "😭", "😞", "😩", "😫", "🥺", "😟", "😕", "🙁",
+  // Tensos / enojados
+  "😤", "😡", "🤯", "😰", "😨", "😱", "😮", "😲", "🫨", "😬",
+  // Amor / energía
+  "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "💔", "🫶",
+  // Naturaleza / símbolos
+  "✨", "🔥", "💫", "⚡", "🌈", "☀️", "🌙", "⭐", "🌟", "💎",
+  // Actividades / contexto
+  "💪", "🙏", "🏋️", "📚", "🎵", "🌿", "🌊", "🌸", "🍀", "🦋",
+  // Extras
+  "🏃", "🧘", "🫂", "🌻", "☁️", "🌧️", "❄️", "🎉", "💡", "🎊",
 ];
 
 // ─── Mood Meter ───────────────────────────────────────────────────────────────
 
-function MoodMeter({
-  value,
-  onChange,
-}: {
-  value: number | null;
-  onChange: (v: number) => void;
-}) {
+function MoodMeter({ value, onChange }: { value: number | null; onChange: (v: number) => void }) {
   const [dragging, setDragging] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -109,7 +102,6 @@ function MoodMeter({
 
   return (
     <div className="flex items-end gap-3">
-      {/* Bars */}
       <div
         ref={containerRef}
         className="flex items-end gap-[3px] cursor-pointer select-none"
@@ -125,13 +117,12 @@ function MoodMeter({
           const n = i + 1;
           const active = value !== null && n <= value;
           const isSelected = value === n;
-          const baseH = 12 + i * 2.2; // 12px → 31.8px rising
+          const baseH = 12 + i * 2.2;
           return (
             <div
               key={n}
               style={{
-                width: 14,
-                height: isSelected ? baseH + 5 : baseH,
+                width: 14, height: isSelected ? baseH + 5 : baseH,
                 backgroundColor: active ? moodColor(n) : "#E5E7EB",
                 borderRadius: 3,
                 transition: "height 0.1s, background-color 0.15s",
@@ -142,7 +133,6 @@ function MoodMeter({
         })}
       </div>
 
-      {/* Feedback */}
       <div className="flex items-center gap-2 min-w-[64px]">
         {value ? (
           <>
@@ -175,42 +165,71 @@ function MoodMeter({
   );
 }
 
-// ─── Chart tooltip ────────────────────────────────────────────────────────────
+// ─── Emoji Picker Button ──────────────────────────────────────────────────────
 
-interface TooltipProps {
-  active?: boolean;
-  payload?: { payload: ChartPoint }[];
-}
-
-interface ChartPoint {
-  date: string;
-  mood: number | null;
-  body: string;
+function EmojiPickerButton({
+  emoji,
+  onSelect,
+  onClear,
+}: {
   emoji: string | null;
-  fullDate: string;
-}
+  onSelect: (e: string) => void;
+  onClear: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
-function ChartTooltip({ active, payload }: TooltipProps) {
-  if (!active || !payload?.length || !payload[0].payload.mood) return null;
-  const d = payload[0].payload;
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [open]);
+
   return (
-    <div className="bg-white border border-[#E5E7EB] rounded-xl p-3 shadow-xl text-left">
-      <div className="flex items-center gap-2 mb-1.5">
-        {d.emoji && <span className="text-base leading-none">{d.emoji}</span>}
-        <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A] text-xs">
-          {formatDate(d.fullDate)}
-        </p>
+    <div className="relative" ref={ref}>
+      <div className="relative inline-flex">
+        <button
+          type="button"
+          onClick={() => setOpen(p => !p)}
+          className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-[#EFEFEF] transition-colors"
+          title="Agregar emoji"
+        >
+          {emoji
+            ? <span className="text-lg leading-none">{emoji}</span>
+            : <Smile size={15} className="text-[#C9C9C9]" />
+          }
+        </button>
+        {emoji && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-[#9CA3AF] hover:bg-[#6B7280] rounded-full flex items-center justify-center transition-colors"
+          >
+            <X size={7} className="text-white" />
+          </button>
+        )}
       </div>
-      <p
-        className="font-[family-name:var(--font-mono)] text-xs font-bold mb-1"
-        style={{ color: moodColor(d.mood!) }}
-      >
-        {moodEmoji(d.mood)} {d.mood}/10
-      </p>
-      {d.body && (
-        <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] max-w-[180px] truncate">
-          {d.body}
-        </p>
+
+      {open && (
+        <div className="absolute bottom-full mb-2 right-0 bg-white border border-[#E5E7EB] rounded-2xl p-3 shadow-2xl z-30 w-72">
+          <div className="grid grid-cols-10 gap-0.5">
+            {EMOJIS.map(e => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => { onSelect(e); setOpen(false); }}
+                className={`w-7 h-7 text-base flex items-center justify-center rounded-lg transition-colors ${
+                  emoji === e ? "bg-[#F0E8FF]" : "hover:bg-[#F5F5F5]"
+                }`}
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -234,9 +253,8 @@ function buildYearGrid(entries: Entry[], year: number): HeatDay[][] {
   const byDate: Record<string, Entry> = {};
   entries.forEach(e => { if (e.entry_date.startsWith(`${year}-`)) byDate[e.entry_date] = e; });
 
-  // Start from the Monday of the week containing Jan 1
   const jan1   = new Date(year, 0, 1);
-  const dow    = jan1.getDay(); // 0=Sun
+  const dow    = jan1.getDay();
   const offset = dow === 0 ? -6 : 1 - dow;
   const cursor = new Date(jan1);
   cursor.setDate(jan1.getDate() + offset);
@@ -250,7 +268,6 @@ function buildYearGrid(entries: Entry[], year: number): HeatDay[][] {
       cursor.setDate(cursor.getDate() + 1);
     }
     weeks.push(week);
-    // Stop once we've passed Dec 31
     if (cursor.getFullYear() > year) break;
   }
   return weeks;
@@ -259,10 +276,8 @@ function buildYearGrid(entries: Entry[], year: number): HeatDay[][] {
 function YearHeatmap({ entries }: { entries: Entry[] }) {
   const year = new Date().getFullYear();
   const [tip, setTip] = useState<{ date: string; entry?: Entry; x: number; y: number } | null>(null);
-
   const weeks = buildYearGrid(entries, year);
 
-  // Month label positions
   const monthLabels: { label: string; col: number }[] = [];
   let lastMonth = -1;
   weeks.forEach((week, wi) => {
@@ -278,7 +293,6 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
         {year} — mapa emocional
       </p>
 
-      {/* Mood legend */}
       <div className="flex items-center gap-1.5 mb-3">
         <span className="font-[family-name:var(--font-mono)] text-[8px] text-[#D1D5DB]">menos</span>
         {MOOD_COLORS.map((c, i) => (
@@ -289,7 +303,6 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
 
       <div className="overflow-x-auto pb-1">
         <div style={{ minWidth: weeks.length * STEP + 20 }}>
-          {/* Month labels */}
           <div className="flex mb-0.5 pl-5">
             {weeks.map((_, wi) => {
               const lbl = monthLabels.find(m => m.col === wi);
@@ -305,9 +318,7 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
             })}
           </div>
 
-          {/* Grid rows (Mon–Sun) */}
           <div className="flex gap-0">
-            {/* Day labels */}
             <div className="flex flex-col mr-1" style={{ gap: GAP }}>
               {DAYS_ES.map((d, i) => (
                 <div
@@ -320,27 +331,17 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
               ))}
             </div>
 
-            {/* Week columns */}
             {weeks.map((week, wi) => (
               <div key={wi} className="flex flex-col" style={{ gap: GAP, marginRight: GAP }}>
                 {week.map((day, di) => {
-                  if (!day.inYear) {
-                    return <div key={di} style={{ width: CELL, height: CELL }} />;
-                  }
+                  if (!day.inYear) return <div key={di} style={{ width: CELL, height: CELL }} />;
                   const hasMood = day.entry?.mood != null;
                   const bg = hasMood ? moodColor(day.entry!.mood!) : "#F3F4F6";
                   const op = hasMood ? 0.35 + (day.entry!.mood! / 10) * 0.65 : 1;
                   return (
                     <div
                       key={di}
-                      style={{
-                        width: CELL, height: CELL,
-                        backgroundColor: bg,
-                        opacity: op,
-                        borderRadius: 2,
-                        cursor: "crosshair",
-                        flexShrink: 0,
-                      }}
+                      style={{ width: CELL, height: CELL, backgroundColor: bg, opacity: op, borderRadius: 2, cursor: "crosshair", flexShrink: 0 }}
                       onMouseEnter={e => {
                         const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
                         setTip({ date: day.date, entry: day.entry, x: r.left, y: r.top });
@@ -355,7 +356,6 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
         </div>
       </div>
 
-      {/* Floating tooltip */}
       {tip && (
         <div
           className="fixed z-50 bg-white border border-[#E5E7EB] rounded-xl p-3 shadow-xl pointer-events-none"
@@ -369,10 +369,7 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
               <div className="flex items-center gap-1.5">
                 {tip.entry.emoji && <span className="text-sm">{tip.entry.emoji}</span>}
                 {tip.entry.mood && (
-                  <span
-                    className="font-[family-name:var(--font-mono)] text-[11px] font-bold"
-                    style={{ color: moodColor(tip.entry.mood) }}
-                  >
+                  <span className="font-[family-name:var(--font-mono)] text-[11px] font-bold" style={{ color: moodColor(tip.entry.mood) }}>
                     {moodEmoji(tip.entry.mood)} {tip.entry.mood}/10
                   </span>
                 )}
@@ -392,33 +389,36 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
+// ─── Entry Form (shared between new + edit) ────────────────────────────────────
 
-export default function DiaryClient({ entries }: { entries: Entry[] }) {
-  const [content,       setContent]     = useState("");
-  const [date,          setDate]        = useState(todayStr);
-  const [emoji,         setEmoji]       = useState<string | null>(null);
-  const [mood,          setMood]        = useState<number | null>(null);
-  const [showPicker,    setShowPicker]  = useState(false);
-  const [selected,      setSelected]    = useState<Entry | null>(null);
-  const [saved,         setSaved]       = useState(false);
-  const [saveError,     setSaveError]   = useState<string | null>(null);
-  const [isPending,     startTransition] = useTransition();
-
+function EntryForm({
+  initialBody = "",
+  initialDate,
+  initialEmoji = null,
+  initialMood = null,
+  onSave,
+  onDelete,
+  onClose,
+  isPending,
+  saveError,
+  isEdit = false,
+}: {
+  initialBody?: string;
+  initialDate: string;
+  initialEmoji?: string | null;
+  initialMood?: number | null;
+  onSave: (body: string, date: string, emoji: string | null, mood: number | null) => void;
+  onDelete?: () => void;
+  onClose?: () => void;
+  isPending: boolean;
+  saveError: string | null;
+  isEdit?: boolean;
+}) {
+  const [body, setBody]   = useState(initialBody);
+  const [date, setDate]   = useState(initialDate);
+  const [emoji, setEmoji] = useState<string | null>(initialEmoji);
+  const [mood, setMood]   = useState<number | null>(initialMood);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const pickerRef   = useRef<HTMLDivElement>(null);
-
-  // Close emoji picker on outside click
-  useEffect(() => {
-    if (!showPicker) return;
-    function onDown(e: MouseEvent) {
-      if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
-        setShowPicker(false);
-      }
-    }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [showPicker]);
 
   function autoResize() {
     const ta = textareaRef.current;
@@ -427,17 +427,119 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
     ta.style.height = `${ta.scrollHeight}px`;
   }
 
-  async function handleSave() {
-    if (!content.trim() && mood === null) return;
-    const snap = { body: content.trim(), date, emoji, mood };
-    setContent("");
-    setEmoji(null);
-    setMood(null);
-    setDate(todayStr());
+  const canSave = !isPending && (!!body.trim() || mood !== null);
+
+  return (
+    <div className="space-y-0">
+      {/* Top row: label + date */}
+      <div className="flex items-center justify-between mb-3">
+        {isEdit ? (
+          <span className="font-[family-name:var(--font-playfair)] text-sm font-bold text-[#0A0A0A]">
+            Editar registro
+          </span>
+        ) : (
+          <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#C9C9C9] uppercase tracking-widest">
+            nueva entrada
+          </span>
+        )}
+        <input
+          type="date"
+          value={date}
+          onChange={e => setDate(e.target.value)}
+          className="font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] bg-transparent focus:outline-none focus:text-[#0A0A0A] cursor-pointer transition-colors"
+        />
+      </div>
+
+      {/* Textarea */}
+      <textarea
+        ref={textareaRef}
+        value={body}
+        onChange={e => { setBody(e.target.value); autoResize(); }}
+        placeholder="¿Qué siento hoy?"
+        rows={isEdit ? 4 : 3}
+        autoFocus={!isEdit}
+        className="w-full bg-transparent resize-none text-[#0A0A0A] text-[15px] leading-relaxed placeholder:text-[#D1D5DB] focus:outline-none"
+      />
+
+      {/* Mood meter */}
+      <div className="mt-3 pt-3 border-t border-[#EFEFEF]">
+        <MoodMeter value={mood} onChange={v => setMood(v === 0 ? null : v)} />
+      </div>
+
+      {/* Bottom: emoji + save (right-aligned, stacked) */}
+      <div className="mt-3 pt-3 border-t border-[#EFEFEF] flex items-end justify-between">
+        {/* Delete (only in edit mode) */}
+        {isEdit && onDelete ? (
+          <button
+            type="button"
+            onClick={onDelete}
+            disabled={isPending}
+            className="p-2 text-[#E5E7EB] hover:text-[#FF1493] hover:bg-[#FFF0F5] rounded-xl transition-colors"
+            title="Eliminar entrada"
+          >
+            <Trash2 size={15} />
+          </button>
+        ) : <div />}
+
+        {/* Right cluster: emoji + save stacked */}
+        <div className="flex flex-col items-end gap-2">
+          <EmojiPickerButton
+            emoji={emoji}
+            onSelect={setEmoji}
+            onClear={() => setEmoji(null)}
+          />
+          <div className="flex items-center gap-2">
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-3 py-1.5 text-[11px] font-medium rounded-lg font-[family-name:var(--font-mono)] text-[#9CA3AF] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] transition-all"
+              >
+                cancelar
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => onSave(body, date, emoji, mood)}
+              disabled={!canSave}
+              className={`px-4 py-1.5 text-[11px] font-medium rounded-lg font-[family-name:var(--font-mono)] transition-all ${
+                "bg-[#0A0A0A] text-white hover:bg-[#374151] disabled:opacity-25"
+              }`}
+            >
+              {isPending ? "guardando…" : isEdit ? "guardar cambios" : "guardar"}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Error */}
+      {saveError && (
+        <div className="mt-2 px-3 py-2 bg-[#FFF0F5] border border-[#FF1493]/20 rounded-xl">
+          <span className="font-[family-name:var(--font-mono)] text-[11px] text-[#FF1493]">
+            {saveError}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
+
+export default function DiaryClient({ entries }: { entries: Entry[] }) {
+  const [saved,        setSaved]        = useState(false);
+  const [saveError,    setSaveError]    = useState<string | null>(null);
+  const [selected,     setSelected]     = useState<Entry | null>(null);
+  const [editing,      setEditing]      = useState<Entry | null>(null);
+  const [editError,    setEditError]    = useState<string | null>(null);
+  const [isPending,    startTransition] = useTransition();
+
+  // ── New entry save ──
+  function handleSave(body: string, date: string, emoji: string | null, mood: number | null) {
+    if (!body.trim() && mood === null) return;
     setSaveError(null);
-    if (textareaRef.current) textareaRef.current.style.height = "auto";
     startTransition(async () => {
-      const result = await createEntry(snap.body, snap.date, snap.emoji, snap.mood);
+      const result = await createEntry(body, date, emoji, mood);
       if (result.error) {
         setSaveError(result.error);
       } else {
@@ -447,45 +549,30 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
     });
   }
 
+  // ── Edit save ──
+  function handleEditSave(body: string, date: string, emoji: string | null, mood: number | null) {
+    if (!editing) return;
+    setEditError(null);
+    startTransition(async () => {
+      const result = await updateEntry(editing.id, body, date, emoji, mood);
+      if (result.error) {
+        setEditError(result.error);
+      } else {
+        setEditing(null);
+      }
+    });
+  }
+
+  // ── Delete ──
   function handleDelete(id: string) {
+    setEditing(null);
     setSelected(null);
     startTransition(async () => { await deleteEntry(id); });
   }
 
-  // Build chart data — last 14 days
-  const days = last14Days();
-  const chartData: ChartPoint[] = days.map(d => {
-    const entry = entries.find(e => e.entry_date === d);
-    return {
-      date: shortDate(d),
-      fullDate: d,
-      mood: entry?.mood ?? null,
-      body: entry?.body ?? "",
-      emoji: entry?.emoji ?? null,
-    };
-  });
-  const hasChart = chartData.some(d => d.mood !== null);
-
-  // Custom dot color
-  const renderDot = (props: { cx?: number; cy?: number; payload?: ChartPoint; index?: number }) => {
-    const { cx, cy, payload } = props;
-    if (!payload?.mood || cx === undefined || cy === undefined) return <g key={props.index} />;
-    return (
-      <Dot
-        key={`dot-${props.index}`}
-        cx={cx}
-        cy={cy}
-        r={4}
-        fill={moodColor(payload.mood)}
-        stroke="white"
-        strokeWidth={1.5}
-      />
-    );
-  };
-
   return (
     <div className="min-h-screen bg-white">
-      <div className="max-w-2xl mx-auto px-8 py-10">
+      <div className="px-8 py-10 max-w-screen-xl mx-auto">
 
         {/* ── Header ── */}
         <div className="mb-8">
@@ -499,162 +586,17 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
 
         {/* ── Write area ── */}
         <div
-          className={`mb-8 bg-[#F9FAFB] rounded-2xl px-5 pt-5 pb-4 transition-all ${
+          className={`mb-8 bg-[#F9FAFB] rounded-2xl px-6 pt-5 pb-5 transition-all ${
             saved ? "shadow-[0_0_0_2px_#39FF1440]" : "focus-within:shadow-[0_0_0_2px_#9D4EDD22]"
           }`}
         >
-          <textarea
-            ref={textareaRef}
-            value={content}
-            onChange={e => { setContent(e.target.value); autoResize(); }}
-            placeholder="¿Qué siento hoy?"
-            rows={3}
-            autoFocus
-            className="w-full bg-transparent resize-none text-[#0A0A0A] text-[15px] leading-relaxed placeholder:text-[#D1D5DB] focus:outline-none"
+          <EntryForm
+            initialDate={todayStr()}
+            onSave={handleSave}
+            isPending={isPending}
+            saveError={saveError}
           />
-
-          {/* Mood meter */}
-          <div className="mt-3 pt-3 border-t border-[#EFEFEF]">
-            <MoodMeter
-              value={mood}
-              onChange={v => setMood(v === 0 ? null : v)}
-            />
-          </div>
-
-          {/* Bottom bar */}
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-[#EFEFEF]">
-            <div className="flex items-center gap-3">
-
-              {/* Emoji picker */}
-              <div className="relative" ref={pickerRef}>
-                <div className="relative">
-                  <button
-                    type="button"
-                    onClick={() => setShowPicker(p => !p)}
-                    className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-[#EFEFEF] transition-colors"
-                  >
-                    {emoji
-                      ? <span className="text-base leading-none">{emoji}</span>
-                      : <Smile size={14} className="text-[#C9C9C9]" />
-                    }
-                  </button>
-                  {emoji && (
-                    <button
-                      type="button"
-                      onClick={() => setEmoji(null)}
-                      className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-[#9CA3AF] hover:bg-[#6B7280] rounded-full flex items-center justify-center transition-colors"
-                    >
-                      <X size={7} className="text-white" />
-                    </button>
-                  )}
-                </div>
-                {showPicker && (
-                  <div className="absolute bottom-full mb-2 left-0 bg-white border border-[#E5E7EB] rounded-xl p-2.5 shadow-xl z-20 w-52">
-                    <div className="grid grid-cols-6 gap-0.5">
-                      {EMOJIS.map(e => (
-                        <button
-                          key={e}
-                          type="button"
-                          onClick={() => { setEmoji(e); setShowPicker(false); }}
-                          className={`w-7 h-7 text-base flex items-center justify-center rounded-lg transition-colors ${
-                            emoji === e ? "bg-[#F0E8FF]" : "hover:bg-[#F5F5F5]"
-                          }`}
-                        >
-                          {e}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Date */}
-              <input
-                type="date"
-                value={date}
-                onChange={e => setDate(e.target.value)}
-                className="font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] bg-transparent focus:outline-none focus:text-[#0A0A0A] cursor-pointer transition-colors"
-              />
-            </div>
-
-            <button
-              onClick={handleSave}
-              disabled={(!content.trim() && mood === null) || isPending}
-              className={`px-4 py-1.5 text-[11px] font-medium rounded-lg font-[family-name:var(--font-mono)] transition-all ${
-                saved
-                  ? "bg-[#39FF14] text-[#0A0A0A]"
-                  : "bg-[#0A0A0A] text-white hover:bg-[#374151] disabled:opacity-25"
-              }`}
-            >
-              {isPending ? "guardando…" : saved ? "✓ guardado" : "guardar"}
-            </button>
-          </div>
         </div>
-
-        {/* ── Save error ── */}
-        {saveError && (
-          <div className="mb-6 -mt-4 px-4 py-2.5 bg-[#FFF0F5] border border-[#FF1493]/20 rounded-xl flex items-center justify-between">
-            <span className="font-[family-name:var(--font-mono)] text-[11px] text-[#FF1493]">
-              Error al guardar: {saveError}
-            </span>
-            <button onClick={() => setSaveError(null)} className="text-[#FF1493]/50 hover:text-[#FF1493]">
-              <X size={12} />
-            </button>
-          </div>
-        )}
-
-        {/* ── Mood chart ── */}
-        {hasChart && (
-          <div className="mb-10">
-            <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest mb-4">
-              últimas 2 semanas
-            </p>
-            <ResponsiveContainer width="100%" height={140}>
-              <AreaChart data={chartData} margin={{ top: 8, right: 4, left: -28, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="moodFill" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%"   stopColor="#39FF14" stopOpacity={0.25} />
-                    <stop offset="50%"  stopColor="#9D4EDD" stopOpacity={0.15} />
-                    <stop offset="100%" stopColor="#FF1493" stopOpacity={0.05} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid
-                  strokeDasharray="3 8"
-                  stroke="#F3F4F6"
-                  vertical={false}
-                />
-                <XAxis
-                  dataKey="date"
-                  tick={{ fontSize: 8, fontFamily: "var(--font-mono)", fill: "#D1D5DB" }}
-                  axisLine={false}
-                  tickLine={false}
-                  interval={1}
-                />
-                <YAxis
-                  domain={[1, 10]}
-                  ticks={[1, 5, 10]}
-                  tick={{ fontSize: 8, fontFamily: "var(--font-mono)", fill: "#D1D5DB" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  content={<ChartTooltip />}
-                  cursor={{ stroke: "#E5E7EB", strokeWidth: 1 }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="mood"
-                  stroke="#9D4EDD"
-                  strokeWidth={1.8}
-                  fill="url(#moodFill)"
-                  connectNulls={false}
-                  dot={renderDot}
-                  activeDot={{ r: 5, fill: "#9D4EDD", stroke: "white", strokeWidth: 2 }}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        )}
 
         {/* ── Entry list ── */}
         {entries.length === 0 ? (
@@ -673,14 +615,14 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
               <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-24 shrink-0">fecha</span>
               <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-10 shrink-0 text-center">mood</span>
               <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest flex-1">anotación</span>
-              <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-10 text-right shrink-0">cuándo</span>
+              <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-16 text-right shrink-0">cuándo</span>
             </div>
 
             {entries.map(entry => (
-              <button
+              <div
                 key={entry.id}
                 onClick={() => setSelected(entry)}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[#F9FAFB] transition-colors text-left group"
+                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[#F9FAFB] transition-colors cursor-pointer group"
               >
                 {/* Date */}
                 <span className="font-[family-name:var(--font-playfair)] text-sm text-[#0A0A0A] shrink-0 w-24 leading-snug">
@@ -710,22 +652,31 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
                   {entry.body || <span className="italic text-[#D1D5DB]">sin texto</span>}
                 </span>
 
-                {/* Days ago */}
-                <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#D1D5DB] group-hover:text-[#9CA3AF] shrink-0 w-10 text-right transition-colors">
-                  {daysAgo(entry.entry_date)}
-                </span>
-              </button>
+                {/* Right side: days ago + pencil */}
+                <div className="flex items-center gap-2 shrink-0">
+                  <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#D1D5DB] group-hover:text-[#9CA3AF] transition-colors w-10 text-right">
+                    {daysAgo(entry.entry_date)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={e => { e.stopPropagation(); setEditing(entry); }}
+                    className="opacity-0 group-hover:opacity-100 p-1.5 text-[#C9C9C9] hover:text-[#9D4EDD] hover:bg-[#F5F0FF] rounded-lg transition-all"
+                    title="Editar"
+                  >
+                    <Pencil size={13} />
+                  </button>
+                </div>
+              </div>
             ))}
           </div>
         )}
 
         {/* ── Year heatmap ── */}
         <YearHeatmap entries={entries} />
-
       </div>
 
-      {/* ── Entry modal ── */}
-      {selected && (
+      {/* ── View modal ── */}
+      {selected && !editing && (
         <div
           className="fixed inset-0 bg-black/15 backdrop-blur-sm z-50 flex items-center justify-center p-6"
           onClick={() => setSelected(null)}
@@ -734,12 +685,10 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
             className="bg-white rounded-2xl p-7 max-w-lg w-full shadow-2xl"
             onClick={e => e.stopPropagation()}
           >
-            {/* Modal header */}
+            {/* Header */}
             <div className="flex items-start justify-between mb-5">
               <div className="flex items-center gap-3">
-                {selected.emoji && (
-                  <span className="text-3xl leading-none">{selected.emoji}</span>
-                )}
+                {selected.emoji && <span className="text-3xl leading-none">{selected.emoji}</span>}
                 <div>
                   <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A] text-base">
                     {formatDate(selected.entry_date)}
@@ -751,8 +700,16 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
               </div>
               <div className="flex items-center gap-1.5">
                 <button
+                  onClick={() => { setEditing(selected); setSelected(null); }}
+                  className="p-1.5 text-[#C9C9C9] hover:text-[#9D4EDD] hover:bg-[#F5F0FF] rounded-lg transition-colors"
+                  title="Editar"
+                >
+                  <Pencil size={14} />
+                </button>
+                <button
                   onClick={() => handleDelete(selected.id)}
                   className="p-1.5 text-[#E5E7EB] hover:text-[#FF1493] hover:bg-[#FFF0F5] rounded-lg transition-colors"
+                  title="Eliminar"
                 >
                   <Trash2 size={14} />
                 </button>
@@ -765,19 +722,17 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
               </div>
             </div>
 
-            {/* Mood visualization */}
+            {/* Mood */}
             {selected.mood && (
               <div className="mb-4 p-3 rounded-xl" style={{ background: moodColor(selected.mood) + "12" }}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xl">{moodEmoji(selected.mood)}</span>
-                    <span
-                      className="font-[family-name:var(--font-mono)] text-sm font-bold"
-                      style={{ color: moodColor(selected.mood) }}
-                    >
-                      {selected.mood}/10
-                    </span>
-                  </div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-xl">{moodEmoji(selected.mood)}</span>
+                  <span
+                    className="font-[family-name:var(--font-mono)] text-sm font-bold"
+                    style={{ color: moodColor(selected.mood) }}
+                  >
+                    {selected.mood}/10
+                  </span>
                 </div>
                 <div className="flex items-end gap-[2px] h-5">
                   {Array.from({ length: 10 }, (_, i) => {
@@ -787,8 +742,7 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
                       <div
                         key={n}
                         style={{
-                          flex: 1,
-                          height: `${40 + i * 6}%`,
+                          flex: 1, height: `${40 + i * 6}%`,
                           backgroundColor: active ? moodColor(n) : "#E5E7EB",
                           borderRadius: 2,
                         }}
@@ -810,6 +764,33 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
                 Sin anotación
               </p>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Edit modal ── */}
+      {editing && (
+        <div
+          className="fixed inset-0 bg-black/15 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+          onClick={() => setEditing(null)}
+        >
+          <div
+            className="bg-white rounded-2xl p-7 max-w-lg w-full shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <EntryForm
+              key={editing.id}
+              initialBody={editing.body}
+              initialDate={editing.entry_date}
+              initialEmoji={editing.emoji}
+              initialMood={editing.mood}
+              onSave={handleEditSave}
+              onDelete={() => handleDelete(editing.id)}
+              onClose={() => setEditing(null)}
+              isPending={isPending}
+              saveError={editError}
+              isEdit
+            />
           </div>
         </div>
       )}
