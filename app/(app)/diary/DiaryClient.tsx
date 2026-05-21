@@ -65,25 +65,58 @@ function todayStr(): string {
   return new Date().toLocaleDateString("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" });
 }
 
-// ─── Emoji palette ────────────────────────────────────────────────────────────
+// ─── Emotion map: [emoji, energy 0-100, happiness 0-100] ─────────────────────
+// X = energía (0 = poca, 100 = mucha)
+// Y = alegría  (0 = triste, 100 = muy alegre) → arriba en el canvas = más alegre
 
-const EMOJIS = [
-  // Positivos
-  "😊", "😄", "😁", "🥹", "🤩", "🥰", "😍", "😎", "🤗", "😌",
-  // Neutrales
-  "😶", "🤔", "😐", "🫠", "🥱", "😴", "😑", "🧐", "🫡", "🤭",
-  // Tristes
-  "😔", "😢", "😭", "😞", "😩", "😫", "🥺", "😟", "😕", "🙁",
-  // Tensos / enojados
-  "😤", "😡", "🤯", "😰", "😨", "😱", "😮", "😲", "🫨", "😬",
-  // Amor / energía
-  "❤️", "🧡", "💛", "💚", "💙", "💜", "🖤", "🤍", "💔", "🫶",
-  // Naturaleza / símbolos
-  "✨", "🔥", "💫", "⚡", "🌈", "☀️", "🌙", "⭐", "🌟", "💎",
-  // Actividades / contexto
-  "💪", "🙏", "🏋️", "📚", "🎵", "🌿", "🌊", "🌸", "🍀", "🦋",
-  // Extras
-  "🏃", "🧘", "🫂", "🌻", "☁️", "🌧️", "❄️", "🎉", "💡", "🎊",
+const EMOTION_EMOJIS: [string, number, number][] = [
+  // ── Alto energía + Alta alegría: Eufórico / Emocionado ──
+  ["🎉", 92, 96], ["🥳", 95, 92], ["🤣", 86, 94], ["😂", 80, 90],
+  ["🤩", 88, 93], ["😄", 83, 91], ["😁", 79, 88], ["🎊", 91, 88],
+  ["🚀", 96, 81], ["💥", 93, 74], ["⚡", 97, 69], ["🔥", 95, 67],
+  ["✨", 74, 87], ["🌟", 70, 90], ["🌞", 67, 85], ["⭐", 63, 83],
+  ["💃", 84, 87], ["🕺", 87, 83], ["🤑", 75, 79], ["🤪", 84, 76],
+  ["😜", 77, 79], ["🥂", 79, 87], ["🏆", 78, 84], ["💯", 82, 80],
+  ["🎯", 80, 77], ["🎸", 85, 74], ["🎆", 90, 85],
+
+  // ── Energía media-alta + Alta alegría: Feliz / Contento ──
+  ["😍", 62, 93], ["🥰", 44, 93], ["😊", 50, 89], ["😎", 60, 84],
+  ["🤗", 54, 87], ["🥹", 46, 86], ["😋", 63, 82], ["🤭", 42, 62],
+  ["😚", 38, 87], ["😇", 55, 90],
+
+  // ── Corazones ──
+  ["❤️", 52, 91], ["🧡", 56, 87], ["💛", 51, 85], ["💚", 47, 83],
+  ["💙", 44, 81], ["💜", 47, 84], ["🤍", 32, 80], ["🖤", 28, 62],
+  ["🫶", 49, 88], ["💝", 55, 91], ["💕", 59, 89], ["💔", 23, 11],
+
+  // ── Baja energía + Alta alegría: Calma / Paz / Tranquilidad ──
+  ["🧘", 5, 93], ["😌", 16, 89], ["😴", 3, 79], ["💤", 4, 75],
+  ["🌙", 8, 84], ["🍀", 12, 86], ["🌸", 16, 83], ["🌿", 10, 81],
+  ["🌺", 19, 81], ["🫂", 22, 84], ["🕊️", 13, 88], ["🙏", 24, 79],
+  ["🌱", 18, 77], ["🌻", 30, 81], ["🦋", 33, 83], ["🌷", 20, 79],
+  ["🍃", 12, 78], ["☕", 20, 72], ["📖", 15, 70], ["🌅", 26, 76],
+
+  // ── Centro: Neutral / Mixto ──
+  ["🤔", 51, 53], ["😐", 40, 51], ["🤷", 46, 49], ["💭", 35, 57],
+  ["🧐", 57, 53], ["🤫", 30, 57], ["😶", 34, 46], ["😑", 27, 43],
+  ["🫥", 20, 47], ["💡", 54, 64], ["📚", 27, 66], ["🎵", 61, 77],
+  ["💎", 52, 73], ["☁️", 18, 64], ["🌊", 42, 68], ["😏", 60, 60],
+
+  // ── Baja-media energía + Poca alegría: Incómodo / Cansado ──
+  ["😒", 46, 23], ["🙄", 53, 23], ["🥴", 59, 36], ["😓", 37, 26],
+  ["😪", 27, 30], ["🫠", 23, 36], ["🥶", 30, 29], ["🥵", 76, 32],
+  ["😵‍💫", 73, 27], ["🤢", 56, 10], ["😵", 68, 22],
+
+  // ── Baja energía + Baja alegría: Tristeza / Depresión ──
+  ["😢", 18, 8], ["😭", 26, 5], ["😔", 14, 16], ["😞", 17, 13],
+  ["😟", 31, 19], ["🥺", 25, 22], ["🙁", 21, 21], ["🌧️", 14, 13],
+  ["😕", 36, 29], ["😶‍🌫️", 19, 41], ["💧", 22, 17], ["🫖", 12, 55],
+
+  // ── Alta energía + Baja alegría: Enojo / Ansiedad / Estrés ──
+  ["😡", 91, 6], ["🤬", 97, 3], ["😤", 86, 15], ["😱", 93, 9],
+  ["😨", 81, 13], ["😰", 79, 19], ["🤯", 91, 23], ["🫨", 89, 15],
+  ["😬", 81, 29], ["💢", 90, 19], ["😖", 66, 16], ["😣", 69, 19],
+  ["😫", 74, 19], ["😩", 71, 21], ["🌪️", 88, 28], ["💣", 85, 10],
 ];
 
 // ─── Mood Meter ───────────────────────────────────────────────────────────────
@@ -165,9 +198,9 @@ function MoodMeter({ value, onChange }: { value: number | null; onChange: (v: nu
   );
 }
 
-// ─── Emoji Picker Button ──────────────────────────────────────────────────────
+// ─── Emotion Picker (2D canvas) ───────────────────────────────────────────────
 
-function EmojiPickerButton({
+function EmotionPicker({
   emoji,
   onSelect,
   onClear,
@@ -177,25 +210,16 @@ function EmojiPickerButton({
   onClear: () => void;
 }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    function onDown(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [open]);
 
   return (
-    <div className="relative" ref={ref}>
+    <>
+      {/* Trigger */}
       <div className="relative inline-flex">
         <button
           type="button"
-          onClick={() => setOpen(p => !p)}
+          onClick={() => setOpen(true)}
           className="w-8 h-8 flex items-center justify-center rounded-xl hover:bg-[#EFEFEF] transition-colors"
-          title="Agregar emoji"
+          title="Elegir emoji"
         >
           {emoji
             ? <span className="text-lg leading-none">{emoji}</span>
@@ -213,25 +237,102 @@ function EmojiPickerButton({
         )}
       </div>
 
+      {/* Full overlay */}
       {open && (
-        <div className="absolute bottom-full mb-2 right-0 bg-white border border-[#E5E7EB] rounded-2xl p-3 shadow-2xl z-30 w-72">
-          <div className="grid grid-cols-10 gap-0.5">
-            {EMOJIS.map(e => (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-5 pb-3">
+              <div>
+                <p className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#0A0A0A]">
+                  ¿cómo te sentís?
+                </p>
+                <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#C9C9C9] mt-0.5">
+                  tocá el emoji que mejor lo represente
+                </p>
+              </div>
               <button
-                key={e}
                 type="button"
-                onClick={() => { onSelect(e); setOpen(false); }}
-                className={`w-7 h-7 text-base flex items-center justify-center rounded-lg transition-colors ${
-                  emoji === e ? "bg-[#F0E8FF]" : "hover:bg-[#F5F5F5]"
-                }`}
+                onClick={() => setOpen(false)}
+                className="p-2 text-[#C9C9C9] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] rounded-xl transition-colors"
               >
-                {e}
+                <X size={16} />
               </button>
-            ))}
+            </div>
+
+            {/* 2D canvas */}
+            <div className="px-4 pb-4">
+              <div className="flex gap-2">
+                {/* Y-axis label */}
+                <div className="flex flex-col items-center justify-between py-6 shrink-0" style={{ width: 28 }}>
+                  <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#9D4EDD] font-medium">alegre</span>
+                  <div className="flex-1 flex items-center">
+                    <div className="w-px flex-1 bg-gradient-to-b from-[#9D4EDD]/30 to-[#9CA3AF]/20 mx-auto" style={{ height: 200 }} />
+                  </div>
+                  <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#9CA3AF]">triste</span>
+                </div>
+
+                <div className="flex-1 flex flex-col gap-1">
+                  {/* Plot area */}
+                  <div
+                    className="relative rounded-2xl overflow-hidden"
+                    style={{ height: 380, background: "linear-gradient(135deg, #F9F5FF 0%, #FFFBF0 35%, #F0FFF4 65%, #FFF0F5 100%)" }}
+                  >
+                    {/* Subtle center lines */}
+                    <div className="absolute inset-0 pointer-events-none">
+                      <div className="absolute top-1/2 left-0 right-0 h-px bg-[#E5E7EB]/80" />
+                      <div className="absolute left-1/2 top-0 bottom-0 w-px bg-[#E5E7EB]/80" />
+                    </div>
+
+                    {/* Corner labels */}
+                    <span className="absolute top-2.5 left-3 font-[family-name:var(--font-mono)] text-[9px] text-[#9D4EDD]/50 pointer-events-none">calma</span>
+                    <span className="absolute top-2.5 right-3 font-[family-name:var(--font-mono)] text-[9px] text-[#F59E0B]/60 pointer-events-none">euforia</span>
+                    <span className="absolute bottom-2.5 left-3 font-[family-name:var(--font-mono)] text-[9px] text-[#6B7280]/50 pointer-events-none">tristeza</span>
+                    <span className="absolute bottom-2.5 right-3 font-[family-name:var(--font-mono)] text-[9px] text-[#FF1493]/50 pointer-events-none">tensión</span>
+
+                    {/* Emojis */}
+                    {EMOTION_EMOJIS.map(([e, energy, happiness]) => (
+                      <button
+                        key={e}
+                        type="button"
+                        onClick={() => { onSelect(e); setOpen(false); }}
+                        style={{
+                          position: "absolute",
+                          left: `${energy}%`,
+                          top: `${100 - happiness}%`,
+                          transform: "translate(-50%, -50%)",
+                          fontSize: emoji === e ? 26 : 20,
+                          lineHeight: 1,
+                          transition: "font-size 0.1s, filter 0.1s",
+                          filter: emoji === e ? "drop-shadow(0 0 6px #9D4EDD)" : undefined,
+                          zIndex: emoji === e ? 10 : 1,
+                        }}
+                        className="hover:scale-150 transition-transform duration-100 leading-none p-0.5"
+                        title={e}
+                      >
+                        {e}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* X-axis label */}
+                  <div className="flex items-center justify-between px-1">
+                    <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#9CA3AF]">poca energía</span>
+                    <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#F59E0B]/80">mucha energía</span>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
@@ -490,7 +591,7 @@ function EntryForm({
       {/* Mood meter + emoji en la misma fila */}
       <div className="mt-3 pt-3 border-t border-[#EFEFEF] flex items-center justify-between gap-4">
         <MoodMeter value={mood} onChange={v => setMood(v === 0 ? null : v)} />
-        <EmojiPickerButton
+        <EmotionPicker
           emoji={emoji}
           onSelect={setEmoji}
           onClear={() => setEmoji(null)}
@@ -566,7 +667,7 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
         setSaveError(result.error);
       } else {
         setSaved(true);
-        setTimeout(() => setSaved(false), 1800);
+        setTimeout(() => setSaved(false), 2200);
       }
     });
   }
@@ -654,12 +755,21 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
             saved ? "shadow-[0_0_0_2px_#39FF1440]" : "focus-within:shadow-[0_0_0_2px_#9D4EDD22]"
           }`}
         >
-          <EntryForm
-            initialDate={todayStr()}
-            onSave={handleSave}
-            isPending={isPending}
-            saveError={saveError}
-          />
+          {saved ? (
+            <div className="py-8 flex flex-col items-center gap-2">
+              <span className="text-3xl leading-none">✓</span>
+              <span className="font-[family-name:var(--font-mono)] text-sm font-medium text-[#22C55E]">
+                registro guardado
+              </span>
+            </div>
+          ) : (
+            <EntryForm
+              initialDate={todayStr()}
+              onSave={handleSave}
+              isPending={isPending}
+              saveError={saveError}
+            />
+          )}
         </div>
 
         {/* ── Entry list ── */}
