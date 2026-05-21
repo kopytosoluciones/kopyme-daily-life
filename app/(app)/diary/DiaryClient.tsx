@@ -62,7 +62,7 @@ function shortDate(dateStr: string): string {
 }
 
 function todayStr(): string {
-  return new Date().toISOString().split("T")[0];
+  return new Date().toLocaleDateString("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" });
 }
 
 // ─── Emoji palette ────────────────────────────────────────────────────────────
@@ -239,9 +239,7 @@ function EmojiPickerButton({
 
 const MONTHS_ES = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
 const DAYS_ES   = ["L","M","X","J","V","S","D"];
-const CELL = 10;
 const GAP  = 2;
-const STEP = CELL + GAP;
 
 interface HeatDay {
   date: string;
@@ -316,64 +314,65 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
       <div className="flex items-center gap-1.5 mb-3">
         <span className="font-[family-name:var(--font-mono)] text-[8px] text-[#D1D5DB]">menos</span>
         {MOOD_COLORS.map((c, i) => (
-          <div key={i} style={{ width: CELL, height: CELL, backgroundColor: c, borderRadius: 2, opacity: 0.5 + (i / 9) * 0.5 }} />
+          <div key={i} style={{ width: 10, height: 10, backgroundColor: c, borderRadius: 2, opacity: 0.5 + (i / 9) * 0.5 }} />
         ))}
         <span className="font-[family-name:var(--font-mono)] text-[8px] text-[#D1D5DB]">más</span>
       </div>
 
-      <div className="overflow-x-auto pb-1">
-        <div style={{ minWidth: weeks.length * STEP + 20 }}>
-          <div className="flex mb-0.5 pl-5">
-            {weeks.map((_, wi) => {
-              const lbl = monthLabels.find(m => m.col === wi);
+      {/* Month labels row */}
+      <div className="flex w-full mb-0.5 pl-4">
+        {weeks.map((_, wi) => {
+          const lbl = monthLabels.find(m => m.col === wi);
+          return (
+            <div key={wi} className="flex-1 min-w-0">
+              {lbl && (
+                <span className="font-[family-name:var(--font-mono)] text-[8px] text-[#9CA3AF]">
+                  {lbl.label}
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Grid */}
+      <div className="flex w-full items-start" style={{ gap: GAP }}>
+        {/* Day labels */}
+        <div className="flex flex-col shrink-0" style={{ gap: GAP, width: 14 }}>
+          {DAYS_ES.map((d, i) => (
+            <div
+              key={d}
+              className="font-[family-name:var(--font-mono)] text-[7px] text-[#D1D5DB] flex items-center justify-end pr-1"
+              style={{ aspectRatio: "1", opacity: i % 2 === 0 ? 1 : 0 }}
+            >
+              {d}
+            </div>
+          ))}
+        </div>
+
+        {/* Week columns — flex-1 so they fill the full width */}
+        {weeks.map((week, wi) => (
+          <div key={wi} className="flex flex-col flex-1 min-w-0" style={{ gap: GAP }}>
+            {week.map((day, di) => {
+              if (!day.inYear) return <div key={di} className="w-full" style={{ aspectRatio: "1" }} />;
+              const hasMood = day.avgMood !== null;
+              const bg = hasMood ? moodColor(Math.round(day.avgMood!)) : "#F3F4F6";
+              const op = hasMood ? 0.35 + (day.avgMood! / 10) * 0.65 : 1;
               return (
-                <div key={wi} style={{ width: STEP, flexShrink: 0 }}>
-                  {lbl && (
-                    <span className="font-[family-name:var(--font-mono)] text-[8px] text-[#9CA3AF]">
-                      {lbl.label}
-                    </span>
-                  )}
-                </div>
+                <div
+                  key={di}
+                  className="w-full"
+                  style={{ aspectRatio: "1", backgroundColor: bg, opacity: op, borderRadius: 2, cursor: "crosshair" }}
+                  onMouseEnter={e => {
+                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                    setTip({ date: day.date, dayEntries: day.dayEntries, avgMood: day.avgMood, x: r.left, y: r.top });
+                  }}
+                  onMouseLeave={() => setTip(null)}
+                />
               );
             })}
           </div>
-
-          <div className="flex gap-0">
-            <div className="flex flex-col mr-1" style={{ gap: GAP }}>
-              {DAYS_ES.map((d, i) => (
-                <div
-                  key={d}
-                  className="font-[family-name:var(--font-mono)] text-[7px] text-[#D1D5DB] flex items-center justify-end pr-1"
-                  style={{ height: CELL, width: 14, opacity: i % 2 === 0 ? 1 : 0 }}
-                >
-                  {d}
-                </div>
-              ))}
-            </div>
-
-            {weeks.map((week, wi) => (
-              <div key={wi} className="flex flex-col" style={{ gap: GAP, marginRight: GAP }}>
-                {week.map((day, di) => {
-                  if (!day.inYear) return <div key={di} style={{ width: CELL, height: CELL }} />;
-                  const hasMood = day.avgMood !== null;
-                  const bg = hasMood ? moodColor(Math.round(day.avgMood!)) : "#F3F4F6";
-                  const op = hasMood ? 0.35 + (day.avgMood! / 10) * 0.65 : 1;
-                  return (
-                    <div
-                      key={di}
-                      style={{ width: CELL, height: CELL, backgroundColor: bg, opacity: op, borderRadius: 2, cursor: "crosshair", flexShrink: 0 }}
-                      onMouseEnter={e => {
-                        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                        setTip({ date: day.date, dayEntries: day.dayEntries, avgMood: day.avgMood, x: r.left, y: r.top });
-                      }}
-                      onMouseLeave={() => setTip(null)}
-                    />
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
+        ))}
       </div>
 
       {tip && (
@@ -488,14 +487,18 @@ function EntryForm({
         className="w-full bg-transparent resize-none text-[#0A0A0A] text-[15px] leading-relaxed placeholder:text-[#D1D5DB] focus:outline-none"
       />
 
-      {/* Mood meter */}
-      <div className="mt-3 pt-3 border-t border-[#EFEFEF]">
+      {/* Mood meter + emoji en la misma fila */}
+      <div className="mt-3 pt-3 border-t border-[#EFEFEF] flex items-center justify-between gap-4">
         <MoodMeter value={mood} onChange={v => setMood(v === 0 ? null : v)} />
+        <EmojiPickerButton
+          emoji={emoji}
+          onSelect={setEmoji}
+          onClear={() => setEmoji(null)}
+        />
       </div>
 
-      {/* Bottom: emoji + save (right-aligned, stacked) */}
-      <div className="mt-3 pt-3 border-t border-[#EFEFEF] flex items-end justify-between">
-        {/* Delete (only in edit mode) */}
+      {/* Bottom: delete (edit) a la izq, cancel+save a la der */}
+      <div className="mt-3 pt-3 border-t border-[#EFEFEF] flex items-center justify-between">
         {isEdit && onDelete ? (
           <button
             type="button"
@@ -508,34 +511,24 @@ function EntryForm({
           </button>
         ) : <div />}
 
-        {/* Right cluster: emoji + save stacked */}
-        <div className="flex flex-col items-end gap-2">
-          <EmojiPickerButton
-            emoji={emoji}
-            onSelect={setEmoji}
-            onClear={() => setEmoji(null)}
-          />
-          <div className="flex items-center gap-2">
-            {onClose && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="px-3 py-1.5 text-[11px] font-medium rounded-lg font-[family-name:var(--font-mono)] text-[#9CA3AF] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] transition-all"
-              >
-                cancelar
-              </button>
-            )}
+        <div className="flex items-center gap-2">
+          {onClose && (
             <button
               type="button"
-              onClick={() => onSave(body, date, emoji, mood)}
-              disabled={!canSave}
-              className={`px-4 py-1.5 text-[11px] font-medium rounded-lg font-[family-name:var(--font-mono)] transition-all ${
-                "bg-[#0A0A0A] text-white hover:bg-[#374151] disabled:opacity-25"
-              }`}
+              onClick={onClose}
+              className="px-3 py-1.5 text-[11px] font-medium rounded-lg font-[family-name:var(--font-mono)] text-[#9CA3AF] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] transition-all"
             >
-              {isPending ? "guardando…" : isEdit ? "guardar cambios" : "guardar"}
+              cancelar
             </button>
-          </div>
+          )}
+          <button
+            type="button"
+            onClick={() => onSave(body, date, emoji, mood)}
+            disabled={!canSave}
+            className="px-4 py-1.5 text-[11px] font-medium rounded-lg font-[family-name:var(--font-mono)] bg-[#0A0A0A] text-white hover:bg-[#374151] disabled:opacity-25 transition-all"
+          >
+            {isPending ? "guardando…" : isEdit ? "guardar cambios" : "guardar"}
+          </button>
         </div>
       </div>
 
