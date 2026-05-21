@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useTransition, useEffect, useCallback } from "react";
-import { createEntry, updateEntry, deleteEntry } from "./actions";
-import { X, Trash2, Smile, Pencil } from "lucide-react";
+import { createEntry, updateEntry, deleteEntry, restoreLastDeleted } from "./actions";
+import { X, Trash2, Smile, Pencil, Undo2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -552,6 +552,8 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
   const [selected,     setSelected]     = useState<Entry | null>(null);
   const [editing,      setEditing]      = useState<Entry | null>(null);
   const [editError,    setEditError]    = useState<string | null>(null);
+  const [restored,     setRestored]     = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
   const [isPending,    startTransition] = useTransition();
 
   // ── New entry save ──
@@ -590,18 +592,60 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
     startTransition(async () => { await deleteEntry(id); });
   }
 
+  // ── Restore last deleted ──
+  function handleRestore() {
+    setRestoreError(null);
+    startTransition(async () => {
+      const result = await restoreLastDeleted();
+      if (result.error) {
+        setRestoreError(result.error);
+      } else if (result.restored) {
+        setRestored(true);
+        setTimeout(() => setRestored(false), 2500);
+      } else {
+        setRestoreError("No hay entradas borradas para recuperar.");
+        setTimeout(() => setRestoreError(null), 3000);
+      }
+    });
+  }
+
   return (
     <div className="min-h-screen bg-white">
       <div className="px-8 py-10 max-w-screen-xl mx-auto">
 
         {/* ── Header ── */}
-        <div className="mb-8">
-          <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-bold text-[#0A0A0A]">
-            Diario Emocional
-          </h1>
-          <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] mt-1">
-            {entries.length} {entries.length === 1 ? "registro" : "registros"}
-          </p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-bold text-[#0A0A0A]">
+              Diario Emocional
+            </h1>
+            <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] mt-1">
+              {entries.length} {entries.length === 1 ? "registro" : "registros"}
+            </p>
+          </div>
+
+          {/* Restore button */}
+          <div className="flex flex-col items-end gap-1">
+            <button
+              type="button"
+              onClick={handleRestore}
+              disabled={isPending}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-[family-name:var(--font-mono)] transition-all ${
+                restored
+                  ? "bg-[#39FF14]/10 text-[#22C55E] border border-[#39FF14]/30"
+                  : "text-[#9CA3AF] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] border border-transparent"
+              } disabled:opacity-40`}
+              title="Recuperar el último registro borrado"
+            >
+              <Undo2 size={12} />
+              {restored ? "recuperado ✓" : "recuperar borrado"}
+            </button>
+            {restoreError && (
+              <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#FF1493]">
+                {restoreError}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* ── Write area ── */}

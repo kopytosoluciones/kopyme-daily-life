@@ -11,6 +11,7 @@ export default async function DiaryPage() {
     .from("diary_entries")
     .select("id, body, entry_date, emoji, mood")
     .eq("user_id", user.id)
+    .is("deleted_at", null)
     .order("entry_date", { ascending: false })
     .order("created_at", { ascending: false });
 
