@@ -634,57 +634,68 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
             <div className="flex items-center gap-3 px-3 pb-2 mb-1">
               <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-24 shrink-0">fecha</span>
               <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-10 shrink-0 text-center">puntaje</span>
+              <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-8 shrink-0 text-center">mood</span>
               <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest flex-1">anotación</span>
               <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-16 text-right shrink-0">cuándo</span>
             </div>
 
-            {entries.map(entry => (
-              <div
-                key={entry.id}
-                onClick={() => setSelected(entry)}
-                className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[#F9FAFB] transition-colors cursor-pointer group"
-              >
-                {/* Date */}
-                <span className="font-[family-name:var(--font-playfair)] text-sm text-[#0A0A0A] shrink-0 w-24 leading-snug">
-                  {shortDate(entry.entry_date)}
-                </span>
-
-                {/* Puntaje */}
-                <div className="w-10 shrink-0 flex items-center justify-center">
-                  {entry.mood ? (
-                    <span
-                      className="font-[family-name:var(--font-mono)] text-sm font-bold"
-                      style={{ color: moodColor(entry.mood) }}
-                    >
-                      {entry.mood}
-                    </span>
-                  ) : (
-                    <span className="text-[#E5E7EB] text-xs">–</span>
-                  )}
-                </div>
-
-                {/* Preview */}
-                <span className="flex-1 font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] truncate group-hover:text-[#6B7280] transition-colors">
-                  {entry.emoji && <span className="mr-1">{entry.emoji}</span>}
-                  {entry.body || <span className="italic text-[#D1D5DB]">sin texto</span>}
-                </span>
-
-                {/* Right side: days ago + pencil */}
-                <div className="flex items-center gap-2 shrink-0">
-                  <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#D1D5DB] group-hover:text-[#9CA3AF] transition-colors w-10 text-right">
-                    {daysAgo(entry.entry_date)}
+            {/* Rows: max 3 visibles, scroll interno */}
+            <div className="overflow-y-auto" style={{ maxHeight: "calc(3 * 52px)" }}>
+              {entries.map(entry => (
+                <div
+                  key={entry.id}
+                  onClick={() => setSelected(entry)}
+                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[#F9FAFB] transition-colors cursor-pointer group"
+                >
+                  {/* Date */}
+                  <span className="font-[family-name:var(--font-playfair)] text-sm text-[#0A0A0A] shrink-0 w-24 leading-snug">
+                    {shortDate(entry.entry_date)}
                   </span>
-                  <button
-                    type="button"
-                    onClick={e => { e.stopPropagation(); setEditing(entry); }}
-                    className="opacity-0 group-hover:opacity-100 p-1.5 text-[#C9C9C9] hover:text-[#9D4EDD] hover:bg-[#F5F0FF] rounded-lg transition-all"
-                    title="Editar"
-                  >
-                    <Pencil size={13} />
-                  </button>
+
+                  {/* Puntaje */}
+                  <div className="w-10 shrink-0 flex items-center justify-center">
+                    {entry.mood ? (
+                      <span
+                        className="font-[family-name:var(--font-mono)] text-sm font-bold"
+                        style={{ color: moodColor(entry.mood) }}
+                      >
+                        {entry.mood}
+                      </span>
+                    ) : (
+                      <span className="text-[#E5E7EB] text-xs">–</span>
+                    )}
+                  </div>
+
+                  {/* Emoji (mood) */}
+                  <div className="w-8 shrink-0 flex items-center justify-center">
+                    {entry.emoji
+                      ? <span className="text-base leading-none">{entry.emoji}</span>
+                      : <span className="text-[#E5E7EB] text-xs">–</span>
+                    }
+                  </div>
+
+                  {/* Anotación (solo texto) */}
+                  <span className="flex-1 font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] truncate group-hover:text-[#6B7280] transition-colors">
+                    {entry.body || <span className="italic text-[#D1D5DB]">sin texto</span>}
+                  </span>
+
+                  {/* Right side: days ago + pencil */}
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#D1D5DB] group-hover:text-[#9CA3AF] transition-colors w-10 text-right">
+                      {daysAgo(entry.entry_date)}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); setEditing(entry); }}
+                      className="opacity-0 group-hover:opacity-100 p-1.5 text-[#C9C9C9] hover:text-[#9D4EDD] hover:bg-[#F5F0FF] rounded-lg transition-all"
+                      title="Editar"
+                    >
+                      <Pencil size={13} />
+                    </button>
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         )}
 
