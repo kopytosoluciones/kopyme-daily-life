@@ -246,12 +246,27 @@ const STEP = CELL + GAP;
 interface HeatDay {
   date: string;
   inYear: boolean;
-  entry?: Entry;
+  dayEntries: Entry[];
+  avgMood: number | null;
 }
 
 function buildYearGrid(entries: Entry[], year: number): HeatDay[][] {
-  const byDate: Record<string, Entry> = {};
-  entries.forEach(e => { if (e.entry_date.startsWith(`${year}-`)) byDate[e.entry_date] = e; });
+  // Group entries by date and compute average mood
+  const byDate: Record<string, Entry[]> = {};
+  entries.forEach(e => {
+    if (!e.entry_date.startsWith(`${year}-`)) return;
+    if (!byDate[e.entry_date]) byDate[e.entry_date] = [];
+    byDate[e.entry_date].push(e);
+  });
+
+  function avgMoodForDate(dateStr: string): number | null {
+    const group = byDate[dateStr];
+    if (!group) return null;
+    const withMood = group.filter(e => e.mood !== null);
+    if (!withMood.length) return null;
+    const avg = withMood.reduce((s, e) => s + e.mood!, 0) / withMood.length;
+    return Math.round(avg * 100) / 100;
+  }
 
   const jan1   = new Date(year, 0, 1);
   const dow    = jan1.getDay();
@@ -264,7 +279,12 @@ function buildYearGrid(entries: Entry[], year: number): HeatDay[][] {
     const week: HeatDay[] = [];
     for (let d = 0; d < 7; d++) {
       const dateStr = cursor.toISOString().split("T")[0];
-      week.push({ date: dateStr, inYear: cursor.getFullYear() === year, entry: byDate[dateStr] });
+      week.push({
+        date: dateStr,
+        inYear: cursor.getFullYear() === year,
+        dayEntries: byDate[dateStr] ?? [],
+        avgMood: avgMoodForDate(dateStr),
+      });
       cursor.setDate(cursor.getDate() + 1);
     }
     weeks.push(week);
@@ -275,7 +295,7 @@ function buildYearGrid(entries: Entry[], year: number): HeatDay[][] {
 
 function YearHeatmap({ entries }: { entries: Entry[] }) {
   const year = new Date().getFullYear();
-  const [tip, setTip] = useState<{ date: string; entry?: Entry; x: number; y: number } | null>(null);
+  const [tip, setTip] = useState<{ date: string; dayEntries: Entry[]; avgMood: number | null; x: number; y: number } | null>(null);
   const weeks = buildYearGrid(entries, year);
 
   const monthLabels: { label: string; col: number }[] = [];
@@ -335,16 +355,16 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
               <div key={wi} className="flex flex-col" style={{ gap: GAP, marginRight: GAP }}>
                 {week.map((day, di) => {
                   if (!day.inYear) return <div key={di} style={{ width: CELL, height: CELL }} />;
-                  const hasMood = day.entry?.mood != null;
-                  const bg = hasMood ? moodColor(day.entry!.mood!) : "#F3F4F6";
-                  const op = hasMood ? 0.35 + (day.entry!.mood! / 10) * 0.65 : 1;
+                  const hasMood = day.avgMood !== null;
+                  const bg = hasMood ? moodColor(Math.round(day.avgMood!)) : "#F3F4F6";
+                  const op = hasMood ? 0.35 + (day.avgMood! / 10) * 0.65 : 1;
                   return (
                     <div
                       key={di}
                       style={{ width: CELL, height: CELL, backgroundColor: bg, opacity: op, borderRadius: 2, cursor: "crosshair", flexShrink: 0 }}
                       onMouseEnter={e => {
                         const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                        setTip({ date: day.date, entry: day.entry, x: r.left, y: r.top });
+                        setTip({ date: day.date, dayEntries: day.dayEntries, avgMood: day.avgMood, x: r.left, y: r.top });
                       }}
                       onMouseLeave={() => setTip(null)}
                     />
@@ -364,19 +384,26 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
           <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A] text-xs mb-1">
             {formatDate(tip.date)}
           </p>
-          {tip.entry ? (
+          {tip.dayEntries.length > 0 ? (
             <>
-              <div className="flex items-center gap-1.5">
-                {tip.entry.emoji && <span className="text-sm">{tip.entry.emoji}</span>}
-                {tip.entry.mood && (
-                  <span className="font-[family-name:var(--font-mono)] text-[11px] font-bold" style={{ color: moodColor(tip.entry.mood) }}>
-                    {moodEmoji(tip.entry.mood)} {tip.entry.mood}/10
+              {tip.avgMood !== null && (
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="font-[family-name:var(--font-mono)] text-[11px] font-bold" style={{ color: moodColor(Math.round(tip.avgMood)) }}>
+                    {tip.avgMood}/10
                   </span>
-                )}
-              </div>
-              {tip.entry.body && (
+                  {tip.dayEntries.length > 1 && (
+                    <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB]">
+                      prom. {tip.dayEntries.length} registros
+                    </span>
+                  )}
+                </div>
+              )}
+              {tip.dayEntries[0].emoji && (
+                <span className="text-sm mr-1">{tip.dayEntries[0].emoji}</span>
+              )}
+              {tip.dayEntries[0].body && (
                 <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#9CA3AF] mt-1 max-w-[180px] truncate">
-                  {tip.entry.body}
+                  {tip.dayEntries[0].body}
                 </p>
               )}
             </>
@@ -613,7 +640,7 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
             {/* Headers */}
             <div className="flex items-center gap-3 px-3 pb-2 mb-1">
               <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-24 shrink-0">fecha</span>
-              <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-10 shrink-0 text-center">mood</span>
+              <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-10 shrink-0 text-center">puntaje</span>
               <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest flex-1">anotación</span>
               <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-16 text-right shrink-0">cuándo</span>
             </div>
@@ -629,18 +656,15 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
                   {shortDate(entry.entry_date)}
                 </span>
 
-                {/* Mood */}
-                <div className="w-10 shrink-0 flex flex-col items-center gap-0.5">
+                {/* Puntaje */}
+                <div className="w-10 shrink-0 flex items-center justify-center">
                   {entry.mood ? (
-                    <>
-                      <span className="text-base leading-none">{moodEmoji(entry.mood)}</span>
-                      <span
-                        className="font-[family-name:var(--font-mono)] text-[9px] font-bold"
-                        style={{ color: moodColor(entry.mood) }}
-                      >
-                        {entry.mood}
-                      </span>
-                    </>
+                    <span
+                      className="font-[family-name:var(--font-mono)] text-sm font-bold"
+                      style={{ color: moodColor(entry.mood) }}
+                    >
+                      {entry.mood}
+                    </span>
                   ) : (
                     <span className="text-[#E5E7EB] text-xs">–</span>
                   )}
