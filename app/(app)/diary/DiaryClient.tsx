@@ -374,14 +374,14 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
   });
 
   return (
-    <div className="mt-14">
+    <div className="mt-6">
       {/* Section label */}
-      <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#B0B7C3] uppercase tracking-[0.1em] font-medium mb-5">
+      <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#B0B7C3] uppercase tracking-[0.1em] font-medium mb-3">
         {year} — mapa emocional
       </p>
 
       {/* Legend */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-2">
         <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#C9C9C9]">menos</span>
         {MOOD_COLORS.map((c, i) => (
           <div
@@ -521,7 +521,7 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
 
 // ─── Last 14 Days histogram ───────────────────────────────────────────────────
 
-const BAR_H = 60;
+const BAR_H = 46;
 
 function Last14Days({
   entries,
@@ -572,16 +572,16 @@ function Last14Days({
 
   return (
     <>
-      <div className="mt-12">
+      <div className="mt-5">
         {/* Section label */}
-        <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#B0B7C3] uppercase tracking-[0.1em] font-medium mb-5">
+        <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#B0B7C3] uppercase tracking-[0.1em] font-medium mb-3">
           últimos 14 días
         </p>
 
         <div className="flex items-end gap-8">
           {/* Histogram */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-end gap-[4px]" style={{ height: BAR_H + 32 }}>
+            <div className="flex items-end gap-[4px]" style={{ height: BAR_H + 28 }}>
               {days.map(({ date, avgMood, emoji }) => {
                 const barH    = avgMood !== null ? Math.max(6, (avgMood / 10) * BAR_H) : 5;
                 const color   = avgMood !== null ? moodColor(Math.round(avgMood)) : "#EBEBEB";
@@ -637,14 +637,14 @@ function Last14Days({
               type="button"
               onClick={handleAnalyze}
               disabled={analysisEntries.length === 0}
-              className="shrink-0 flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#0A0A0A] text-white text-[12px] font-medium font-[family-name:var(--font-mono)] shadow-lg shadow-black/10 hover:bg-[#9D4EDD] hover:shadow-xl hover:shadow-[#9D4EDD]/25 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#0A0A0A] disabled:hover:shadow-lg mb-6"
+              className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0A0A0A] text-white text-[12px] font-medium font-[family-name:var(--font-mono)] shadow-lg shadow-black/10 hover:bg-[#9D4EDD] hover:shadow-xl hover:shadow-[#9D4EDD]/25 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#0A0A0A] disabled:hover:shadow-lg mb-4"
             >
               <Sparkles size={13} />
               Análisis Emocional
             </button>
           ) : (
-            <div className="shrink-0 flex flex-col items-center gap-1.5 mb-6">
-              <div className="flex items-center gap-2 px-5 py-3 rounded-2xl bg-[#F9FAFB] border border-[#E5E7EB] text-[#C9C9C9] text-[12px] font-medium font-[family-name:var(--font-mono)] cursor-not-allowed select-none">
+            <div className="shrink-0 flex flex-col items-center gap-1 mb-4">
+              <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#F9FAFB] border border-[#E5E7EB] text-[#C9C9C9] text-[12px] font-medium font-[family-name:var(--font-mono)] cursor-not-allowed select-none">
                 <Sparkles size={13} />
                 Análisis Emocional
               </div>
@@ -773,7 +773,7 @@ function EntryForm({
   return (
     <div className="space-y-0">
       {/* Top row: label + date */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         {isEdit ? (
           <span className="font-[family-name:var(--font-playfair)] text-sm font-bold text-[#0A0A0A]">
             Editar registro
@@ -797,13 +797,13 @@ function EntryForm({
         value={body}
         onChange={e => { setBody(e.target.value); autoResize(); }}
         placeholder="¿Qué siento hoy?"
-        rows={isEdit ? 4 : 5}
+        rows={isEdit ? 3 : 4}
         autoFocus={!isEdit}
         className="w-full bg-transparent resize-none text-[#0A0A0A] text-[17px] leading-loose placeholder:text-[#D8DCE4] focus:outline-none"
       />
 
       {/* Mood + emoji */}
-      <div className="mt-4 pt-4 border-t border-[#F0F0F2] flex items-center justify-between gap-4">
+      <div className="mt-3 pt-3 border-t border-[#F0F0F2] flex items-center justify-between gap-4">
         <MoodMeter value={mood} onChange={v => setMood(v === 0 ? null : v)} />
         <EmotionPicker
           emoji={emoji}
@@ -813,7 +813,7 @@ function EntryForm({
       </div>
 
       {/* Actions row */}
-      <div className="mt-4 pt-4 border-t border-[#F0F0F2] flex items-center justify-between">
+      <div className="mt-3 pt-3 border-t border-[#F0F0F2] flex items-center justify-between">
         {isEdit && onDelete ? (
           <button
             type="button"
@@ -927,10 +927,10 @@ export default function DiaryClient({
 
   return (
     <div className="min-h-screen bg-white">
-      <div className="px-8 py-12 max-w-screen-xl mx-auto">
+      <div className="px-8 py-6 max-w-screen-xl mx-auto">
 
         {/* ── Header ── */}
-        <div className="mb-10 flex items-start justify-between">
+        <div className="mb-5 flex items-start justify-between">
           <div>
             {view === "records" && (
               <button
@@ -941,7 +941,7 @@ export default function DiaryClient({
                 ← volver al diario
               </button>
             )}
-            <h1 className="font-[family-name:var(--font-playfair)] text-[32px] font-bold text-[#0A0A0A] leading-tight">
+            <h1 className="font-[family-name:var(--font-playfair)] text-[26px] font-bold text-[#0A0A0A] leading-tight">
               {view === "records" ? "Registros" : "Diario Emocional"}
             </h1>
             <p className="font-[family-name:var(--font-mono)] text-[12px] text-[#B0B7C3] mt-1.5">
@@ -989,14 +989,14 @@ export default function DiaryClient({
           <>
             {/* ── Write card ── */}
             <div
-              className={`mb-12 bg-white rounded-2xl px-8 pt-7 pb-6 transition-all duration-300 ${
+              className={`mb-6 bg-white rounded-2xl px-7 pt-5 pb-4 transition-all duration-300 ${
                 saved
                   ? "shadow-[0_4px_24px_rgba(57,255,20,0.12)] ring-1 ring-[#39FF14]/30"
                   : "shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] focus-within:shadow-[0_4px_24px_rgba(157,78,221,0.10)] focus-within:ring-1 focus-within:ring-[#9D4EDD]/20"
               }`}
             >
               {saved ? (
-                <div className="py-14 flex flex-col items-center gap-3">
+                <div className="py-10 flex flex-col items-center gap-3">
                   <span className="text-4xl leading-none">✓</span>
                   <span className="font-[family-name:var(--font-mono)] text-sm font-medium text-[#22C55E]">
                     registro guardado
