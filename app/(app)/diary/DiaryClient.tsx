@@ -539,9 +539,11 @@ const BAR_H = 56; // max bar height in px
 function Last14Days({
   entries,
   displayName,
+  hasAiKey,
 }: {
   entries: Entry[];
   displayName: string;
+  hasAiKey: boolean;
 }) {
   const [open,     setOpen]     = useState(false);
   const [loading,  setLoading]  = useState(false);
@@ -628,15 +630,25 @@ function Last14Days({
         </div>
 
         {/* Análisis button */}
-        <button
-          type="button"
-          onClick={handleAnalyze}
-          disabled={analysisEntries.length === 0}
-          className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0A0A0A] text-white text-[12px] font-medium font-[family-name:var(--font-mono)] hover:bg-[#9D4EDD] transition-all disabled:opacity-30 mb-5"
-        >
-          <Sparkles size={13} />
-          Análisis Emocional
-        </button>
+        {hasAiKey ? (
+          <button
+            type="button"
+            onClick={handleAnalyze}
+            disabled={analysisEntries.length === 0}
+            className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0A0A0A] text-white text-[12px] font-medium font-[family-name:var(--font-mono)] hover:bg-[#9D4EDD] transition-all disabled:opacity-30 mb-5"
+          >
+            <Sparkles size={13} />
+            Análisis Emocional
+          </button>
+        ) : (
+          <div className="shrink-0 flex flex-col items-center gap-1 mb-5">
+            <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#F9FAFB] border border-[#E5E7EB] text-[#9CA3AF] text-[12px] font-medium font-[family-name:var(--font-mono)] cursor-not-allowed">
+              <Sparkles size={13} />
+              Análisis Emocional
+            </div>
+            <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB]">próximamente</span>
+          </div>
+        )}
       </div>
 
       {/* Analysis modal */}
