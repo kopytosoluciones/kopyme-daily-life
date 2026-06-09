@@ -21,12 +21,12 @@ interface CalEvent {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const START_HOUR  = 7;
-const END_HOUR    = 23;
-const TOTAL_HOURS = END_HOUR - START_HOUR;  // 16 rows
+const END_HOUR    = 24;
+const TOTAL_HOURS = END_HOUR - START_HOUR;  // 17 rows (7–23 inclusive)
 const ROW_H       = 26;                      // px per hour
 
-const HOUR_LABELS = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i); // 7..23
-const HOUR_ROWS   = Array.from({ length: TOTAL_HOURS },     (_, i) => START_HOUR + i); // 7..22 (slots)
+const HOUR_LABELS = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i); // 7..24
+const HOUR_ROWS   = Array.from({ length: TOTAL_HOURS },     (_, i) => START_HOUR + i); // 7..23 (slots)
 
 const DURATION_OPTIONS = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8];
 
@@ -77,7 +77,7 @@ function textColor(hex: string): string {
 }
 
 function hourLabel(h: number): string {
-  const whole = Math.floor(h);
+  const whole = Math.floor(h) % 24;
   const mins  = (h % 1) === 0.5 ? "30" : "00";
   return `${whole.toString().padStart(2, "0")}:${mins}`;
 }
