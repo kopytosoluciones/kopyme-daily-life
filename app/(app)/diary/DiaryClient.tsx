@@ -512,7 +512,7 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
 
 // ─── Last 14 Days histogram ───────────────────────────────────────────────────
 
-const BAR_H = 46;
+const BAR_H = 66;
 
 function Last14Days({
   entries,
@@ -572,7 +572,7 @@ function Last14Days({
         <div className="flex items-end gap-8">
           {/* Histogram */}
           <div className="flex-1 min-w-0">
-            <div className="flex items-end gap-[4px]" style={{ height: BAR_H + 28 }}>
+            <div className="flex items-end gap-[8px]" style={{ height: BAR_H + 28 }}>
               {days.map(({ date, avgMood, emoji }) => {
                 const barH    = avgMood !== null ? Math.max(6, (avgMood / 10) * BAR_H) : 5;
                 const color   = avgMood !== null ? moodColor(Math.round(avgMood)) : "#EBEBEB";
