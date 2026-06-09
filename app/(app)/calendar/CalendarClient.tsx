@@ -1,44 +1,50 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Plus, X, Repeat2, Trash2, Pencil } from "lucide-react";
-import {
-  DndContext, DragEndEvent, DragOverlay, DragStartEvent,
-  PointerSensor, useSensor, useSensors,
-  useDroppable, useDraggable,
-} from "@dnd-kit/core";
+import { ChevronLeft, ChevronRight, X, Repeat2, Trash2, Pencil, Plus } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-
-type TimeSlot = "morning" | "midday" | "afternoon" | "night";
 
 interface CalEvent {
   id: string;
   title: string;
-  dayIndex: number;     // 0 = Lun … 6 = Dom
-  slot: TimeSlot;
+  dayIndex: number;    // 0=Lun … 6=Dom
+  startHour: number;   // 7–22 (integer)
+  duration: number;    // hours (integer, min 1)
   color: string;
-  recurring: boolean;   // si true, aparece todas las semanas
-  weekKey?: string;     // YYYY-MM-DD del lunes de esa semana (solo no-recurrentes)
+  recurring: boolean;
+  weekKey?: string;    // YYYY-MM-DD del lunes (no-recurrentes)
+  notes?: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const SLOTS: TimeSlot[] = ["morning", "midday", "afternoon", "night"];
+const START_HOUR  = 7;
+const END_HOUR    = 23;
+const TOTAL_HOURS = END_HOUR - START_HOUR;  // 16 rows
+const ROW_H       = 52;                      // px per hour
 
-const SLOT_META: Record<TimeSlot, { label: string; time: string }> = {
-  morning:   { label: "Mañana",   time: "6–12"  },
-  midday:    { label: "Mediodía", time: "12–15" },
-  afternoon: { label: "Tarde",    time: "15–20" },
-  night:     { label: "Noche",    time: "20–0"  },
-};
+const HOUR_LABELS = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i); // 7..23
+const HOUR_ROWS   = Array.from({ length: TOTAL_HOURS },     (_, i) => START_HOUR + i); // 7..22 (slots)
+
+const DURATION_OPTIONS = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8];
 
 const DAY_NAMES   = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 const MONTH_NAMES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 const COLORS = [
-  "#9D4EDD", "#FF1493", "#39FF14", "#F4A9D6",
-  "#D9B3E8", "#B8E8C1", "#6366f1", "#0A0A0A",
+  "#9D4EDD", // violet
+  "#FF1493", // pink
+  "#39FF14", // neon green
+  "#F59E0B", // amber
+  "#06B6D4", // cyan
+  "#EF4444", // red
+  "#3B82F6", // blue
+  "#10B981", // emerald
+  "#F97316", // orange
+  "#8B5CF6", // purple
+  "#EC4899", // rose
+  "#0A0A0A", // black
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -69,9 +75,15 @@ function textColor(hex: string): string {
   return hex === "#39FF14" ? "#16a34a" : hex;
 }
 
+function hourLabel(h: number): string {
+  const whole = Math.floor(h);
+  const mins  = (h % 1) === 0.5 ? "30" : "00";
+  return `${whole.toString().padStart(2, "0")}:${mins}`;
+}
+
 // ─── Storage ──────────────────────────────────────────────────────────────────
 
-const STORAGE_KEY = "kopyme-cal-v1";
+const STORAGE_KEY = "kopyme-cal-v2";
 
 function loadEvents(): CalEvent[] {
   try {
@@ -87,96 +99,17 @@ function saveEvents(events: CalEvent[]) {
 function seed(): CalEvent[] {
   const wk = toKey(monday(new Date()));
   return [
-    { id: "s1", title: "Gym",       dayIndex: 0, slot: "morning",   color: "#39FF14", recurring: true  },
-    { id: "s2", title: "Gym",       dayIndex: 2, slot: "morning",   color: "#39FF14", recurring: true  },
-    { id: "s3", title: "Gym",       dayIndex: 4, slot: "morning",   color: "#39FF14", recurring: true  },
-    { id: "s4", title: "Standup",   dayIndex: 0, slot: "morning",   color: "#F4A9D6", recurring: true  },
-    { id: "s5", title: "Standup",   dayIndex: 1, slot: "morning",   color: "#F4A9D6", recurring: true  },
-    { id: "s6", title: "Standup",   dayIndex: 2, slot: "morning",   color: "#F4A9D6", recurring: true  },
-    { id: "s7", title: "Standup",   dayIndex: 3, slot: "morning",   color: "#F4A9D6", recurring: true  },
-    { id: "s8", title: "Standup",   dayIndex: 4, slot: "morning",   color: "#F4A9D6", recurring: true  },
-    { id: "s9", title: "Almuerzo",  dayIndex: 2, slot: "midday",    color: "#9D4EDD", recurring: false, weekKey: wk },
-    { id: "sa", title: "Cine",      dayIndex: 5, slot: "night",     color: "#FF1493", recurring: false, weekKey: wk },
+    { id: "s1", title: "Gym",      dayIndex: 0, startHour: 7,  duration: 1, color: "#39FF14", recurring: true  },
+    { id: "s2", title: "Gym",      dayIndex: 2, startHour: 7,  duration: 1, color: "#39FF14", recurring: true  },
+    { id: "s3", title: "Gym",      dayIndex: 4, startHour: 7,  duration: 1, color: "#39FF14", recurring: true  },
+    { id: "s4", title: "Standup",  dayIndex: 0, startHour: 9,  duration: 1, color: "#F59E0B", recurring: true  },
+    { id: "s5", title: "Standup",  dayIndex: 1, startHour: 9,  duration: 1, color: "#F59E0B", recurring: true  },
+    { id: "s6", title: "Standup",  dayIndex: 2, startHour: 9,  duration: 1, color: "#F59E0B", recurring: true  },
+    { id: "s7", title: "Standup",  dayIndex: 3, startHour: 9,  duration: 1, color: "#F59E0B", recurring: true  },
+    { id: "s8", title: "Standup",  dayIndex: 4, startHour: 9,  duration: 1, color: "#F59E0B", recurring: true  },
+    { id: "s9", title: "Almuerzo", dayIndex: 2, startHour: 13, duration: 1, color: "#9D4EDD", recurring: false, weekKey: wk },
+    { id: "sa", title: "Cine",     dayIndex: 5, startHour: 20, duration: 2, color: "#FF1493", recurring: false, weekKey: wk },
   ];
-}
-
-// ─── DraggableEvent ───────────────────────────────────────────────────────────
-
-function DraggableEvent({ event, onEdit }: { event: CalEvent; onEdit: () => void }) {
-  const { setNodeRef, transform, isDragging, attributes, listeners } = useDraggable({ id: event.id });
-
-  return (
-    <div
-      ref={setNodeRef}
-      {...listeners}
-      {...attributes}
-      onClick={e => e.stopPropagation()}
-      style={{
-        transform: transform ? `translate(${transform.x}px,${transform.y}px)` : undefined,
-        opacity: isDragging ? 0.2 : 1,
-        backgroundColor: event.color + "22",
-        borderLeft: `3px solid ${event.color}`,
-      }}
-      className="group/ev relative flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium cursor-grab active:cursor-grabbing select-none touch-none w-full mb-0.5"
-    >
-      <span className="truncate flex-1" style={{ color: textColor(event.color) }}>
-        {event.title}
-      </span>
-      {event.recurring && (
-        <Repeat2 size={8} className="shrink-0 opacity-40" style={{ color: event.color }} />
-      )}
-      <button
-        onPointerDown={e => e.stopPropagation()}
-        onClick={e => { e.stopPropagation(); onEdit(); }}
-        className="absolute right-0.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded flex items-center justify-center bg-white/90 text-[#9CA3AF] hover:text-[#0A0A0A] opacity-0 group-hover/ev:opacity-100 transition-opacity"
-      >
-        <Pencil size={8} />
-      </button>
-    </div>
-  );
-}
-
-function OverlayEvent({ event }: { event: CalEvent }) {
-  return (
-    <div
-      style={{ backgroundColor: event.color + "22", borderLeft: `3px solid ${event.color}` }}
-      className="flex items-center gap-1 px-2 py-1 rounded text-[11px] font-medium shadow-lg rotate-2 w-28"
-    >
-      <span className="truncate" style={{ color: textColor(event.color) }}>{event.title}</span>
-    </div>
-  );
-}
-
-// ─── DroppableCell ────────────────────────────────────────────────────────────
-
-function DroppableCell({ id, events, onAdd, onEdit }: {
-  id: string;
-  events: CalEvent[];
-  onAdd: () => void;
-  onEdit: (e: CalEvent) => void;
-}) {
-  const { isOver, setNodeRef } = useDroppable({ id });
-
-  return (
-    <td
-      ref={setNodeRef}
-      onClick={onAdd}
-      style={{
-        minHeight: 72,
-        backgroundColor: isOver ? "#9D4EDD15" : undefined,
-      }}
-      className="border-r border-b border-[#F5F5F5] p-1.5 align-top cursor-pointer transition-colors hover:bg-[#F5F5F5]/60"
-    >
-      {events.map(ev => (
-        <DraggableEvent key={ev.id} event={ev} onEdit={() => onEdit(ev)} />
-      ))}
-      {events.length === 0 && (
-        <div className="flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity pt-3">
-          <Plus size={12} className="text-[#D1D5DB]" />
-        </div>
-      )}
-    </td>
-  );
 }
 
 // ─── Year Strip ───────────────────────────────────────────────────────────────
@@ -241,20 +174,24 @@ export default function CalendarClient() {
   const [weekStart, setWeekStart] = useState<Date | null>(null);
   const [events, setEvents]       = useState<CalEvent[]>([]);
   const [mounted, setMounted]     = useState(false);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
+
+  const [tooltip, setTooltip] = useState<{
+    event: CalEvent; x: number; y: number;
+  } | null>(null);
 
   const [modal, setModal] = useState<{
     mode: "create" | "edit";
     event?: CalEvent;
     dayIndex?: number;
-    slot?: TimeSlot;
+    startHour?: number;
   } | null>(null);
 
   const [formTitle,     setFormTitle]     = useState("");
   const [formColor,     setFormColor]     = useState(COLORS[0]);
   const [formRecurring, setFormRecurring] = useState(false);
-
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+  const [formStartHour, setFormStartHour] = useState(9);
+  const [formDuration,  setFormDuration]  = useState(1);
+  const [formNotes,     setFormNotes]     = useState("");
 
   useEffect(() => {
     setWeekStart(monday(new Date()));
@@ -268,61 +205,63 @@ export default function CalendarClient() {
 
   if (!mounted || !weekStart) return null;
 
-  const today    = new Date();
-  const weekKey  = toKey(weekStart);
+  const today   = new Date();
+  const weekKey = toKey(weekStart);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const isCurrentWeek = sameDay(weekStart, monday(today));
 
-  function cellEvents(dayIndex: number, slot: TimeSlot): CalEvent[] {
+  function dayEvents(dayIndex: number): CalEvent[] {
     return events.filter(e =>
       e.dayIndex === dayIndex &&
-      e.slot     === slot &&
       (e.recurring || e.weekKey === weekKey)
     );
   }
 
-  function handleDragStart(e: DragStartEvent) {
-    setDraggingId(e.active.id as string);
-  }
-
-  function handleDragEnd(e: DragEndEvent) {
-    setDraggingId(null);
-    if (!e.over) return;
-    const [slot, dayStr] = (e.over.id as string).split("__");
-    const dayIndex = parseInt(dayStr);
-    setEvents(prev => prev.map(ev =>
-      ev.id === e.active.id ? { ...ev, slot: slot as TimeSlot, dayIndex } : ev
-    ));
-  }
-
-  function openCreate(dayIndex: number, slot: TimeSlot) {
-    setModal({ mode: "create", dayIndex, slot });
-    setFormTitle(""); setFormColor(COLORS[0]); setFormRecurring(false);
+  function openCreate(dayIndex: number, startHour: number) {
+    setModal({ mode: "create", dayIndex, startHour });
+    setFormTitle("");
+    setFormColor(COLORS[0]);
+    setFormRecurring(false);
+    setFormStartHour(startHour);
+    setFormDuration(1);
+    setFormNotes("");
   }
 
   function openEdit(event: CalEvent) {
+    setTooltip(null);
     setModal({ mode: "edit", event });
-    setFormTitle(event.title); setFormColor(event.color); setFormRecurring(event.recurring);
+    setFormTitle(event.title);
+    setFormColor(event.color);
+    setFormRecurring(event.recurring);
+    setFormStartHour(event.startHour);
+    setFormDuration(event.duration);
+    setFormNotes(event.notes ?? "");
   }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!formTitle.trim() || !modal) return;
+    const safeEnd      = Math.min(formStartHour + formDuration, END_HOUR);
+    const safeDuration = safeEnd - formStartHour;
 
     if (modal.mode === "create") {
       setEvents(prev => [...prev, {
         id: crypto.randomUUID(),
         title: formTitle.trim(),
-        dayIndex: modal.dayIndex!,
-        slot: modal.slot!,
-        color: formColor,
+        dayIndex:  modal.dayIndex!,
+        startHour: formStartHour,
+        duration:  safeDuration,
+        color:     formColor,
         recurring: formRecurring,
-        weekKey: formRecurring ? undefined : weekKey,
+        weekKey:   formRecurring ? undefined : weekKey,
+        notes:     formNotes.trim() || undefined,
       }]);
     } else if (modal.mode === "edit" && modal.event) {
       setEvents(prev => prev.map(ev =>
         ev.id === modal.event!.id
-          ? { ...ev, title: formTitle.trim(), color: formColor, recurring: formRecurring }
+          ? { ...ev, title: formTitle.trim(), color: formColor, recurring: formRecurring,
+              startHour: formStartHour, duration: safeDuration,
+              notes: formNotes.trim() || undefined }
           : ev
       ));
     }
@@ -335,6 +274,17 @@ export default function CalendarClient() {
     setModal(null);
   }
 
+  // ── Summary: total hours per activity title in this week ──
+  const summaryMap: Record<string, { color: string; hours: number }> = {};
+  weekDays.forEach((_, dayIndex) => {
+    dayEvents(dayIndex).forEach(ev => {
+      if (!summaryMap[ev.title]) summaryMap[ev.title] = { color: ev.color, hours: 0 };
+      summaryMap[ev.title].hours += ev.duration;
+    });
+  });
+  const summary  = Object.entries(summaryMap).sort((a, b) => b[1].hours - a[1].hours);
+  const maxHours = summary.length > 0 ? summary[0][1].hours : 1;
+
   const weekLabel = (() => {
     const s = weekDays[0], en = weekDays[6];
     const opts: Intl.DateTimeFormatOptions = { day: "numeric", month: "short" };
@@ -343,15 +293,13 @@ export default function CalendarClient() {
       : `${s.toLocaleDateString("es-AR", opts)} – ${en.toLocaleDateString("es-AR", opts)}`;
   })();
 
-  const draggingEvent = draggingId ? events.find(e => e.id === draggingId) : null;
-
   return (
     <div className="min-h-screen bg-white flex flex-col">
 
-      {/* ── Year strip ──────────────────────────────────────────────────────── */}
+      {/* ── Year strip ─────────────────────────────────────────────────────── */}
       <YearStrip weekStart={weekStart} today={today} onNavigate={setWeekStart} />
 
-      {/* ── Week nav ────────────────────────────────────────────────────────── */}
+      {/* ── Week nav ───────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 px-8 py-4 border-b border-[#F5F5F5]">
         <button
           onClick={() => setWeekStart(addDays(weekStart, -7))}
@@ -387,69 +335,200 @@ export default function CalendarClient() {
         )}
       </div>
 
-      {/* ── Calendar grid ───────────────────────────────────────────────────── */}
-      <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-        <div className="flex-1 overflow-x-auto">
-          <table className="w-full border-collapse" style={{ minWidth: 720 }}>
-            <thead>
-              <tr>
-                {/* Empty corner */}
-                <th className="w-24 border-r border-b border-[#F5F5F5]" />
-                {weekDays.map((day, i) => {
-                  const isToday = sameDay(day, today);
-                  return (
-                    <th key={i} className="border-r border-b border-[#F5F5F5] px-2 py-3 text-center font-normal">
-                      <div className={`font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide mb-1 ${
-                        isToday ? "text-[#9D4EDD]" : i >= 5 ? "text-[#C4B5FD]" : "text-[#9CA3AF]"
-                      }`}>
-                        {DAY_NAMES[i]}
-                      </div>
-                      <div className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-semibold transition-colors ${
-                        isToday
-                          ? "bg-[#9D4EDD] text-white"
-                          : i >= 5
-                          ? "text-[#9CA3AF]"
-                          : "text-[#0A0A0A]"
-                      }`}>
-                        {day.getDate()}
-                      </div>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
+      {/* ── Hourly grid ────────────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-auto">
+        <div className="flex" style={{ minWidth: 720 }}>
 
-            <tbody>
-              {SLOTS.map(slot => (
-                <tr key={slot}>
-                  {/* Slot label */}
-                  <td className="border-r border-b border-[#F5F5F5] px-3 py-2.5 align-top w-24 bg-white">
-                    <p className="text-xs font-semibold text-[#0A0A0A]">{SLOT_META[slot].label}</p>
-                    <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] mt-0.5">
-                      {SLOT_META[slot].time}
-                    </p>
-                  </td>
-                  {weekDays.map((_, dayIndex) => (
-                    <DroppableCell
-                      key={dayIndex}
-                      id={`${slot}__${dayIndex}`}
-                      events={cellEvents(dayIndex, slot)}
-                      onAdd={() => openCreate(dayIndex, slot)}
-                      onEdit={openEdit}
-                    />
+          {/* Time axis */}
+          <div className="shrink-0 w-14 bg-white">
+            {/* Spacer for day header row */}
+            <div style={{ height: 52 }} />
+            {HOUR_LABELS.map(h => (
+              <div
+                key={h}
+                className="flex items-start justify-end pr-2"
+                style={{ height: ROW_H }}
+              >
+                <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#C4C4C4] -translate-y-[7px]">
+                  {hourLabel(h)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Day columns */}
+          {weekDays.map((day, dayIndex) => {
+            const isToday = sameDay(day, today);
+            const evs     = dayEvents(dayIndex);
+
+            return (
+              <div key={dayIndex} className="flex-1 min-w-0 border-l border-[#F0F0F0]">
+
+                {/* Day header */}
+                <div
+                  className="flex flex-col items-center justify-center border-b border-[#F0F0F0] sticky top-0 bg-white z-20"
+                  style={{ height: 52 }}
+                >
+                  <span className={`font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide ${
+                    isToday ? "text-[#9D4EDD]" : dayIndex >= 5 ? "text-[#C4B5FD]" : "text-[#9CA3AF]"
+                  }`}>
+                    {DAY_NAMES[dayIndex]}
+                  </span>
+                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold mt-0.5 transition-colors ${
+                    isToday ? "bg-[#9D4EDD] text-white" : dayIndex >= 5 ? "text-[#9CA3AF]" : "text-[#0A0A0A]"
+                  }`}>
+                    {day.getDate()}
+                  </div>
+                </div>
+
+                {/* Hour rows + events */}
+                <div className="relative" style={{ height: TOTAL_HOURS * ROW_H }}>
+
+                  {/* Clickable hour rows */}
+                  {HOUR_ROWS.map((h, i) => (
+                    <div
+                      key={h}
+                      className="absolute inset-x-0 border-b border-[#F5F5F5] hover:bg-[#F9F5FF]/50 transition-colors cursor-pointer group/row"
+                      style={{ top: i * ROW_H, height: ROW_H, zIndex: 1 }}
+                      onClick={() => openCreate(dayIndex, h)}
+                    >
+                      <div className="absolute top-1 right-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
+                        <Plus size={10} className="text-[#D1D5DB]" />
+                      </div>
+                    </div>
                   ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+                  {/* Events (absolutely positioned) */}
+                  {evs.map(ev => {
+                    const top    = (ev.startHour - START_HOUR) * ROW_H;
+                    const height = ev.duration * ROW_H - 2;
+                    return (
+                      <div
+                        key={ev.id}
+                        className="group/ev absolute rounded overflow-hidden cursor-pointer"
+                        style={{
+                          top,
+                          left: 2,
+                          right: 2,
+                          height,
+                          backgroundColor: ev.color + "20",
+                          borderLeft: `3px solid ${ev.color}`,
+                          zIndex: 10,
+                        }}
+                        onMouseEnter={e => {
+                          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                          setTooltip({ event: ev, x: r.right + 10, y: r.top });
+                        }}
+                        onMouseLeave={() => setTooltip(null)}
+                        onClick={e => { e.stopPropagation(); openEdit(ev); }}
+                      >
+                        <div className="px-2 pt-1 flex items-start justify-between gap-1 h-full">
+                          <div className="min-w-0 flex-1">
+                            <span
+                              className="text-[11px] font-semibold block truncate leading-tight"
+                              style={{ color: textColor(ev.color) }}
+                            >
+                              {ev.title}
+                            </span>
+                            {height > 32 && (
+                              <span
+                                className="font-[family-name:var(--font-mono)] text-[9px] opacity-60 block mt-0.5"
+                                style={{ color: textColor(ev.color) }}
+                              >
+                                {hourLabel(ev.startHour)} – {hourLabel(ev.startHour + ev.duration)}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/ev:opacity-100 transition-opacity pt-0.5">
+                            {ev.recurring && (
+                              <Repeat2 size={9} style={{ color: ev.color }} className="opacity-60" />
+                            )}
+                            <button
+                              onPointerDown={e => e.stopPropagation()}
+                              onClick={e => { e.stopPropagation(); openEdit(ev); }}
+                              className="p-0.5 rounded hover:bg-white/60"
+                            >
+                              <Pencil size={9} style={{ color: textColor(ev.color) }} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
+      </div>
 
-        <DragOverlay dropAnimation={null}>
-          {draggingEvent && <OverlayEvent event={draggingEvent} />}
-        </DragOverlay>
-      </DndContext>
+      {/* ── Hover tooltip ──────────────────────────────────────────────────── */}
+      {tooltip && (
+        <div
+          className="fixed z-50 bg-white border border-[#E5E7EB] rounded-2xl p-4 shadow-2xl pointer-events-none"
+          style={{ left: Math.min(tooltip.x, window.innerWidth - 240), top: tooltip.y, maxWidth: 230 }}
+        >
+          <div className="flex items-center gap-2 mb-1.5">
+            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tooltip.event.color }} />
+            <span className="font-[family-name:var(--font-playfair)] font-bold text-sm text-[#0A0A0A]">
+              {tooltip.event.title}
+            </span>
+          </div>
+          <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] block">
+            {hourLabel(tooltip.event.startHour)} – {hourLabel(tooltip.event.startHour + tooltip.event.duration)}
+            {tooltip.event.duration > 1 && ` · ${tooltip.event.duration}h`}
+          </span>
+          {tooltip.event.recurring && (
+            <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#C4B5FD] flex items-center gap-1 mt-1">
+              <Repeat2 size={9} /> cada semana
+            </span>
+          )}
+          {tooltip.event.notes && (
+            <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#6B7280] leading-relaxed mt-2 pt-2 border-t border-[#F5F5F5]">
+              {tooltip.event.notes}
+            </p>
+          )}
+        </div>
+      )}
 
-      {/* ── Create / Edit modal ──────────────────────────────────────────────── */}
+      {/* ── Weekly summary table ────────────────────────────────────────────── */}
+      {summary.length > 0 && (
+        <div className="px-8 py-8 border-t border-[#F5F5F5]">
+          <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest mb-5">
+            resumen semanal
+          </p>
+          <div className="space-y-4">
+            {summary.map(([title, { color, hours }]) => (
+              <div key={title} className="flex items-center gap-4">
+                <div
+                  className="w-3 h-3 rounded-full shrink-0"
+                  style={{ backgroundColor: color }}
+                />
+                <span className="font-[family-name:var(--font-playfair)] text-sm text-[#0A0A0A] w-28 shrink-0 truncate">
+                  {title}
+                </span>
+                <div className="flex-1 flex items-center gap-3">
+                  <div className="flex-1 h-1.5 bg-[#F3F4F6] rounded-full overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-500"
+                      style={{
+                        width: `${(hours / maxHours) * 100}%`,
+                        backgroundColor: color,
+                        opacity: 0.8,
+                      }}
+                    />
+                  </div>
+                  <span className="font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] shrink-0 w-8 text-right">
+                    {hours % 1 === 0 ? `${hours}h` : `${hours}h`}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── Create / Edit modal ─────────────────────────────────────────────── */}
       {modal && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
@@ -457,33 +536,71 @@ export default function CalendarClient() {
         >
           <form
             onSubmit={handleSubmit}
-            className="bg-white rounded-xl border-2 border-[#0A0A0A] shadow-[0_8px_24px_rgba(0,0,0,0.15)] w-full max-w-sm mx-4 p-6"
+            className="bg-white rounded-xl border-2 border-[#0A0A0A] shadow-[0_8px_24px_rgba(0,0,0,0.15)] w-full max-w-sm mx-4 p-6 max-h-[90vh] overflow-y-auto"
           >
-            <div className="flex justify-between items-center mb-4">
+            {/* Header */}
+            <div className="flex justify-between items-center mb-5">
               <h3 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#0A0A0A]">
-                {modal.mode === "create" ? "Nuevo evento" : "Editar evento"}
+                {modal.mode === "create" ? "Nueva actividad" : "Editar actividad"}
               </h3>
-              <button type="button" onClick={() => setModal(null)} className="text-[#D1D5DB] hover:text-[#0A0A0A] transition-colors">
+              <button
+                type="button"
+                onClick={() => setModal(null)}
+                className="text-[#D1D5DB] hover:text-[#0A0A0A] transition-colors"
+              >
                 <X size={16} />
               </button>
             </div>
 
+            {/* Day label (create only) */}
             {modal.mode === "create" && (
               <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] mb-4">
-                {DAY_NAMES[modal.dayIndex!]} · {SLOT_META[modal.slot!].label} ({SLOT_META[modal.slot!].time})
+                {DAY_NAMES[modal.dayIndex!]} · {hourLabel(modal.startHour!)}
               </p>
             )}
 
+            {/* Title */}
             <label className="block text-xs text-[#6B7280] mb-1.5">Título</label>
             <input
               autoFocus
               value={formTitle}
               onChange={e => setFormTitle(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); } }}
+              onKeyDown={e => { if (e.key === "Enter") e.preventDefault(); }}
               placeholder="ej: Reunión, Gym, Cena..."
               className="w-full px-4 py-2.5 rounded-lg border border-[#0A0A0A] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] text-sm transition-all mb-4"
             />
 
+            {/* Start time + Duration */}
+            <div className="flex gap-3 mb-4">
+              <div className="flex-1">
+                <label className="block text-xs text-[#6B7280] mb-1.5">Inicio</label>
+                <select
+                  value={formStartHour}
+                  onChange={e => setFormStartHour(Number(e.target.value))}
+                  className="w-full px-3 py-2.5 rounded-lg border border-[#E5E7EB] bg-[#F5F5F5] text-[#0A0A0A] text-sm focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] transition-all"
+                >
+                  {HOUR_ROWS.map(h => (
+                    <option key={h} value={h}>{hourLabel(h)}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs text-[#6B7280] mb-1.5">Duración</label>
+                <select
+                  value={formDuration}
+                  onChange={e => setFormDuration(Number(e.target.value))}
+                  className="w-full px-3 py-2.5 rounded-lg border border-[#E5E7EB] bg-[#F5F5F5] text-[#0A0A0A] text-sm focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] transition-all"
+                >
+                  {DURATION_OPTIONS.map(d => (
+                    <option key={d} value={d}>
+                      {d === 1 ? "1 hora" : d % 1 === 0.5 ? `${d}h` : `${d} horas`}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Color */}
             <label className="block text-xs text-[#6B7280] mb-2">Color</label>
             <div className="flex gap-2 flex-wrap mb-5">
               {COLORS.map(c => (
@@ -499,7 +616,17 @@ export default function CalendarClient() {
               ))}
             </div>
 
-            {/* Toggle recurring */}
+            {/* Notes */}
+            <label className="block text-xs text-[#6B7280] mb-1.5">Notas</label>
+            <textarea
+              value={formNotes}
+              onChange={e => setFormNotes(e.target.value)}
+              placeholder="Notas opcionales..."
+              rows={3}
+              className="w-full px-4 py-2.5 rounded-lg border border-[#E5E7EB] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] text-sm resize-none transition-all mb-5"
+            />
+
+            {/* Recurring toggle */}
             <label className="flex items-center gap-3 cursor-pointer mb-6">
               <button
                 type="button"
@@ -515,6 +642,7 @@ export default function CalendarClient() {
               <span className="text-sm text-[#6B7280]">Repetir cada semana</span>
             </label>
 
+            {/* Actions */}
             <div className="flex gap-2">
               {modal.mode === "edit" && (
                 <button
