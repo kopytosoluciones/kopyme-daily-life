@@ -2,17 +2,16 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 
 // ── LIST ACTIONS ──────────────────────────────────────────────
 
-export async function createList(name: string) {
+export async function createList(name: string, color: string = "#9D4EDD") {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return;
+  if (!user) return { error: "No autenticado" };
 
   const trimmed = name.trim();
-  if (!trimmed) return;
+  if (!trimmed) return { error: "Nombre requerido" };
 
   const { data: last } = await supabase
     .from("todo_lists")
@@ -22,28 +21,43 @@ export async function createList(name: string) {
     .limit(1)
     .single();
 
-  const { data: list } = await supabase
+  await supabase
     .from("todo_lists")
-    .insert({ user_id: user.id, name: trimmed, position: (last?.position ?? -1) + 1 })
-    .select("id")
-    .single();
+    .insert({ user_id: user.id, name: trimmed, color, position: (last?.position ?? -1) + 1 });
 
-  if (list) redirect(`/todos?list=${list.id}`);
   revalidatePath("/todos");
+  return { error: null };
 }
 
-export async function updateListName(id: string, name: string) {
+export async function updateList(id: string, name: string, color: string) {
   const supabase = await createClient();
-  const trimmed = name.trim();
-  if (!trimmed) return;
-  await supabase.from("todo_lists").update({ name: trimmed }).eq("id", id);
+  await supabase.from("todo_lists").update({ name: name.trim(), color }).eq("id", id);
   revalidatePath("/todos");
 }
 
 export async function deleteList(id: string) {
   const supabase = await createClient();
   await supabase.from("todo_lists").delete().eq("id", id);
-  redirect("/todos");
+  revalidatePath("/todos");
+}
+
+export async function reorderLists(orderedIds: string[]) {
+  const supabase = await createClient();
+  await Promise.all(
+    orderedIds.map((id, index) =>
+      supabase.from("todo_lists").update({ position: index }).eq("id", id)
+    )
+  );
+  revalidatePath("/todos");
+}
+
+// Keep for backward compat (unused in new UI)
+export async function updateListName(id: string, name: string) {
+  const supabase = await createClient();
+  const trimmed = name.trim();
+  if (!trimmed) return;
+  await supabase.from("todo_lists").update({ name: trimmed }).eq("id", id);
+  revalidatePath("/todos");
 }
 
 // ── TODO ACTIONS ──────────────────────────────────────────────
@@ -56,11 +70,12 @@ export async function createTodo(listId: string, title: string, dueDate?: string
   const trimmed = title.trim();
   if (!trimmed) return;
 
-  const { data: last } = await supabase
+  // Insert at top: position = (current minimum) - 1
+  const { data: first } = await supabase
     .from("todos")
     .select("position")
     .eq("list_id", listId)
-    .order("position", { ascending: false })
+    .order("position", { ascending: true })
     .limit(1)
     .single();
 
@@ -69,7 +84,7 @@ export async function createTodo(listId: string, title: string, dueDate?: string
     list_id: listId,
     title: trimmed,
     due_date: dueDate || null,
-    position: (last?.position ?? 0) + 1,
+    position: (first?.position ?? 1) - 1,
   });
 
   revalidatePath("/todos");
@@ -82,12 +97,6 @@ export async function reorderTodos(orderedIds: string[]) {
       supabase.from("todos").update({ position: index }).eq("id", id)
     )
   );
-  revalidatePath("/todos");
-}
-
-export async function updateList(id: string, name: string, color: string) {
-  const supabase = await createClient();
-  await supabase.from("todo_lists").update({ name: name.trim(), color }).eq("id", id);
   revalidatePath("/todos");
 }
 

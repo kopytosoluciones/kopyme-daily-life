@@ -34,7 +34,7 @@ export default function ListsSidebar({ lists, activeListId }: Props) {
 
   function handleCreateSubmit() {
     if (!newName.trim()) { setCreatingNew(false); return; }
-    startTransition(() => createList(newName));
+    startTransition(() => { createList(newName); });
     setCreatingNew(false);
     setNewName("");
   }
