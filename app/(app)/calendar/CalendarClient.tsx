@@ -8,12 +8,13 @@ import { ChevronLeft, ChevronRight, X, Repeat2, Trash2, Pencil, Plus } from "luc
 interface CalEvent {
   id: string;
   title: string;
-  dayIndex: number;    // 0=Lun … 6=Dom
-  startHour: number;   // 7–22 (integer)
-  duration: number;    // hours (integer, min 1)
+  dayIndex: number;       // 0=Lun … 6=Dom (primary / fallback)
+  dayIndices?: number[];  // días de repetición (recurring multi-day)
+  startHour: number;      // 7–22 (integer)
+  duration: number;       // hours (integer, min 1)
   color: string;
   recurring: boolean;
-  weekKey?: string;    // YYYY-MM-DD del lunes (no-recurrentes)
+  weekKey?: string;       // YYYY-MM-DD del lunes (no-recurrentes)
   notes?: string;
 }
 
@@ -99,14 +100,8 @@ function saveEvents(events: CalEvent[]) {
 function seed(): CalEvent[] {
   const wk = toKey(monday(new Date()));
   return [
-    { id: "s1", title: "Gym",      dayIndex: 0, startHour: 7,  duration: 1, color: "#39FF14", recurring: true  },
-    { id: "s2", title: "Gym",      dayIndex: 2, startHour: 7,  duration: 1, color: "#39FF14", recurring: true  },
-    { id: "s3", title: "Gym",      dayIndex: 4, startHour: 7,  duration: 1, color: "#39FF14", recurring: true  },
-    { id: "s4", title: "Standup",  dayIndex: 0, startHour: 9,  duration: 1, color: "#F59E0B", recurring: true  },
-    { id: "s5", title: "Standup",  dayIndex: 1, startHour: 9,  duration: 1, color: "#F59E0B", recurring: true  },
-    { id: "s6", title: "Standup",  dayIndex: 2, startHour: 9,  duration: 1, color: "#F59E0B", recurring: true  },
-    { id: "s7", title: "Standup",  dayIndex: 3, startHour: 9,  duration: 1, color: "#F59E0B", recurring: true  },
-    { id: "s8", title: "Standup",  dayIndex: 4, startHour: 9,  duration: 1, color: "#F59E0B", recurring: true  },
+    { id: "s1", title: "Gym",      dayIndex: 0, dayIndices: [0, 2, 4], startHour: 7,  duration: 1, color: "#39FF14", recurring: true  },
+    { id: "s4", title: "Standup",  dayIndex: 0, dayIndices: [0,1,2,3,4], startHour: 9,  duration: 1, color: "#F59E0B", recurring: true  },
     { id: "s9", title: "Almuerzo", dayIndex: 2, startHour: 13, duration: 1, color: "#9D4EDD", recurring: false, weekKey: wk },
     { id: "sa", title: "Cine",     dayIndex: 5, startHour: 20, duration: 2, color: "#FF1493", recurring: false, weekKey: wk },
   ];
@@ -186,12 +181,13 @@ export default function CalendarClient() {
     startHour?: number;
   } | null>(null);
 
-  const [formTitle,     setFormTitle]     = useState("");
-  const [formColor,     setFormColor]     = useState(COLORS[0]);
-  const [formRecurring, setFormRecurring] = useState(false);
-  const [formStartHour, setFormStartHour] = useState(9);
-  const [formDuration,  setFormDuration]  = useState(1);
-  const [formNotes,     setFormNotes]     = useState("");
+  const [formTitle,      setFormTitle]      = useState("");
+  const [formColor,      setFormColor]      = useState(COLORS[0]);
+  const [formRecurring,  setFormRecurring]  = useState(false);
+  const [formDayIndices, setFormDayIndices] = useState<number[]>([0]);
+  const [formStartHour,  setFormStartHour]  = useState(9);
+  const [formDuration,   setFormDuration]   = useState(1);
+  const [formNotes,      setFormNotes]      = useState("");
 
   useEffect(() => {
     setWeekStart(monday(new Date()));
@@ -211,10 +207,12 @@ export default function CalendarClient() {
   const isCurrentWeek = sameDay(weekStart, monday(today));
 
   function dayEvents(dayIndex: number): CalEvent[] {
-    return events.filter(e =>
-      e.dayIndex === dayIndex &&
-      (e.recurring || e.weekKey === weekKey)
-    );
+    return events.filter(e => {
+      const onThisDay = e.recurring && e.dayIndices
+        ? e.dayIndices.includes(dayIndex)
+        : e.dayIndex === dayIndex;
+      return onThisDay && (e.recurring || e.weekKey === weekKey);
+    });
   }
 
   function openCreate(dayIndex: number, startHour: number) {
@@ -222,6 +220,7 @@ export default function CalendarClient() {
     setFormTitle("");
     setFormColor(COLORS[0]);
     setFormRecurring(false);
+    setFormDayIndices([dayIndex]);
     setFormStartHour(startHour);
     setFormDuration(1);
     setFormNotes("");
@@ -233,6 +232,7 @@ export default function CalendarClient() {
     setFormTitle(event.title);
     setFormColor(event.color);
     setFormRecurring(event.recurring);
+    setFormDayIndices(event.dayIndices ?? [event.dayIndex]);
     setFormStartHour(event.startHour);
     setFormDuration(event.duration);
     setFormNotes(event.notes ?? "");
@@ -244,22 +244,29 @@ export default function CalendarClient() {
     const safeEnd      = Math.min(formStartHour + formDuration, END_HOUR);
     const safeDuration = safeEnd - formStartHour;
 
+    const safeDayIndices = formRecurring
+      ? (formDayIndices.length > 0 ? [...formDayIndices].sort() : [modal.dayIndex ?? 0])
+      : undefined;
+
     if (modal.mode === "create") {
       setEvents(prev => [...prev, {
         id: crypto.randomUUID(),
-        title: formTitle.trim(),
-        dayIndex:  modal.dayIndex!,
-        startHour: formStartHour,
-        duration:  safeDuration,
-        color:     formColor,
-        recurring: formRecurring,
-        weekKey:   formRecurring ? undefined : weekKey,
-        notes:     formNotes.trim() || undefined,
+        title:      formTitle.trim(),
+        dayIndex:   safeDayIndices ? safeDayIndices[0] : modal.dayIndex!,
+        dayIndices: safeDayIndices,
+        startHour:  formStartHour,
+        duration:   safeDuration,
+        color:      formColor,
+        recurring:  formRecurring,
+        weekKey:    formRecurring ? undefined : weekKey,
+        notes:      formNotes.trim() || undefined,
       }]);
     } else if (modal.mode === "edit" && modal.event) {
       setEvents(prev => prev.map(ev =>
         ev.id === modal.event!.id
           ? { ...ev, title: formTitle.trim(), color: formColor, recurring: formRecurring,
+              dayIndex: safeDayIndices ? safeDayIndices[0] : ev.dayIndex,
+              dayIndices: safeDayIndices,
               startHour: formStartHour, duration: safeDuration,
               notes: formNotes.trim() || undefined }
           : ev
@@ -633,7 +640,7 @@ export default function CalendarClient() {
             />
 
             {/* Recurring toggle */}
-            <label className="flex items-center gap-3 cursor-pointer mb-6">
+            <label className="flex items-center gap-3 cursor-pointer mb-4">
               <button
                 type="button"
                 onClick={() => setFormRecurring(!formRecurring)}
@@ -647,6 +654,36 @@ export default function CalendarClient() {
               </button>
               <span className="text-sm text-[#6B7280]">Repetir cada semana</span>
             </label>
+
+            {/* Day selector (only when recurring) */}
+            {formRecurring && (
+              <div className="mb-6">
+                <p className="text-xs text-[#6B7280] mb-2">¿Qué días?</p>
+                <div className="flex gap-1.5">
+                  {DAY_NAMES.map((name, i) => {
+                    const selected = formDayIndices.includes(i);
+                    return (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setFormDayIndices(prev =>
+                          prev.includes(i)
+                            ? prev.length > 1 ? prev.filter(d => d !== i) : prev
+                            : [...prev, i].sort()
+                        )}
+                        className="w-8 h-8 rounded-full text-[11px] font-semibold transition-all border-2 flex items-center justify-center"
+                        style={selected
+                          ? { backgroundColor: formColor, borderColor: formColor, color: formColor === "#39FF14" ? "#16a34a" : "#fff" }
+                          : { backgroundColor: "transparent", borderColor: "#E5E7EB", color: "#9CA3AF" }
+                        }
+                      >
+                        {name.charAt(0)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Actions */}
             <div className="flex gap-2">
