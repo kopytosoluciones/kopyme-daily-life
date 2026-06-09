@@ -114,7 +114,7 @@ function MoodMeter({ value, onChange }: { value: number | null; onChange: (v: nu
   }, [onChange]);
 
   return (
-    <div className="flex items-end gap-4">
+    <div className="flex items-end gap-3">
       <div
         ref={containerRef}
         className="flex items-end gap-[4px] cursor-pointer select-none"
@@ -147,33 +147,24 @@ function MoodMeter({ value, onChange }: { value: number | null; onChange: (v: nu
         })}
       </div>
 
-      <div className="flex items-center gap-2 min-w-[72px]">
-        {value ? (
-          <>
-            <span className="text-xl leading-none">{moodEmoji(value)}</span>
-            <span
-              className="font-[family-name:var(--font-mono)] text-sm font-bold transition-colors"
-              style={{ color: moodColor(value) }}
-            >
-              {value}/10
-            </span>
-          </>
-        ) : (
-          <span className="font-[family-name:var(--font-mono)] text-xs text-[#C9C9C9]">
-            ¿cómo estás?
-          </span>
-        )}
-      </div>
-
       {value ? (
-        <button
-          type="button"
-          onClick={() => onChange(0)}
-          className="text-[#D1D5DB] hover:text-[#9CA3AF] transition-colors"
-          title="Quitar"
-        >
-          <X size={12} />
-        </button>
+        <div className="flex items-center gap-1.5">
+          <span className="text-base leading-none">{moodEmoji(value)}</span>
+          <span
+            className="font-[family-name:var(--font-mono)] text-xs font-bold transition-colors"
+            style={{ color: moodColor(value) }}
+          >
+            {value}/10
+          </span>
+          <button
+            type="button"
+            onClick={() => onChange(0)}
+            className="text-[#D1D5DB] hover:text-[#9CA3AF] transition-colors ml-0.5"
+            title="Quitar"
+          >
+            <X size={11} />
+          </button>
+        </div>
       ) : null}
     </div>
   );
@@ -802,50 +793,52 @@ function EntryForm({
         className="w-full bg-transparent resize-none text-[#0A0A0A] text-[17px] leading-loose placeholder:text-[#D8DCE4] focus:outline-none"
       />
 
-      {/* Mood + emoji */}
-      <div className="mt-3 pt-3 border-t border-[#F0F0F2] flex items-center justify-between gap-4">
+      {/* Bottom row: Puntaje + mood + emoji | (delete) + cancel + save */}
+      <div className="mt-3 pt-3 border-t border-[#F0F0F2] flex items-center gap-3">
+        {/* Left: label + meter + emoji */}
+        <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#B0B7C3] uppercase tracking-[0.08em] shrink-0">
+          Puntaje
+        </span>
         <MoodMeter value={mood} onChange={v => setMood(v === 0 ? null : v)} />
         <EmotionPicker
           emoji={emoji}
           onSelect={setEmoji}
           onClear={() => setEmoji(null)}
         />
-      </div>
 
-      {/* Actions row */}
-      <div className="mt-3 pt-3 border-t border-[#F0F0F2] flex items-center justify-between">
-        {isEdit && onDelete ? (
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Right: delete (edit only) + cancel + save */}
+        {isEdit && onDelete && (
           <button
             type="button"
             onClick={onDelete}
             disabled={isPending}
-            className="p-2 text-[#E5E7EB] hover:text-[#FF1493] hover:bg-[#FFF0F5] rounded-xl transition-colors"
+            className="p-1.5 text-[#E5E7EB] hover:text-[#FF1493] hover:bg-[#FFF0F5] rounded-xl transition-colors"
             title="Eliminar entrada"
           >
-            <Trash2 size={15} />
+            <Trash2 size={14} />
           </button>
-        ) : <div />}
-
-        <div className="flex items-center gap-2">
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-3 py-1.5 text-[11px] font-medium rounded-lg font-[family-name:var(--font-mono)] text-[#9CA3AF] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] transition-all"
-            >
-              cancelar
-            </button>
-          )}
+        )}
+        {onClose && (
           <button
             type="button"
-            onClick={() => onSave(body, date, emoji, mood)}
-            disabled={!canSave}
-            title={!canSave ? "Escribí algo para guardar" : undefined}
-            className="px-5 py-2 text-[12px] font-medium rounded-xl font-[family-name:var(--font-mono)] bg-[#0A0A0A] text-white hover:bg-[#374151] disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+            onClick={onClose}
+            className="px-3 py-1.5 text-[11px] font-medium rounded-lg font-[family-name:var(--font-mono)] text-[#9CA3AF] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] transition-all"
           >
-            {isPending ? "guardando…" : isEdit ? "guardar cambios" : "guardar"}
+            cancelar
           </button>
-        </div>
+        )}
+        <button
+          type="button"
+          onClick={() => onSave(body, date, emoji, mood)}
+          disabled={!canSave}
+          title={!canSave ? "Escribí algo para guardar" : undefined}
+          className="px-5 py-2 text-[12px] font-medium rounded-xl font-[family-name:var(--font-mono)] bg-[#0A0A0A] text-white hover:bg-[#374151] disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+        >
+          {isPending ? "guardando…" : isEdit ? "guardar cambios" : "guardar"}
+        </button>
       </div>
 
       {saveError && (
