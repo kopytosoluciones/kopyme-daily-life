@@ -22,7 +22,7 @@ interface CalEvent {
 const START_HOUR  = 7;
 const END_HOUR    = 23;
 const TOTAL_HOURS = END_HOUR - START_HOUR;  // 16 rows
-const ROW_H       = 52;                      // px per hour
+const ROW_H       = 26;                      // px per hour
 
 const HOUR_LABELS = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i); // 7..23
 const HOUR_ROWS   = Array.from({ length: TOTAL_HOURS },     (_, i) => START_HOUR + i); // 7..22 (slots)
@@ -282,8 +282,9 @@ export default function CalendarClient() {
       summaryMap[ev.title].hours += ev.duration;
     });
   });
-  const summary  = Object.entries(summaryMap).sort((a, b) => b[1].hours - a[1].hours);
-  const maxHours = summary.length > 0 ? summary[0][1].hours : 1;
+  const summary       = Object.entries(summaryMap).sort((a, b) => b[1].hours - a[1].hours);
+  const maxHours      = summary.length > 0 ? summary[0][1].hours : 1;
+  const totalAvailableHours = TOTAL_HOURS * 7; // 16h × 7 días = 112h
 
   const weekLabel = (() => {
     const s = weekDays[0], en = weekDays[6];
@@ -518,9 +519,14 @@ export default function CalendarClient() {
                       }}
                     />
                   </div>
-                  <span className="font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] shrink-0 w-8 text-right">
-                    {hours % 1 === 0 ? `${hours}h` : `${hours}h`}
-                  </span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] w-8 text-right">
+                      {hours}h
+                    </span>
+                    <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#D1D5DB] w-9 text-right">
+                      {Math.round((hours / totalAvailableHours) * 100)}%
+                    </span>
+                  </div>
                 </div>
               </div>
             ))}
