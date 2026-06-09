@@ -20,7 +20,7 @@ import {
 const modules = [
   { href: "/dashboard",   Icon: Home,         label: "Inicio"            },
   { href: "/habits",      Icon: Leaf,         label: "Hábitos"           },
-  { href: "/todos",       Icon: CheckSquare,  label: "To-dos"            },
+  { href: "/todos",       Icon: CheckSquare,  label: "Checklists"        },
   { href: "/calendar",    Icon: CalendarDays, label: "Calendario"        },
   { href: "/diary",       Icon: BookHeart,    label: "Diario Emocional"  },
   { href: "/goals",       Icon: Target,       label: "Metas"             },

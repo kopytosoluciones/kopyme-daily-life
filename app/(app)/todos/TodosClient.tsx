@@ -188,10 +188,10 @@ function TaskItem({
 
   const style: React.CSSProperties = {
     transform: checking
-      ? `${CSS.Transform.toString(transform) ?? ""} translateY(-8px)`.trim()
+      ? `${CSS.Transform.toString(transform) ?? ""} translateY(-4px)`.trim()
       : (CSS.Transform.toString(transform) ?? undefined),
     transition: checking
-      ? "opacity 0.28s ease, transform 0.28s ease"
+      ? "opacity 0.12s ease, transform 0.12s ease"
       : (transition ?? undefined),
     opacity: isDragging ? 0.35 : checking ? 0 : 1,
   };
@@ -298,10 +298,12 @@ function ChecklistCard({
   const [localTodos,   setLocalTodos]   = useState<Todo[]>(list.todos);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Sync server state
-  const serverKey = list.todos.map(t => `${t.id}:${t.completed}`).join(",");
-  const localKey  = localTodos.map(t => `${t.id}:${t.completed}`).join(",");
-  if (serverKey !== localKey) setLocalTodos(list.todos);
+  // Sync server state — compare IDs only, NOT completion state.
+  // Completion is always driven by local optimistic updates; syncing it
+  // from the (stale) server prop would immediately revert every check/uncheck.
+  const serverIds = list.todos.map(t => t.id).sort().join(",");
+  const localIds  = localTodos.map(t => t.id).sort().join(",");
+  if (serverIds !== localIds) setLocalTodos(list.todos);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
@@ -348,7 +350,7 @@ function ChecklistCard({
         ));
         setCheckingIds(prev => { const n = new Set(prev); n.delete(todo.id); return n; });
         startTransition(() => toggleTodo(todo.id, true));
-      }, 300);
+      }, 140);
     } else {
       // Unchecking: immediate
       setLocalTodos(prev => prev.map(t =>
@@ -616,7 +618,7 @@ export default function TodosClient({ lists: initialLists }: { lists: ListWithTo
       <div className="px-8 pt-10 pb-6 flex items-center justify-between">
         <div>
           <h1 className="font-[family-name:var(--font-playfair)] text-[32px] font-bold text-[#0A0A0A] leading-tight">
-            Mis listas
+            Checklists
           </h1>
           <p className="font-[family-name:var(--font-mono)] text-[12px] text-[#B0B7C3] mt-1.5">
             {listsData.length} {listsData.length === 1 ? "lista" : "listas"} · {totalPending} pendientes
