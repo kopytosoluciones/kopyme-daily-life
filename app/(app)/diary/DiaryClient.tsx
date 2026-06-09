@@ -514,20 +514,7 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
 
 const BAR_H = 66;
 
-function Last14Days({
-  entries,
-  displayName,
-  hasAiKey,
-}: {
-  entries: Entry[];
-  displayName: string;
-  hasAiKey: boolean;
-}) {
-  const [open,     setOpen]     = useState(false);
-  const [loading,  setLoading]  = useState(false);
-  const [analysis, setAnalysis] = useState<string | null>(null);
-  const [aiError,  setAiError]  = useState<string | null>(null);
-
+function Last14Days({ entries }: { entries: Entry[] }) {
   const days: { date: string; avgMood: number | null; emoji: string | null }[] = [];
   for (let i = 13; i >= 0; i--) {
     const d = new Date();
@@ -542,182 +529,57 @@ function Last14Days({
     days.push({ date: dateStr, avgMood, emoji });
   }
 
-  const analysisEntries: AnalysisEntry[] = entries
-    .filter(e => {
-      const d = new Date();
-      d.setDate(d.getDate() - 14);
-      return new Date(e.entry_date + "T00:00:00") >= d;
-    })
-    .map(e => ({ date: e.entry_date, mood: e.mood, emoji: e.emoji, body: e.body }));
-
-  async function handleAnalyze() {
-    setOpen(true);
-    if (analysis) return;
-    setLoading(true);
-    setAiError(null);
-    const result = await analyzeEmotions(analysisEntries, displayName);
-    setLoading(false);
-    if (result.error) setAiError(result.error);
-    else setAnalysis(result.analysis);
-  }
-
   return (
-    <>
-      <div className="mt-5">
-        {/* Section label */}
-        <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#B0B7C3] uppercase tracking-[0.1em] font-medium mb-3">
-          últimos 14 días
-        </p>
-
-        <div className="flex items-end gap-8">
-          {/* Histogram */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-end gap-[8px]" style={{ height: BAR_H + 28 }}>
-              {days.map(({ date, avgMood, emoji }) => {
-                const barH    = avgMood !== null ? Math.max(6, (avgMood / 10) * BAR_H) : 5;
-                const color   = avgMood !== null ? moodColor(Math.round(avgMood)) : "#EBEBEB";
-                const isToday = date === todayStr();
-                const d       = new Date(date + "T00:00:00");
-                const dayName = DAYS_SHORT[d.getDay()];
-                const dayNum  = d.getDate();
-                return (
-                  <div key={date} className="flex-1 flex flex-col items-center gap-1.5 group/bar">
-                    {/* emoji on hover */}
-                    <div className="h-5 flex items-end justify-center">
-                      {emoji && (
-                        <span className="text-[10px] leading-none opacity-0 group-hover/bar:opacity-100 transition-opacity duration-150">
-                          {emoji}
-                        </span>
-                      )}
-                    </div>
-                    {/* bar */}
-                    <div
-                      className="w-full transition-all duration-300"
-                      style={{
-                        height: barH,
-                        backgroundColor: color,
-                        borderRadius: 6,
-                        opacity: avgMood !== null ? 0.45 + (avgMood / 10) * 0.55 : 1,
-                        outline: isToday ? `2px solid #9D4EDD` : undefined,
-                        outlineOffset: 2,
-                      }}
-                    />
-                    {/* date label */}
-                    <div className="flex flex-col items-center" style={{ lineHeight: 1 }}>
-                      <span
-                        className="font-[family-name:var(--font-mono)] text-[7px] leading-none"
-                        style={{ color: isToday ? "#9D4EDD" : "#C9C9C9" }}
-                      >
-                        {isToday ? "hoy" : dayName}
-                      </span>
-                      {!isToday && (
-                        <span className="font-[family-name:var(--font-mono)] text-[8px] leading-none mt-0.5" style={{ color: "#B0B7C3" }}>
-                          {dayNum}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Análisis button */}
-          {hasAiKey ? (
-            <button
-              type="button"
-              onClick={handleAnalyze}
-              disabled={analysisEntries.length === 0}
-              className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#0A0A0A] text-white text-[12px] font-medium font-[family-name:var(--font-mono)] shadow-lg shadow-black/10 hover:bg-[#9D4EDD] hover:shadow-xl hover:shadow-[#9D4EDD]/25 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#0A0A0A] disabled:hover:shadow-lg mb-4"
-            >
-              <Sparkles size={13} />
-              Análisis Emocional
-            </button>
-          ) : (
-            <div className="shrink-0 flex flex-col items-center gap-1 mb-4">
-              <div className="flex items-center gap-2 px-4 py-2.5 rounded-2xl bg-[#F9FAFB] border border-[#E5E7EB] text-[#C9C9C9] text-[12px] font-medium font-[family-name:var(--font-mono)] cursor-not-allowed select-none">
-                <Sparkles size={13} />
-                Análisis Emocional
-              </div>
-              <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] tracking-wide">
-                próximamente
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Analysis modal */}
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-sm p-6"
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-7 pt-6 pb-4 border-b border-[#F5F5F5]">
-              <div className="flex items-center gap-2.5">
-                <Sparkles size={15} className="text-[#9D4EDD]" />
-                <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A]">
-                  Análisis Emocional
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB]">
-                  últimos 14 días
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="p-1.5 text-[#C9C9C9] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] rounded-lg transition-colors"
-                >
-                  <X size={15} />
-                </button>
-              </div>
-            </div>
-
-            <div className="px-7 py-6 max-h-[60vh] overflow-y-auto">
-              {loading ? (
-                <div className="flex flex-col items-center gap-3 py-10">
-                  <Loader2 size={22} className="text-[#9D4EDD] animate-spin" />
-                  <span className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">
-                    analizando los últimos 14 días…
+    <div className="mt-5">
+      <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#B0B7C3] uppercase tracking-[0.1em] font-medium mb-3">
+        últimos 14 días
+      </p>
+      <div className="flex items-end gap-[8px]" style={{ height: BAR_H + 28 }}>
+        {days.map(({ date, avgMood, emoji }) => {
+          const barH    = avgMood !== null ? Math.max(6, (avgMood / 10) * BAR_H) : 5;
+          const color   = avgMood !== null ? moodColor(Math.round(avgMood)) : "#EBEBEB";
+          const isToday = date === todayStr();
+          const d       = new Date(date + "T00:00:00");
+          const dayName = DAYS_SHORT[d.getDay()];
+          const dayNum  = d.getDate();
+          return (
+            <div key={date} className="flex-1 flex flex-col items-center gap-1.5 group/bar">
+              <div className="h-5 flex items-end justify-center">
+                {emoji && (
+                  <span className="text-[10px] leading-none opacity-0 group-hover/bar:opacity-100 transition-opacity duration-150">
+                    {emoji}
                   </span>
-                </div>
-              ) : aiError ? (
-                <p className="font-[family-name:var(--font-mono)] text-sm text-[#FF1493]">{aiError}</p>
-              ) : analysis ? (
-                <p className="text-[#374151] text-[15px] leading-relaxed whitespace-pre-wrap">
-                  {analysis}
-                </p>
-              ) : null}
-            </div>
-
-            {!loading && analysis && (
-              <div className="px-7 pb-5 flex justify-end">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setAnalysis(null);
-                    setLoading(true);
-                    analyzeEmotions(analysisEntries, displayName).then(r => {
-                      setLoading(false);
-                      if (r.error) setAiError(r.error);
-                      else setAnalysis(r.analysis);
-                    });
-                  }}
-                  className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] hover:text-[#9D4EDD] transition-colors"
-                >
-                  regenerar análisis
-                </button>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-      )}
-    </>
+              <div
+                className="w-full transition-all duration-300"
+                style={{
+                  height: barH,
+                  backgroundColor: color,
+                  borderRadius: 6,
+                  opacity: avgMood !== null ? 0.45 + (avgMood / 10) * 0.55 : 1,
+                  outline: isToday ? `2px solid #9D4EDD` : undefined,
+                  outlineOffset: 2,
+                }}
+              />
+              <div className="flex flex-col items-center" style={{ lineHeight: 1 }}>
+                <span
+                  className="font-[family-name:var(--font-mono)] text-[7px] leading-none"
+                  style={{ color: isToday ? "#9D4EDD" : "#C9C9C9" }}
+                >
+                  {isToday ? "hoy" : dayName}
+                </span>
+                {!isToday && (
+                  <span className="font-[family-name:var(--font-mono)] text-[8px] leading-none mt-0.5" style={{ color: "#B0B7C3" }}>
+                    {dayNum}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -863,14 +725,37 @@ export default function DiaryClient({
   displayName: string;
   hasAiKey: boolean;
 }) {
-  const [saved,        setSaved]        = useState(false);
-  const [saveError,    setSaveError]    = useState<string | null>(null);
-  const [view,         setView]         = useState<"write" | "records">("write");
-  const [editing,      setEditing]      = useState<Entry | null>(null);
-  const [editError,    setEditError]    = useState<string | null>(null);
-  const [restored,     setRestored]     = useState(false);
-  const [restoreError, setRestoreError] = useState<string | null>(null);
-  const [isPending,    startTransition] = useTransition();
+  const [saved,          setSaved]          = useState(false);
+  const [saveError,      setSaveError]      = useState<string | null>(null);
+  const [view,           setView]           = useState<"write" | "records">("write");
+  const [editing,        setEditing]        = useState<Entry | null>(null);
+  const [editError,      setEditError]      = useState<string | null>(null);
+  const [restored,       setRestored]       = useState(false);
+  const [restoreError,   setRestoreError]   = useState<string | null>(null);
+  const [isPending,      startTransition]   = useTransition();
+  const [aiOpen,         setAiOpen]         = useState(false);
+  const [aiLoading,      setAiLoading]      = useState(false);
+  const [aiAnalysis,     setAiAnalysis]     = useState<string | null>(null);
+  const [aiError,        setAiError]        = useState<string | null>(null);
+
+  const analysisEntries: AnalysisEntry[] = entries
+    .filter(e => {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 14);
+      return new Date(e.entry_date + "T00:00:00") >= cutoff;
+    })
+    .map(e => ({ date: e.entry_date, mood: e.mood, emoji: e.emoji, body: e.body }));
+
+  async function handleAnalyze() {
+    setAiOpen(true);
+    if (aiAnalysis) return;
+    setAiLoading(true);
+    setAiError(null);
+    const result = await analyzeEmotions(analysisEntries, displayName);
+    setAiLoading(false);
+    if (result.error) setAiError(result.error);
+    else setAiAnalysis(result.analysis);
+  }
 
   function handleSave(body: string, date: string, emoji: string | null, mood: number | null) {
     if (!body.trim() && mood === null) return;
@@ -942,16 +827,39 @@ export default function DiaryClient({
             </p>
           </div>
 
-          {/* Right side: view toggle + restore */}
+          {/* Right side: análisis + view toggle + restore */}
           <div className="flex flex-col items-end gap-2 pt-1">
             {view === "write" && (
-              <button
-                type="button"
-                onClick={() => setView("records")}
-                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-[family-name:var(--font-mono)] border border-[#E5E7EB] text-[#374151] hover:border-[#9D4EDD] hover:text-[#9D4EDD] transition-all"
-              >
-                ver registros →
-              </button>
+              <div className="flex items-center gap-2">
+                {/* Análisis Emocional */}
+                {hasAiKey ? (
+                  <button
+                    type="button"
+                    onClick={handleAnalyze}
+                    disabled={analysisEntries.length === 0}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-[family-name:var(--font-mono)] bg-[#0A0A0A] text-white hover:bg-[#9D4EDD] shadow-sm hover:shadow-md hover:shadow-[#9D4EDD]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#0A0A0A] disabled:hover:shadow-sm"
+                  >
+                    <Sparkles size={12} />
+                    Análisis Emocional
+                  </button>
+                ) : (
+                  <div
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-[family-name:var(--font-mono)] bg-[#F9FAFB] border border-[#E5E7EB] text-[#C9C9C9] cursor-not-allowed select-none"
+                    title="próximamente"
+                  >
+                    <Sparkles size={12} />
+                    Análisis Emocional
+                  </div>
+                )}
+                {/* Ver registros */}
+                <button
+                  type="button"
+                  onClick={() => setView("records")}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-[family-name:var(--font-mono)] border border-[#E5E7EB] text-[#374151] hover:border-[#9D4EDD] hover:text-[#9D4EDD] transition-all"
+                >
+                  ver registros →
+                </button>
+              </div>
             )}
 
             {/* Restore — link style, no competition */}
@@ -1009,7 +917,7 @@ export default function DiaryClient({
             <YearHeatmap entries={entries} />
 
             {/* ── Last 14 days + Análisis ── */}
-            <Last14Days entries={entries} displayName={displayName} hasAiKey={hasAiKey} />
+            <Last14Days entries={entries} />
           </>
         ) : (
           /* ── Records view ── */
@@ -1088,6 +996,73 @@ export default function DiaryClient({
           </div>
         )}
       </div>
+
+      {/* ── Analysis modal ── */}
+      {aiOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-sm p-6"
+          onClick={() => setAiOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-7 pt-6 pb-4 border-b border-[#F5F5F5]">
+              <div className="flex items-center gap-2.5">
+                <Sparkles size={15} className="text-[#9D4EDD]" />
+                <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A]">
+                  Análisis Emocional
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB]">
+                  últimos 14 días
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setAiOpen(false)}
+                  className="p-1.5 text-[#C9C9C9] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] rounded-lg transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+            <div className="px-7 py-6 max-h-[60vh] overflow-y-auto">
+              {aiLoading ? (
+                <div className="flex flex-col items-center gap-3 py-10">
+                  <Loader2 size={22} className="text-[#9D4EDD] animate-spin" />
+                  <span className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">
+                    analizando los últimos 14 días…
+                  </span>
+                </div>
+              ) : aiError ? (
+                <p className="font-[family-name:var(--font-mono)] text-sm text-[#FF1493]">{aiError}</p>
+              ) : aiAnalysis ? (
+                <p className="text-[#374151] text-[15px] leading-relaxed whitespace-pre-wrap">{aiAnalysis}</p>
+              ) : null}
+            </div>
+            {!aiLoading && aiAnalysis && (
+              <div className="px-7 pb-5 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAiAnalysis(null);
+                    setAiLoading(true);
+                    analyzeEmotions(analysisEntries, displayName).then(r => {
+                      setAiLoading(false);
+                      if (r.error) setAiError(r.error);
+                      else setAiAnalysis(r.analysis);
+                    });
+                  }}
+                  className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] hover:text-[#9D4EDD] transition-colors"
+                >
+                  regenerar análisis
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* ── Edit modal ── */}
       {editing && (
