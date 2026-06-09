@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useTransition, useEffect, useCallback } from "react";
+import { useState, useRef, useTransition, useCallback } from "react";
 import { createEntry, updateEntry, deleteEntry, restoreLastDeleted } from "./actions";
-import { X, Trash2, Smile, Pencil, Undo2 } from "lucide-react";
+import { analyzeEmotions, type AnalysisEntry } from "./analyze";
+import { X, Trash2, Smile, Pencil, Undo2, Sparkles, Loader2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -531,6 +532,182 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
   );
 }
 
+// ─── Last 14 Days histogram ───────────────────────────────────────────────────
+
+const BAR_H = 56; // max bar height in px
+
+function Last14Days({
+  entries,
+  displayName,
+}: {
+  entries: Entry[];
+  displayName: string;
+}) {
+  const [open,     setOpen]     = useState(false);
+  const [loading,  setLoading]  = useState(false);
+  const [analysis, setAnalysis] = useState<string | null>(null);
+  const [aiError,  setAiError]  = useState<string | null>(null);
+
+  // Build last 14 calendar days (Argentina tz)
+  const days: { date: string; avgMood: number | null; emoji: string | null }[] = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toLocaleDateString("sv-SE", { timeZone: "America/Argentina/Buenos_Aires" });
+    const dayEntries = entries.filter(e => e.entry_date === dateStr);
+    const withMood   = dayEntries.filter(e => e.mood !== null);
+    const avgMood    = withMood.length
+      ? Math.round((withMood.reduce((s, e) => s + e.mood!, 0) / withMood.length) * 100) / 100
+      : null;
+    const emoji = dayEntries.find(e => e.emoji)?.emoji ?? null;
+    days.push({ date: dateStr, avgMood, emoji });
+  }
+
+  const analysisEntries: AnalysisEntry[] = entries
+    .filter(e => {
+      const d = new Date();
+      d.setDate(d.getDate() - 14);
+      return new Date(e.entry_date + "T00:00:00") >= d;
+    })
+    .map(e => ({ date: e.entry_date, mood: e.mood, emoji: e.emoji, body: e.body }));
+
+  async function handleAnalyze() {
+    setOpen(true);
+    if (analysis) return;
+    setLoading(true);
+    setAiError(null);
+    const result = await analyzeEmotions(analysisEntries, displayName);
+    setLoading(false);
+    if (result.error) setAiError(result.error);
+    else setAnalysis(result.analysis);
+  }
+
+  return (
+    <>
+      <div className="mt-8 flex items-end gap-6">
+        {/* Histogram */}
+        <div className="flex-1 min-w-0">
+          <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest mb-3">
+            últimos 14 días
+          </p>
+          <div className="flex items-end gap-[3px]" style={{ height: BAR_H + 18 }}>
+            {days.map(({ date, avgMood, emoji }) => {
+              const barH   = avgMood !== null ? Math.max(4, (avgMood / 10) * BAR_H) : 3;
+              const color  = avgMood !== null ? moodColor(Math.round(avgMood)) : "#F3F4F6";
+              const label  = new Date(date + "T00:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "numeric" });
+              const isToday = date === todayStr();
+              return (
+                <div key={date} className="flex-1 flex flex-col items-center gap-1 group/bar" title={label}>
+                  {/* emoji on top when hovered */}
+                  <div className="h-4 flex items-end justify-center">
+                    {emoji && (
+                      <span className="text-[9px] leading-none opacity-0 group-hover/bar:opacity-100 transition-opacity">
+                        {emoji}
+                      </span>
+                    )}
+                  </div>
+                  {/* bar */}
+                  <div
+                    className="w-full rounded-t-[2px] transition-all"
+                    style={{
+                      height: barH,
+                      backgroundColor: color,
+                      opacity: avgMood !== null ? 0.5 + (avgMood / 10) * 0.5 : 1,
+                      outline: isToday ? "2px solid #9D4EDD" : undefined,
+                      outlineOffset: 1,
+                    }}
+                  />
+                  {/* date label every ~4 days */}
+                  <span className="font-[family-name:var(--font-mono)] text-[7px] text-[#D1D5DB] leading-none whitespace-nowrap overflow-hidden" style={{ maxWidth: "100%" }}>
+                    {isToday ? "hoy" : new Date(date + "T00:00:00").getDate().toString()}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Análisis button */}
+        <button
+          type="button"
+          onClick={handleAnalyze}
+          disabled={analysisEntries.length === 0}
+          className="shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0A0A0A] text-white text-[12px] font-medium font-[family-name:var(--font-mono)] hover:bg-[#9D4EDD] transition-all disabled:opacity-30 mb-5"
+        >
+          <Sparkles size={13} />
+          Análisis Emocional
+        </button>
+      </div>
+
+      {/* Analysis modal */}
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-sm p-6"
+          onClick={() => setOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between px-6 pt-6 pb-4 border-b border-[#F5F5F5]">
+              <div className="flex items-center gap-2.5">
+                <Sparkles size={15} className="text-[#9D4EDD]" />
+                <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A]">
+                  Análisis Emocional
+                </p>
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB]">
+                  últimos 14 días
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="p-1.5 text-[#C9C9C9] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] rounded-lg transition-colors"
+                >
+                  <X size={15} />
+                </button>
+              </div>
+            </div>
+
+            {/* Body */}
+            <div className="px-6 py-6 max-h-[60vh] overflow-y-auto">
+              {loading ? (
+                <div className="flex flex-col items-center gap-3 py-10">
+                  <Loader2 size={22} className="text-[#9D4EDD] animate-spin" />
+                  <span className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">
+                    analizando los últimos 14 días…
+                  </span>
+                </div>
+              ) : aiError ? (
+                <p className="font-[family-name:var(--font-mono)] text-sm text-[#FF1493]">{aiError}</p>
+              ) : analysis ? (
+                <p className="text-[#374151] text-[15px] leading-relaxed whitespace-pre-wrap">
+                  {analysis}
+                </p>
+              ) : null}
+            </div>
+
+            {/* Footer: refresh */}
+            {!loading && analysis && (
+              <div className="px-6 pb-5 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => { setAnalysis(null); setLoading(true); analyzeEmotions(analysisEntries, displayName).then(r => { setLoading(false); if (r.error) setAiError(r.error); else setAnalysis(r.analysis); }); }}
+                  className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] hover:text-[#9D4EDD] transition-colors"
+                >
+                  regenerar análisis
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 // ─── Entry Form (shared between new + edit) ────────────────────────────────────
 
 function EntryForm({
@@ -598,7 +775,7 @@ function EntryForm({
         value={body}
         onChange={e => { setBody(e.target.value); autoResize(); }}
         placeholder="¿Qué siento hoy?"
-        rows={isEdit ? 5 : 7}
+        rows={isEdit ? 4 : 4}
         autoFocus={!isEdit}
         className="w-full bg-transparent resize-none text-[#0A0A0A] text-[16px] leading-loose placeholder:text-[#D1D5DB] focus:outline-none"
       />
@@ -662,7 +839,7 @@ function EntryForm({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function DiaryClient({ entries }: { entries: Entry[] }) {
+export default function DiaryClient({ entries, displayName }: { entries: Entry[]; displayName: string }) {
   const [saved,        setSaved]        = useState(false);
   const [saveError,    setSaveError]    = useState<string | null>(null);
   const [view,         setView]         = useState<"write" | "records">("write");
@@ -784,8 +961,8 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
           <>
             {/* ── Write area ── */}
             <div
-              className={`mb-10 bg-[#F9FAFB] rounded-2xl px-6 pt-5 pb-5 transition-all ${
-                saved ? "shadow-[0_0_0_2px_#39FF1440]" : "focus-within:shadow-[0_0_0_2px_#9D4EDD22]"
+              className={`mb-10 bg-white rounded-xl px-6 pt-5 pb-5 transition-all border ${
+                saved ? "border-[#39FF14]/40 shadow-[0_0_0_3px_#39FF1415]" : "border-[#E5E7EB] focus-within:border-[#C4B5FD] focus-within:shadow-[0_0_0_3px_#9D4EDD0D]"
               }`}
             >
               {saved ? (
@@ -807,6 +984,9 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
 
             {/* ── Year heatmap ── */}
             <YearHeatmap entries={entries} />
+
+            {/* ── Last 14 days + Análisis ── */}
+            <Last14Days entries={entries} displayName={displayName} />
           </>
         ) : (
           /* ── Records view ── */
