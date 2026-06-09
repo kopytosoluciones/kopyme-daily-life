@@ -23,6 +23,7 @@ export default async function DiaryPage() {
   ]);
 
   const displayName = profile?.display_name || user.email?.split("@")[0] || "vos";
+  const hasAiKey    = !!process.env.ANTHROPIC_API_KEY;
 
-  return <DiaryClient entries={entries ?? []} displayName={displayName} />;
+  return <DiaryClient entries={entries ?? []} displayName={displayName} hasAiKey={hasAiKey} />;
 }

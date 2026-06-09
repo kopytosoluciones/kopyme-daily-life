@@ -839,7 +839,7 @@ function EntryForm({
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
-export default function DiaryClient({ entries, displayName }: { entries: Entry[]; displayName: string }) {
+export default function DiaryClient({ entries, displayName, hasAiKey }: { entries: Entry[]; displayName: string; hasAiKey: boolean }) {
   const [saved,        setSaved]        = useState(false);
   const [saveError,    setSaveError]    = useState<string | null>(null);
   const [view,         setView]         = useState<"write" | "records">("write");
@@ -986,7 +986,7 @@ export default function DiaryClient({ entries, displayName }: { entries: Entry[]
             <YearHeatmap entries={entries} />
 
             {/* ── Last 14 days + Análisis ── */}
-            <Last14Days entries={entries} displayName={displayName} />
+            <Last14Days entries={entries} displayName={displayName} hasAiKey={hasAiKey} />
           </>
         ) : (
           /* ── Records view ── */
