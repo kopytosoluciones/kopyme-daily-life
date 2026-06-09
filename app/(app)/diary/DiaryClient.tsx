@@ -459,17 +459,27 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
               const hasMood = day.avgMood !== null;
               const bg = hasMood ? moodColor(Math.round(day.avgMood!)) : "#F3F4F6";
               const op = hasMood ? 0.35 + (day.avgMood! / 10) * 0.65 : 1;
+              const topEmoji = day.dayEntries.find(e => e.emoji)?.emoji ?? null;
               return (
                 <div
                   key={di}
-                  className="w-full"
+                  className="w-full relative overflow-hidden"
                   style={{ aspectRatio: "1", backgroundColor: bg, opacity: op, borderRadius: 2, cursor: "crosshair" }}
                   onMouseEnter={e => {
                     const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
                     setTip({ date: day.date, dayEntries: day.dayEntries, avgMood: day.avgMood, x: r.left, y: r.top });
                   }}
                   onMouseLeave={() => setTip(null)}
-                />
+                >
+                  {topEmoji && (
+                    <span
+                      className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
+                      style={{ fontSize: "9px", lineHeight: 1 }}
+                    >
+                      {topEmoji}
+                    </span>
+                  )}
+                </div>
               );
             })}
           </div>
@@ -478,37 +488,42 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
 
       {tip && (
         <div
-          className="fixed z-50 bg-white border border-[#E5E7EB] rounded-xl p-3 shadow-xl pointer-events-none"
-          style={{ left: tip.x + 14, top: Math.max(8, tip.y - 60) }}
+          className="fixed z-50 bg-white border border-[#E5E7EB] rounded-2xl p-4 shadow-2xl pointer-events-none"
+          style={{ left: tip.x + 16, top: Math.max(8, tip.y - 80), maxWidth: 300 }}
         >
-          <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A] text-xs mb-1">
+          <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A] text-sm mb-2">
             {formatDate(tip.date)}
           </p>
           {tip.dayEntries.length > 0 ? (
             <>
-              {tip.avgMood !== null && (
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className="font-[family-name:var(--font-mono)] text-[11px] font-bold" style={{ color: moodColor(Math.round(tip.avgMood)) }}>
+              <div className="flex items-center gap-2 mb-2">
+                {tip.dayEntries[0].emoji && (
+                  <span className="text-xl leading-none">{tip.dayEntries[0].emoji}</span>
+                )}
+                {tip.avgMood !== null && (
+                  <span
+                    className="font-[family-name:var(--font-mono)] text-sm font-bold"
+                    style={{ color: moodColor(Math.round(tip.avgMood)) }}
+                  >
                     {tip.avgMood}/10
                   </span>
-                  {tip.dayEntries.length > 1 && (
-                    <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB]">
-                      prom. {tip.dayEntries.length} registros
-                    </span>
-                  )}
-                </div>
-              )}
-              {tip.dayEntries[0].emoji && (
-                <span className="text-sm mr-1">{tip.dayEntries[0].emoji}</span>
-              )}
+                )}
+                {tip.dayEntries.length > 1 && (
+                  <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB]">
+                    {tip.dayEntries.length} registros
+                  </span>
+                )}
+              </div>
               {tip.dayEntries[0].body && (
-                <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#9CA3AF] mt-1 max-w-[180px] truncate">
-                  {tip.dayEntries[0].body}
+                <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#6B7280] leading-relaxed">
+                  {tip.dayEntries[0].body.length > 200
+                    ? tip.dayEntries[0].body.slice(0, 200) + "…"
+                    : tip.dayEntries[0].body}
                 </p>
               )}
             </>
           ) : (
-            <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB]">sin registro</p>
+            <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#D1D5DB]">sin registro</p>
           )}
         </div>
       )}
@@ -583,9 +598,9 @@ function EntryForm({
         value={body}
         onChange={e => { setBody(e.target.value); autoResize(); }}
         placeholder="¿Qué siento hoy?"
-        rows={isEdit ? 4 : 3}
+        rows={isEdit ? 5 : 7}
         autoFocus={!isEdit}
-        className="w-full bg-transparent resize-none text-[#0A0A0A] text-[15px] leading-relaxed placeholder:text-[#D1D5DB] focus:outline-none"
+        className="w-full bg-transparent resize-none text-[#0A0A0A] text-[16px] leading-loose placeholder:text-[#D1D5DB] focus:outline-none"
       />
 
       {/* Mood meter + emoji en la misma fila */}
@@ -650,7 +665,7 @@ function EntryForm({
 export default function DiaryClient({ entries }: { entries: Entry[] }) {
   const [saved,        setSaved]        = useState(false);
   const [saveError,    setSaveError]    = useState<string | null>(null);
-  const [selected,     setSelected]     = useState<Entry | null>(null);
+  const [view,         setView]         = useState<"write" | "records">("write");
   const [editing,      setEditing]      = useState<Entry | null>(null);
   const [editError,    setEditError]    = useState<string | null>(null);
   const [restored,     setRestored]     = useState(false);
@@ -689,7 +704,6 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
   // ── Delete ──
   function handleDelete(id: string) {
     setEditing(null);
-    setSelected(null);
     startTransition(async () => { await deleteEntry(id); });
   }
 
@@ -717,16 +731,33 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
         {/* ── Header ── */}
         <div className="mb-8 flex items-start justify-between">
           <div>
+            {view === "records" && (
+              <button
+                type="button"
+                onClick={() => setView("write")}
+                className="flex items-center gap-1.5 font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] hover:text-[#0A0A0A] transition-colors mb-3"
+              >
+                ← volver al diario
+              </button>
+            )}
             <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-bold text-[#0A0A0A]">
-              Diario Emocional
+              {view === "records" ? "Registros" : "Diario Emocional"}
             </h1>
             <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] mt-1">
               {entries.length} {entries.length === 1 ? "registro" : "registros"}
             </p>
           </div>
 
-          {/* Restore button */}
-          <div className="flex flex-col items-end gap-1">
+          <div className="flex flex-col items-end gap-2">
+            {view === "write" && (
+              <button
+                type="button"
+                onClick={() => setView("records")}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-[family-name:var(--font-mono)] border border-[#E5E7EB] text-[#374151] hover:border-[#9D4EDD] hover:text-[#9D4EDD] transition-all"
+              >
+                ver registros →
+              </button>
+            )}
             <button
               type="button"
               onClick={handleRestore}
@@ -749,206 +780,113 @@ export default function DiaryClient({ entries }: { entries: Entry[] }) {
           </div>
         </div>
 
-        {/* ── Write area ── */}
-        <div
-          className={`mb-8 bg-[#F9FAFB] rounded-2xl px-6 pt-5 pb-5 transition-all ${
-            saved ? "shadow-[0_0_0_2px_#39FF1440]" : "focus-within:shadow-[0_0_0_2px_#9D4EDD22]"
-          }`}
-        >
-          {saved ? (
-            <div className="py-8 flex flex-col items-center gap-2">
-              <span className="text-3xl leading-none">✓</span>
-              <span className="font-[family-name:var(--font-mono)] text-sm font-medium text-[#22C55E]">
-                registro guardado
-              </span>
-            </div>
-          ) : (
-            <EntryForm
-              initialDate={todayStr()}
-              onSave={handleSave}
-              isPending={isPending}
-              saveError={saveError}
-            />
-          )}
-        </div>
-
-        {/* ── Entry list ── */}
-        {entries.length === 0 ? (
-          <div className="py-20 text-center">
-            <p className="font-[family-name:var(--font-mono)] text-sm text-[#D1D5DB]">
-              Todavía no escribiste nada.
-            </p>
-            <p className="font-[family-name:var(--font-mono)] text-xs text-[#E5E7EB] mt-1">
-              El primer paso es el más importante.
-            </p>
-          </div>
-        ) : (
-          <div>
-            {/* Headers */}
-            <div className="flex items-center gap-3 px-3 pb-2 mb-1">
-              <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-24 shrink-0">fecha</span>
-              <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-10 shrink-0 text-center">puntaje</span>
-              <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-8 shrink-0 text-center">mood</span>
-              <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest flex-1">anotación</span>
-              <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest w-16 text-right shrink-0">cuándo</span>
-            </div>
-
-            {/* Rows: max 3 visibles, scroll interno */}
-            <div className="overflow-y-auto" style={{ maxHeight: "calc(3 * 52px)" }}>
-              {entries.map(entry => (
-                <div
-                  key={entry.id}
-                  onClick={() => setSelected(entry)}
-                  className="w-full flex items-center gap-3 px-3 py-3 rounded-xl hover:bg-[#F9FAFB] transition-colors cursor-pointer group"
-                >
-                  {/* Date */}
-                  <span className="font-[family-name:var(--font-playfair)] text-sm text-[#0A0A0A] shrink-0 w-24 leading-snug">
-                    {shortDate(entry.entry_date)}
+        {view === "write" ? (
+          <>
+            {/* ── Write area ── */}
+            <div
+              className={`mb-10 bg-[#F9FAFB] rounded-2xl px-6 pt-5 pb-5 transition-all ${
+                saved ? "shadow-[0_0_0_2px_#39FF1440]" : "focus-within:shadow-[0_0_0_2px_#9D4EDD22]"
+              }`}
+            >
+              {saved ? (
+                <div className="py-12 flex flex-col items-center gap-2">
+                  <span className="text-3xl leading-none">✓</span>
+                  <span className="font-[family-name:var(--font-mono)] text-sm font-medium text-[#22C55E]">
+                    registro guardado
                   </span>
+                </div>
+              ) : (
+                <EntryForm
+                  initialDate={todayStr()}
+                  onSave={handleSave}
+                  isPending={isPending}
+                  saveError={saveError}
+                />
+              )}
+            </div>
 
-                  {/* Puntaje */}
-                  <div className="w-10 shrink-0 flex items-center justify-center">
-                    {entry.mood ? (
-                      <span
-                        className="font-[family-name:var(--font-mono)] text-sm font-bold"
-                        style={{ color: moodColor(entry.mood) }}
-                      >
-                        {entry.mood}
-                      </span>
+            {/* ── Year heatmap ── */}
+            <YearHeatmap entries={entries} />
+          </>
+        ) : (
+          /* ── Records view ── */
+          <div>
+            {entries.length === 0 ? (
+              <div className="py-20 text-center">
+                <p className="font-[family-name:var(--font-mono)] text-sm text-[#D1D5DB]">
+                  Todavía no escribiste nada.
+                </p>
+                <p className="font-[family-name:var(--font-mono)] text-xs text-[#E5E7EB] mt-1">
+                  El primer paso es el más importante.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {entries.map(entry => (
+                  <div
+                    key={entry.id}
+                    className="border border-[#EFEFEF] rounded-2xl p-6 hover:border-[#E0E0E0] transition-colors"
+                  >
+                    {/* Entry header */}
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3 flex-wrap">
+                        {entry.emoji && (
+                          <span className="text-2xl leading-none">{entry.emoji}</span>
+                        )}
+                        <div>
+                          <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A] text-base">
+                            {formatDate(entry.entry_date)}
+                          </p>
+                          <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF]">
+                            {daysAgo(entry.entry_date)}
+                          </p>
+                        </div>
+                        {entry.mood && (
+                          <span
+                            className="font-[family-name:var(--font-mono)] text-sm font-bold"
+                            style={{ color: moodColor(entry.mood) }}
+                          >
+                            {entry.mood}/10
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => setEditing(entry)}
+                          className="p-2 text-[#C9C9C9] hover:text-[#9D4EDD] hover:bg-[#F5F0FF] rounded-xl transition-all"
+                          title="Editar"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(entry.id)}
+                          className="p-2 text-[#E5E7EB] hover:text-[#FF1493] hover:bg-[#FFF0F5] rounded-xl transition-all"
+                          title="Eliminar"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Full body text */}
+                    {entry.body ? (
+                      <p className="text-[#374151] text-[15px] leading-relaxed whitespace-pre-wrap">
+                        {entry.body}
+                      </p>
                     ) : (
-                      <span className="text-[#E5E7EB] text-xs">–</span>
+                      <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#D1D5DB] italic">
+                        sin anotación
+                      </p>
                     )}
                   </div>
-
-                  {/* Emoji (mood) */}
-                  <div className="w-8 shrink-0 flex items-center justify-center">
-                    {entry.emoji
-                      ? <span className="text-base leading-none">{entry.emoji}</span>
-                      : <span className="text-[#E5E7EB] text-xs">–</span>
-                    }
-                  </div>
-
-                  {/* Anotación (solo texto) */}
-                  <span className="flex-1 font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] truncate group-hover:text-[#6B7280] transition-colors">
-                    {entry.body || <span className="italic text-[#D1D5DB]">sin texto</span>}
-                  </span>
-
-                  {/* Right side: days ago + pencil */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#D1D5DB] group-hover:text-[#9CA3AF] transition-colors w-10 text-right">
-                      {daysAgo(entry.entry_date)}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={e => { e.stopPropagation(); setEditing(entry); }}
-                      className="opacity-0 group-hover:opacity-100 p-1.5 text-[#C9C9C9] hover:text-[#9D4EDD] hover:bg-[#F5F0FF] rounded-lg transition-all"
-                      title="Editar"
-                    >
-                      <Pencil size={13} />
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
-
-        {/* ── Year heatmap ── */}
-        <YearHeatmap entries={entries} />
       </div>
-
-      {/* ── View modal ── */}
-      {selected && !editing && (
-        <div
-          className="fixed inset-0 bg-black/15 backdrop-blur-sm z-50 flex items-center justify-center p-6"
-          onClick={() => setSelected(null)}
-        >
-          <div
-            className="bg-white rounded-2xl p-7 max-w-lg w-full shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div className="flex items-start justify-between mb-5">
-              <div className="flex items-center gap-3">
-                {selected.emoji && <span className="text-3xl leading-none">{selected.emoji}</span>}
-                <div>
-                  <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A] text-base">
-                    {formatDate(selected.entry_date)}
-                  </p>
-                  <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] mt-0.5">
-                    {daysAgo(selected.entry_date)}
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={() => { setEditing(selected); setSelected(null); }}
-                  className="p-1.5 text-[#C9C9C9] hover:text-[#9D4EDD] hover:bg-[#F5F0FF] rounded-lg transition-colors"
-                  title="Editar"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button
-                  onClick={() => handleDelete(selected.id)}
-                  className="p-1.5 text-[#E5E7EB] hover:text-[#FF1493] hover:bg-[#FFF0F5] rounded-lg transition-colors"
-                  title="Eliminar"
-                >
-                  <Trash2 size={14} />
-                </button>
-                <button
-                  onClick={() => setSelected(null)}
-                  className="p-1.5 text-[#9CA3AF] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] rounded-lg transition-colors"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-            </div>
-
-            {/* Mood */}
-            {selected.mood && (
-              <div className="mb-4 p-3 rounded-xl" style={{ background: moodColor(selected.mood) + "12" }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-xl">{moodEmoji(selected.mood)}</span>
-                  <span
-                    className="font-[family-name:var(--font-mono)] text-sm font-bold"
-                    style={{ color: moodColor(selected.mood) }}
-                  >
-                    {selected.mood}/10
-                  </span>
-                </div>
-                <div className="flex items-end gap-[2px] h-5">
-                  {Array.from({ length: 10 }, (_, i) => {
-                    const n = i + 1;
-                    const active = n <= selected.mood!;
-                    return (
-                      <div
-                        key={n}
-                        style={{
-                          flex: 1, height: `${40 + i * 6}%`,
-                          backgroundColor: active ? moodColor(n) : "#E5E7EB",
-                          borderRadius: 2,
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="h-px bg-[#F3F4F6] mb-4" />
-
-            {selected.body ? (
-              <p className="text-[#374151] text-[15px] leading-relaxed whitespace-pre-wrap">
-                {selected.body}
-              </p>
-            ) : (
-              <p className="text-[#D1D5DB] text-sm font-[family-name:var(--font-mono)] italic">
-                Sin anotación
-              </p>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* ── Edit modal ── */}
       {editing && (
