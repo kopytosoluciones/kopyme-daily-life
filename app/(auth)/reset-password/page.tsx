@@ -1,53 +1,61 @@
 "use client";
 
 import { useState } from "react";
-import { login } from "./actions";
-import Link from "next/link";
+import { updatePassword } from "./actions";
 
-export default function LoginPage() {
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+export default function ResetPasswordPage() {
+  const [password,  setPassword]  = useState("");
+  const [confirm,   setConfirm]   = useState("");
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (password !== confirm) {
+      setError("Las contraseñas no coinciden.");
+      return;
+    }
     setLoading(true);
     setError(null);
-    const result = await login(new FormData(e.currentTarget));
+    const result = await updatePassword(password);
     if (result?.error) {
       setError(result.error);
       setLoading(false);
     }
+    // on success, updatePassword redirects to /dashboard
   }
 
   return (
     <div className="bg-white rounded-xl border-2 border-[#0A0A0A] shadow-[0_4px_12px_rgba(0,0,0,0.1)] p-8">
-      <h2 className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-[#0A0A0A] mb-6">
-        Bienvenido de vuelta
+      <h2 className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-[#0A0A0A] mb-2">
+        Nueva contraseña
       </h2>
+      <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] mb-6">
+        Elegí una contraseña nueva para tu cuenta.
+      </p>
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs text-[#6B7280] mb-1.5">Email</label>
+          <label className="block text-xs text-[#6B7280] mb-1.5">Nueva contraseña</label>
           <input
-            name="email"
-            type="email"
+            type="password"
             required
-            placeholder="tu@email.com"
+            minLength={6}
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="••••••••"
             className="w-full px-4 py-2.5 rounded-lg border border-[#0A0A0A] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] transition-all"
           />
         </div>
 
         <div>
-          <div className="flex items-center justify-between mb-1.5">
-            <label className="block text-xs text-[#6B7280]">Contraseña</label>
-            <Link href="/forgot-password" className="text-[10px] font-[family-name:var(--font-mono)] text-[#9D4EDD] hover:underline">
-              ¿Olvidaste la tuya?
-            </Link>
-          </div>
+          <label className="block text-xs text-[#6B7280] mb-1.5">Confirmar contraseña</label>
           <input
-            name="password"
             type="password"
             required
+            minLength={6}
+            value={confirm}
+            onChange={e => setConfirm(e.target.value)}
             placeholder="••••••••"
             className="w-full px-4 py-2.5 rounded-lg border border-[#0A0A0A] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] transition-all"
           />
@@ -64,16 +72,9 @@ export default function LoginPage() {
           disabled={loading}
           className="w-full py-2.5 px-4 rounded-lg bg-[#0A0A0A] text-white font-medium border-2 border-[#0A0A0A] hover:bg-[#1f1f1f] active:scale-[0.98] transition-all disabled:opacity-50 mt-2"
         >
-          {loading ? "Entrando..." : "Entrar"}
+          {loading ? "Guardando..." : "Guardar contraseña"}
         </button>
       </form>
-
-      <p className="text-center text-sm text-[#6B7280] mt-6">
-        ¿Primera vez?{" "}
-        <Link href="/register" className="text-[#9D4EDD] hover:underline font-medium">
-          Crear cuenta
-        </Link>
-      </p>
     </div>
   );
 }
