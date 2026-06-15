@@ -122,3 +122,45 @@ npm run typecheck # tsc --noEmit
 3. **redirect() in client-called actions** — causes full page navigation. Replace with `revalidatePath()`.
 4. **DraggableAttributes cast** — `as Record<string, unknown>` fails. Use `as unknown as Record<string, unknown>`.
 5. **State in wrong component** — if UI placement is uncertain, default to keeping state higher (parent). Moving state up later requires refactoring call sites.
+
+---
+
+## Session log
+
+### Sesión 2026-06-15
+
+**Commits**: `6352647` → `418fdcd`
+
+#### Qué se hizo
+
+| # | Qué | Archivos clave | Commit |
+|---|-----|----------------|--------|
+| 1 | Vínculos — rediseño completo con CRUD, localStorage, dos vistas (tree/constellation), curvas Bézier, afinidad por nodo | `connections/ConnectionsClient.tsx` | `6352647` |
+| 2 | Diario Emocional — rediseño UI (espaciado 8pt, labels mono uppercase, cards con shadow, heatmap compacto, barras con border-radius) | `diary/DiaryClient.tsx` | `df7f07d` |
+| 3 | Checklists — rediseño completo desde To-dos: grilla 3×2, DnD anidado, Done colapsable, animación de check, modals | `todos/TodosClient.tsx`, `actions.ts`, `page.tsx` | `fdc927e` |
+| 4 | Diario — layout compacto para entrar en una pantalla sin scroll | `diary/DiaryClient.tsx` | `6fdc846` |
+| 5 | Checklists — fix bug crítico de revert optimista + animación más rápida + rename a "Checklists" | `todos/TodosClient.tsx`, `Sidebar.tsx` | `70ee9d4` |
+| 6 | Diario — fila inferior del formulario unificada: `Puntaje` + barras + emoji + guardar en una línea | `diary/DiaryClient.tsx` | `4d7a057` |
+| 7 | Diario — barras del histograma más altas (BAR_H 46→66) y más delgadas (gap 4→8px) | `diary/DiaryClient.tsx` | `326a450` |
+| 8 | Diario — botón Análisis Emocional movido al header, estado subido a `DiaryClient` | `diary/DiaryClient.tsx` | `82a38de` |
+| 9 | Docs — CLAUDE.md actualizado con módulos, patrones y bugs | `CLAUDE.md` | `44c9bff` |
+| 10 | Auth — flow completo de reset de contraseña: `/auth/callback`, `/auth/confirm`, `/forgot-password`, `/reset-password` | 6 archivos nuevos | `418fdcd` |
+
+#### Lo que salió bien ✅
+
+- **DnD anidado en Checklists**: grilla con `rectSortingStrategy` + listas internas con `verticalListSortingStrategy` en contextos separados — sin conflictos
+- **Bézier curves en Vínculos**: `bezierPath()` con quadratic curve `Q` da un look orgánico limpio, mucho mejor que líneas rectas
+- **Compact layout sin tocar font sizes**: reducir en el orden correcto (wrapper padding → section margins → card padding → textarea rows) logró entrar todo sin scroll
+- **Estado de análisis levantado a `DiaryClient`**: una vez movido al padre el botón quedó exactamente donde se necesitaba sin refactors adicionales
+- **Auth flow con `@supabase/ssr`**: el route handler en `/auth/callback` usando `verifyOtp({ type, token_hash })` maneja correctamente recovery, magic links y confirmaciones
+
+#### Lo que salió mal / bugs encontrados ❌
+
+- **Bug crítico Checklists — revert optimista**: la sync `id:completed` revertía cada check/uncheck al instante porque el server prop es stale. Pasó porque se copió el patrón de otra parte sin considerar que `completed` cambia localmente. **Fix permanente**: sync solo por IDs.
+- **Animación de check demasiado lenta (300ms)**: se sentía como lag. 140ms es el límite perceptible como "respuesta inmediata". Para animaciones de feedback de UI usar ≤150ms.
+- **Estado del botón de análisis en el componente hijo**: se puso en `Last14Days` sin pensar dónde iba a vivir el botón en el futuro. Requirió refactor para subirlo. Lección: antes de colocar estado, preguntar "¿este trigger puede moverse al header/layout?".
+- **Password reset sin route handler**: el mail llegaba pero la página daba error porque no existía `/auth/callback`. Lección: cualquier feature de Supabase Auth que mande mails necesita su route handler correspondiente.
+
+#### Pendiente de esta sesión
+
+- Agregar `https://kopyme.vercel.app/auth/callback` a **Redirect URLs** en Supabase dashboard (Authentication → URL Configuration) para que el reset de contraseña funcione en producción
