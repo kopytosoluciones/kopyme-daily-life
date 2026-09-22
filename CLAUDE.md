@@ -63,6 +63,7 @@ npm run typecheck # tsc --noEmit
 | Módulo | Archivo principal | Backend | Estado |
 |---|---|---|---|
 | Dashboard | `app/(app)/dashboard/` | Supabase profiles | ✅ |
+| Árbol de la vida | `app/(app)/tree/TreeClient.tsx` | Supabase life_tree_entries | ✅ |
 | Hábitos | `app/(app)/habits/` | Supabase | ✅ |
 | Checklists | `app/(app)/todos/TodosClient.tsx` | Supabase (todo_lists + todos) | ✅ redesigned |
 | Calendario | `app/(app)/calendar/CalendarClient.tsx` | localStorage `kopyme-cal-v1` | ✅ |
@@ -123,9 +124,53 @@ npm run typecheck # tsc --noEmit
 4. **DraggableAttributes cast** — `as Record<string, unknown>` fails. Use `as unknown as Record<string, unknown>`.
 5. **State in wrong component** — if UI placement is uncertain, default to keeping state higher (parent). Moving state up later requires refactoring call sites.
 
+### Árbol de la vida — DB schema
+- Table: `life_tree_entries`
+- Columns: `id, user_id, section (text), body (NOT NULL), entry_date (date), created_at`
+- Sections: `raices, tronco, ramas, flores_frutos, sol, regadera, animales, viento, hojas_caidas`
+- RLS enabled — usuarios solo ven sus propias entradas
+- Index: `(user_id, section, entry_date DESC)`
+
+### Árbol de la vida — SVG overlay
+- Imagen: `public/tree.jpg` — 1342×2000px (ratio 1342/2000)
+- Container: `height: min(85vh, 740px)`, `aspectRatio: "1342/2000"`
+- Image: Next.js `<Image fill className="object-fill">` — ocupa el container exactamente
+- SVG: `viewBox="0 0 1342 2000"` absolutamente posicionado sobre la imagen
+- 9 zonas en orden background→foreground (último en SVG = recibe clicks primero)
+- Hover label: div HTML absolutamente posicionado por `labelXpct/labelYpct` (no SVG text)
+- ⚠️ Las coordenadas de las zonas son aproximadas — ajustar visualmente si alguna zona está desplazada
+
 ---
 
 ## Session log
+
+### Sesión 2026-09-21
+
+**Commits**: `432e0cb` → `cc70ccf`
+
+#### Qué se hizo
+
+| # | Qué | Archivos clave | Commit |
+|---|-----|----------------|--------|
+| 1 | Limpieza de memoria — borrado archivos atom_brain y reporter_ia_atom del contexto de kopyme | `memory/` | — |
+| 2 | App caída por Supabase pausado — restauración manual + keepalive cron diario | `app/api/keepalive/route.ts`, `vercel.json` | `432e0cb` |
+| 3 | Git config — repo configurado para usar siempre cuenta `kopytosoluciones` | `.git/config` local | — |
+| 4 | Árbol de la vida — nueva sección completa con SVG interactivo + panel lateral + DB | `app/(app)/tree/`, `public/tree.jpg`, `Sidebar.tsx` | `cc70ccf` |
+
+#### Lo que salió bien ✅
+
+- **Keepalive cron**: patrón simple — `/api/keepalive` hace `SELECT id FROM profiles LIMIT 1`, configurado en `vercel.json` como cron diario 12:00 UTC. Cero mantenimiento.
+- **SVG overlay sobre imagen real**: usar imagen fija + SVG absolutamente posicionado con `viewBox` matching dimensiones de imagen (1342×2000) es el approach correcto. Más fiel al diseño, más mantenible que SVG dibujado a mano.
+- **Label en HTML, no en SVG text**: posicionar el tooltip como div HTML con `left/top` en porcentajes (`labelXpct/labelYpct`) es mucho más limpio que SVG `<text>` — mejor rendering, más fácil de estilizar.
+- **TypeScript sin errores** desde el primer intento.
+
+#### Pendiente / próxima sesión
+
+- Verificar visualmente las zonas SVG en producción y ajustar coordenadas si alguna está desplazada
+- Las zonas son aproximadas — el árbol tiene zonas que se solapan (RAMAS vs FLORES_FRUTOS) que puede necesitar refinamiento
+- Agregar `https://kopyme.vercel.app/auth/callback` a Redirect URLs en Supabase (pendiente de sesión anterior)
+
+---
 
 ### Sesión 2026-06-15
 
