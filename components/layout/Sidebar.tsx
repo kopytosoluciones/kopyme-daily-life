@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { logout } from "@/app/(auth)/login/actions";
 import {
   Home,
+  TreePine,
   Leaf,
   CheckSquare,
   CalendarDays,
@@ -19,6 +20,7 @@ import {
 
 const modules = [
   { href: "/dashboard",   Icon: Home,         label: "Inicio"            },
+  { href: "/tree",        Icon: TreePine,     label: "Árbol de la vida"  },
   { href: "/habits",      Icon: Leaf,         label: "Hábitos"           },
   { href: "/todos",       Icon: CheckSquare,  label: "Checklists"        },
   { href: "/calendar",    Icon: CalendarDays, label: "Calendario"        },
