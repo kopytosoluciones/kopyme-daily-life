@@ -31,7 +31,8 @@ export async function middleware(request: NextRequest) {
   const isPublicAuthRoute =
     pathname.startsWith('/auth/') ||
     pathname.startsWith('/forgot-password') ||
-    pathname.startsWith('/reset-password')
+    pathname.startsWith('/reset-password') ||
+    pathname.startsWith('/api/')
 
   if (!session && !isAuthPage && !isPublicAuthRoute) {
     const url = request.nextUrl.clone()
