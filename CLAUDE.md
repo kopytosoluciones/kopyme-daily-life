@@ -199,7 +199,8 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 - **Push**: no había credenciales de `kopytosoluciones` en el llavero; Pedro pusheó con un PAT desde Terminal.app (la terminal integrada no deja pegar en prompts de contraseña).
 
 #### Pendiente / próxima sesión
-- Dejar un solo proyecto en Vercel: **kopyme** es el vinculado a este repo; desconectar o borrar **kopyme-daily-life** (hoy cada push despliega dos veces y el cron de keepalive corre doble).
+- Vercel: **kopyme** (team `dropes-games`) es el proyecto real — tiene `kopyme.vercel.app` y las env vars. **kopyme-daily-life** es un duplicado (solo `kopyme-daily-life.vercel.app`, sin env vars propias): borrarlo desde Settings → General → Delete Project.
+- Vercel: las env vars de Supabase están solo en *Production* → las previews no conectan a Supabase. Si se quieren previews, tildar *Preview* en cada variable.
 - Activar "Leaked password protection" en Supabase Auth.
 - Worktrees viejos en `.claude/worktrees/` (uno con cambios sin commitear en `layout.tsx` y `JungleScene.tsx`): decidir si se borran.
 - Combustible: Tablero y Simulador.
