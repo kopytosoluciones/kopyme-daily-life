@@ -7,6 +7,7 @@ import type { FinanceMonth, MonthField, Wallet, WalletKind } from "@/lib/finance
 import {
   createNextMonth,
   createWallets,
+  markMonthReviewed,
   setBalance,
   setFxRate,
   setOverride,
@@ -99,6 +100,10 @@ export default function CombustibleClient({
         if (m.month) setMonths((ms) => [...ms, m.month!]);
         return m;
       });
+    },
+    onReview(monthId: string, reviewed: boolean) {
+      patchMonth(monthId, (m) => ({ ...m, reviewedAt: reviewed ? new Date().toISOString() : null }));
+      save(() => markMonthReviewed(monthId, reviewed));
     },
     onUpdateWallet(id: string, patch: { name?: string; archived?: boolean }) {
       setWallets((ws) =>

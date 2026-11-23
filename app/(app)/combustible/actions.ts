@@ -1,7 +1,8 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { WALLET_COLUMNS, getMonth, toWallet } from "@/lib/supabase/finance";
+import { WALLET_COLUMNS, getMonth, insertMonth, toWallet } from "@/lib/supabase/finance";
 import { addMonths, monthKey, nextMonthDraft } from "@/lib/finance/calc";
 import type { FinanceMonth, MonthField, Wallet, WalletKind } from "@/lib/finance/types";
 
@@ -87,31 +88,10 @@ export async function createNextMonth(): Promise<Result<{ month: FinanceMonth }>
     const target = prev ? addMonths(prev.month, 1) : monthKey(new Date());
     const draft = nextMonthDraft(prev ?? undefined, wallets, target);
 
-    const { data: created, error } = await supabase
-      .from("finance_months")
-      .insert({
-        user_id: user.id,
-        month: draft.month,
-        fx_rates: draft.fxRates,
-        income: draft.income,
-        expense: draft.expense,
-      })
-      .select("id")
-      .single();
-    if (error || !created) return { error: error?.message ?? "No se pudo crear el mes" };
-
-    const balances = Object.entries(draft.balances).map(([wallet_id, amount]) => ({
-      user_id: user.id,
-      month_id: created.id,
-      wallet_id,
-      amount,
-    }));
-    if (balances.length) {
-      const { error: bErr } = await supabase.from("finance_balances").insert(balances);
-      if (bErr) return { error: bErr.message };
-    }
-
-    return { error: null, month: { ...draft, id: created.id } };
+    const { month, error } = await insertMonth(supabase, user.id, draft);
+    if (error || !month) return { error: error ?? "No se pudo crear el mes" };
+    revalidatePath("/", "layout");
+    return { error: null, month };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Error desconocido" };
   }
@@ -190,6 +170,20 @@ export async function setBalance(monthId: string, walletId: string, amount: numb
         { onConflict: "month_id,wallet_id" },
       );
     return { error: error?.message ?? null };
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : "Error desconocido" };
+  }
+}
+
+export async function markMonthReviewed(monthId: string, reviewed: boolean): Promise<Result<{ reviewedAt: string | null }>> {
+  try {
+    const { supabase, user } = await authed();
+    if (!user) return { error: "No autenticado" };
+    const reviewedAt = reviewed ? new Date().toISOString() : null;
+    const { error } = await supabase.from("finance_months").update({ reviewed_at: reviewedAt }).eq("id", monthId);
+    if (error) return { error: error.message };
+    revalidatePath("/", "layout");
+    return { error: null, reviewedAt };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Error desconocido" };
   }

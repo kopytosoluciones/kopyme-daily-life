@@ -5,7 +5,7 @@ import { setTheme } from "@/app/actions/theme";
 import type { Theme } from "@/lib/theme";
 
 const OPTIONS: { value: Theme; label: string }[] = [
-  { value: "system", label: "Sist" },
+  { value: "system", label: "Sistema" },
   { value: "light", label: "Claro" },
   { value: "dark", label: "Oscuro" },
 ];
@@ -34,7 +34,7 @@ export default function ThemeToggle({ initial }: { initial: Theme }) {
             role="radio"
             aria-checked={on}
             onClick={() => choose(value)}
-            className={`flex-1 border-r border-foreground px-1.5 py-1 font-mono text-[10px] uppercase tracking-[0.06em] last:border-r-0 ${
+            className={`flex-1 border-r border-foreground px-2 py-2 font-mono text-[11px] uppercase tracking-[0.06em] last:border-r-0 ${
               on ? "bg-foreground text-background" : "bg-card hover:bg-muted"
             }`}
           >

@@ -173,6 +173,12 @@ Dentro de un borde punteado, se abre y cierra en el lugar (no modal) cuando son 
 ### Modal
 Caja con borde 2px + sombra sólida 8px, sin radio, overlay `--paper` al 80%. Solo para flujos de más de 3 campos o confirmaciones destructivas.
 
+### Avisos
+Entrada `AVISOS` en la parte baja del rail, con contador en `--primary` cuando hay pendientes (`!` como marcador). Abre un panel a la derecha del rail: caja con borde 2px + `shadow-hard-lg`, cada aviso con su área en `label`, el texto y `→`. Vacío: `[ ✓ ] Todo al día.` Los avisos se derivan de los datos (`lib/notifications.ts`) y desaparecen solos cuando se resuelven: nunca se "marcan como leídos".
+
+### Ajustes
+Las preferencias viven en `/settings`, agrupadas en cajas por tema (`── APARIENCIA`). El selector de tema está ahí, no en el rail.
+
 ### Marca de ejemplo
 Cuando una vista muestra datos de ejemplo: `◇ DATOS DE EJEMPLO` en mono, borde punteado. Nunca presentar datos inventados como reales.
 

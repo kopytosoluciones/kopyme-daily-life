@@ -99,8 +99,18 @@ export function computeMonths(wallets: Wallet[], months: FinanceMonth[]): MonthC
   });
 }
 
-export function monthKey(date: Date): string {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-01`;
+/** Zona horaria de referencia para decidir cuándo empieza un mes (el server de Vercel corre en UTC). */
+export const APP_TIME_ZONE = "America/Argentina/Buenos_Aires";
+
+export function monthKey(date: Date, timeZone = APP_TIME_ZONE): string {
+  const parts = new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit" }).formatToParts(date);
+  const y = parts.find((p) => p.type === "year")?.value;
+  const m = parts.find((p) => p.type === "month")?.value;
+  return `${y}-${m}-01`;
+}
+
+export function todayKey(date = new Date(), timeZone = APP_TIME_ZONE): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
 }
 
 export function addMonths(month: string, n: number): string {
@@ -126,6 +136,7 @@ export function nextMonthDraft(
     invoiced: null,
     comment: null,
     overrides: {},
+    reviewedAt: null,
     balances,
   };
 }

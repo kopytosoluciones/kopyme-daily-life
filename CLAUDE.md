@@ -14,10 +14,11 @@ Built to start as a single-user app and scale to multi-user with selective priva
 
 ## Stack
 
-- **Framework**: Next.js 14 (App Router, TypeScript)
+- **Framework**: Next.js 16 (App Router, TypeScript) — ver `AGENTS.md`: APIs distintas a versiones previas
 - **Database**: Supabase (PostgreSQL)
 - **Auth**: Supabase Auth
-- **Styles**: Tailwind CSS + shadcn/ui
+- **Styles**: Tailwind CSS v4 (config en `app/globals.css` con `@theme`, sin `tailwind.config`) + shadcn/ui
+- **Design system**: v2 brutalista/minimal + ASCII — **`docs/DESIGN_MANUAL.md` es la fuente de verdad visual**. Referencia viva: `docs/mockups/combustible.html`
 - **AI / Avatar**: Claude API (Anthropic)
 - **Media storage**: Supabase Storage
 - **Visualizations**: Recharts + React Flow (relationship map)
@@ -53,9 +54,9 @@ kopyme/
 ## Commands
 
 ```bash
-npm run dev       # local dev
+npm run dev       # local dev (si falla con "next/font queries have exactly one entry": rm -rf .next)
 npm run build     # production build
-npm run typecheck # tsc --noEmit
+npx tsc --noEmit  # typecheck (no hay script "typecheck")
 ```
 
 ## Modules — current state
@@ -69,7 +70,12 @@ npm run typecheck # tsc --noEmit
 | Calendario | `app/(app)/calendar/CalendarClient.tsx` | localStorage `kopyme-cal-v1` | ✅ |
 | Diario Emocional | `app/(app)/diary/DiaryClient.tsx` | Supabase diary_entries | ✅ redesigned |
 | Vínculos | `app/(app)/connections/ConnectionsClient.tsx` | localStorage `kopyme-connections-v1` | ✅ redesigned |
+| Combustible | `app/(app)/combustible/` (Bitacora, Onboarding) + `lib/finance/` | Supabase finance_* | 🟡 Bitácora ✅ · Tablero y Simulador pendientes |
+| Ajustes | `app/(app)/settings/page.tsx` | cookie + profiles.theme | ✅ tema |
+| Avisos | `components/layout/NoticesPanel.tsx` + `lib/notifications.ts` | derivado | ✅ |
 | Metas | `app/(app)/goals/` | — | stub |
+
+> Rediseño v2: Combustible, Ajustes, Avisos y el rail ya están en v2. Los demás módulos siguen con colores fijos en el código (se ven "islas blancas" en modo oscuro) hasta migrarlos uno por uno.
 | Recuerdos | `app/(app)/memories/` | — | stub |
 | Cartas & Regalos | `app/(app)/letters/` | — | stub |
 
@@ -116,6 +122,21 @@ npm run typecheck # tsc --noEmit
 - ⚠️ Field is `body`, NOT `content`
 - Soft delete: `deleted_at` column — queries filter `.is("deleted_at", null)`
 
+### Combustible
+- Los cálculos viven en `lib/finance/calc.ts` como funciones puras (sin imports de valor) → se pueden probar con `node archivo.ts` copiando el archivo.
+- Estado local autoritativo: las actions de celdas **no** revalidan y no hay sync con props; `useState(initial)` alcanza. Solo `createNextMonth` y `markMonthReviewed` hacen `revalidatePath("/", "layout")` para refrescar Avisos.
+- `ensureCurrentMonths(userId)` usa `cache()` de React con **clave userId** (no el client de Supabase: cada `createClient()` es un objeto nuevo y rompería el cache). Lo llaman el layout (avisos) y la página.
+- Meses: se calculan en zona `America/Argentina/Buenos_Aires` (`APP_TIME_ZONE`), Vercel corre en UTC.
+- Números: `parseAmount` acepta "1.234,56", "1234.56" y "1.465" (= 1465). Formato `es-AR` con `−` real.
+
+### Tema
+- Cookie `kopyme-theme` leída en el root layout → `data-theme` en `<html>` desde el server (sin flash). `setTheme` action guarda cookie + `profiles.theme`.
+- No usar `dark:` de Tailwind: los tokens cambian solos.
+
+### Supabase MCP
+- Conectado en **solo lectura**: sirve para leer esquema/datos y validar. Las migraciones las corre Pedro en el SQL Editor.
+- Validar migraciones localmente con PGlite antes de pasarlas (stub de `auth.users`, `auth.uid()` y `uuid_generate_v4()`).
+
 ## Known bugs avoided (don't repeat)
 
 1. **Optimistic revert on check/uncheck** — sync logic that compares `id:completed` reverts local state instantly because server prop is stale. Use ID-only comparison.
@@ -123,6 +144,9 @@ npm run typecheck # tsc --noEmit
 3. **redirect() in client-called actions** — causes full page navigation. Replace with `revalidatePath()`.
 4. **DraggableAttributes cast** — `as Record<string, unknown>` fails. Use `as unknown as Record<string, unknown>`.
 5. **State in wrong component** — if UI placement is uncertain, default to keeping state higher (parent). Moving state up later requires refactoring call sites.
+6. **Foco en `requestAnimationFrame`** — mover el foco de celda en un frame posterior hace que lo tipeado rápido después de Enter caiga en la celda anterior. Mover el foco síncrono.
+7. **setState dentro de useEffect** — el lint de React 19 lo marca como error. Pasar el valor inicial desde el server (ej. tema) o usar borrador solo mientras hay foco.
+8. **Migraciones creadas desde el dashboard** — `life_tree_entries` y `todo_lists` no tenían archivo. Toda tabla nueva va con migración en `supabase/migrations/`.
 
 ### Árbol de la vida — DB schema
 - Table: `life_tree_entries`
@@ -143,6 +167,45 @@ npm run typecheck # tsc --noEmit
 ---
 
 ## Session log
+
+### Sesión 2026-11-22
+
+**Rama**: `design/v2-system` · **Commits**: `78d28b4` → (ver git log)
+
+#### Qué se hizo
+
+| # | Qué | Archivos clave |
+|---|-----|----------------|
+| 1 | Concepto de diseño v2 (brutalismo en formas + minimalismo + ASCII) — mockup HTML de Combustible con claro/oscuro | `docs/mockups/combustible.html` |
+| 2 | `DESIGN_MANUAL.md` reescrito; `UI_LANGUAGE.md` alineado (solo voz y tono) | `docs/` |
+| 3 | Fase 0: tokens v2 en Tailwind v4, Space Grotesk + JetBrains Mono, botón brutalista, rail nuevo, tema Sistema/Claro/Oscuro con cookie | `app/globals.css`, `app/layout.tsx`, `components/layout/` |
+| 4 | Migraciones: 004 theme, 005 life_tree (retro), 006 finance, 007 todo_lists (retro), 008 search_path, 009 reviewed_at | `supabase/migrations/` |
+| 5 | Combustible: cálculos puros, onboarding con billeteras de la planilla, Bitácora editable con overrides | `lib/finance/`, `app/(app)/combustible/` |
+| 6 | Ajustes (`/settings`) con el tema; Avisos en el rail; meses automáticos al cambiar de mes + botón ✓ listo | `app/(app)/settings/`, `lib/notifications.ts`, `components/layout/NoticesPanel.tsx` |
+
+#### Lo que salió bien ✅
+- **Mockup antes del manual**: diseñar el HTML primero y escribir el manual a partir de él evitó discutir en abstracto.
+- **Tokens con nombres de shadcn**: los componentes heredan el sistema sin reescribirlos; alias `paper/ink/soft/dim/pos/neg` en Tailwind.
+- **Validar SQL con PGlite** antes de pasarlo a Pedro: las 9 migraciones corren en orden y las constraints rechazan lo que deben.
+- **FKs compuestas** `(id, user_id)` en finanzas: imposible cruzar datos entre usuarios aunque falle la app.
+- **Cálculos probados contra el mockup**: patrimonio 27.185, desvío +304.
+
+#### Lo que salió mal ❌
+- **Bug de foco en la Bitácora** (rAF): encontrado probando con datos reales. Fix: foco síncrono.
+- **Caché `.next` rompió el dev server** al cambiar fuentes. Fix: `rm -rf .next`.
+- **`004_profile_theme.sql` apareció vacío en disco** sin causa clara; se restauró desde git.
+- **Push**: no había credenciales de `kopytosoluciones` en el llavero; Pedro pusheó con un PAT desde Terminal.app (la terminal integrada no deja pegar en prompts de contraseña).
+
+#### Pendiente / próxima sesión
+- Correr en Supabase las migraciones **008** y **009** (el MCP es solo lectura).
+- Dejar un solo proyecto en Vercel: **kopyme** es el vinculado a este repo; desconectar o borrar **kopyme-daily-life** (hoy cada push despliega dos veces y el cron de keepalive corre doble).
+- Activar "Leaked password protection" en Supabase Auth.
+- Worktrees viejos en `.claude/worktrees/` (uno con cambios sin commitear en `layout.tsx` y `JungleScene.tsx`): decidir si se borran.
+- Combustible: Tablero y Simulador.
+- Migrar módulos viejos a v2 (orden en el manual). Backup del Diario antes de tocarlo.
+- Pendiente de sesiones anteriores: Redirect URL `https://kopyme.vercel.app/auth/callback` en Supabase; ajustar zonas del Árbol.
+
+---
 
 ### Sesión 2026-09-21
 

@@ -15,6 +15,7 @@ type Props = {
   onNewMonth: () => void;
   onAddWallets: (items: { name: string; currency: string; kind: WalletKind }[]) => void;
   onUpdateWallet: (id: string, patch: { name?: string; archived?: boolean }) => void;
+  onReview: (monthId: string, reviewed: boolean) => void;
 };
 
 type ManualRow = {
@@ -210,16 +211,32 @@ export default function Bitacora(props: Props) {
                 <th className="sticky top-0 left-0 z-20 min-w-[200px] border-r-2 border-foreground bg-foreground px-3.5 text-left text-[11px] font-medium tracking-[0.08em] text-background uppercase">
                   Campo
                 </th>
-                {rows.map((row, c) => (
-                  <th
-                    key={row.month.id}
-                    className={`sticky top-0 h-8 border-r border-background/20 px-3 text-right text-[11px] font-medium tracking-[0.08em] whitespace-nowrap ${
-                      c === lastIdx ? "bg-primary text-primary-foreground" : "bg-foreground text-background"
-                    }`}
-                  >
-                    {monthLabel(row.month.month)}
-                  </th>
-                ))}
+                {rows.map((row, c) => {
+                  const pending = !row.month.reviewedAt;
+                  return (
+                    <th
+                      key={row.month.id}
+                      className={`sticky top-0 h-8 border-r border-background/20 px-3 text-right text-[11px] font-medium tracking-[0.08em] whitespace-nowrap ${
+                        c === lastIdx ? "bg-primary text-primary-foreground" : "bg-foreground text-background"
+                      }`}
+                    >
+                      <span className="flex items-center justify-end gap-2">
+                        {pending && (
+                          <button
+                            type="button"
+                            onClick={() => props.onReview(row.month.id, true)}
+                            title="Marcá el mes como actualizado para que deje de aparecer en Avisos"
+                            className="border border-current px-1.5 py-px text-[10px] tracking-[0.06em] uppercase hover:bg-background hover:text-foreground"
+                          >
+                            ✓ listo
+                          </button>
+                        )}
+                        {pending && <span aria-hidden title="Por revisar">!</span>}
+                        {monthLabel(row.month.month)}
+                      </span>
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
             <tbody>

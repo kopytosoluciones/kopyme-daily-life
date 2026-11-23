@@ -1,13 +1,15 @@
-import { cookies } from "next/headers";
 import Sidebar from "@/components/layout/Sidebar";
-import { THEME_COOKIE, parseTheme } from "@/lib/theme";
+import { createClient } from "@/lib/supabase/server";
+import { getNotices } from "@/lib/notifications";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const notices = user ? await getNotices(user.id) : [];
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar theme={theme} />
+      <Sidebar notices={notices} />
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>

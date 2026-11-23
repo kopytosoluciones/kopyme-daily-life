@@ -16,6 +16,7 @@ bio           text
 avatar_style  jsonb    -- color, character type, accessories
 avatar_state  text     -- energized | neutral | sad | nostalgic | celebratory
 language      text default 'es'  -- 'es' | 'en'
+theme         text default 'system'  -- 'system' | 'light' | 'dark' (espejo de la cookie kopyme-theme)
 created_at    timestamptz
 updated_at    timestamptz
 ```
@@ -141,6 +142,52 @@ type            text    -- call | in-person | message | letter | gift
 note            text
 created_at      timestamptz
 ```
+
+---
+
+## Combustible (finanzas personales)
+
+Billeteras × meses. Todo se expresa en USD; los totales, el patrimonio, la diferencia y el desvío se **calculan** en `lib/finance/calc.ts`, no se guardan. Migraciones `006` y `009`.
+
+### finance_wallets
+```sql
+id          uuid primary key
+user_id     uuid references auth.users
+name        text            -- 1..60 chars
+currency    text            -- ISO 4217: 'USD', 'ARS', 'EUR'…
+kind        text            -- 'asset' suma | 'debt' resta (saldo guardado en positivo)
+sort_order  int
+archived_at timestamptz     -- archivada: no entra en meses nuevos, conserva historial
+created_at  timestamptz
+unique (id, user_id)
+```
+
+### finance_months
+```sql
+id          uuid primary key
+user_id     uuid references auth.users
+month       date            -- siempre día 1
+fx_rates    jsonb           -- unidades por 1 USD: {"ARS": 1465}
+income      numeric(14,2)   -- USD
+expense     numeric(14,2)   -- USD
+invoiced    numeric(14,2)   -- fiscal, no entra en cálculos
+comment     text
+overrides   jsonb           -- cálculos pisados a mano: totals.<CUR>, converted.<CUR>, patrimony, diff
+reviewed_at timestamptz     -- null = "por revisar" → genera aviso
+unique (user_id, month)
+```
+
+### finance_balances
+```sql
+id          uuid primary key
+user_id     uuid
+month_id    uuid            -- FK compuesta (month_id, user_id) → finance_months
+wallet_id   uuid            -- FK compuesta (wallet_id, user_id) → finance_wallets
+amount      numeric(16,2)   -- en la moneda de la billetera
+unique (month_id, wallet_id)
+```
+
+Las FKs compuestas impiden que un saldo una el mes de un usuario con la billetera de otro, aunque la app tuviera un bug.
 
 ---
 

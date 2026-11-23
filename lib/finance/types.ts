@@ -23,6 +23,8 @@ export type FinanceMonth = {
   invoiced: number | null;
   comment: string | null;
   overrides: Overrides;
+  /** null = por revisar: el mes se creó con valores copiados del anterior y genera un aviso. */
+  reviewedAt: string | null;
   /** walletId → saldo en la moneda de la billetera (deudas en positivo). */
   balances: Record<string, number>;
 };

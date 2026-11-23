@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/(auth)/login/actions";
-import ThemeToggle from "./ThemeToggle";
-import type { Theme } from "@/lib/theme";
+import NoticesPanel from "./NoticesPanel";
+import type { Notice } from "@/lib/notifications";
 
 const modules = [
   { href: "/dashboard",   label: "Inicio"     },
@@ -36,7 +36,7 @@ function Item({ href, label, active }: { href: string; label: string; active: bo
   );
 }
 
-export default function Sidebar({ theme }: { theme: Theme }) {
+export default function Sidebar({ notices }: { notices: Notice[] }) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
@@ -53,10 +53,8 @@ export default function Sidebar({ theme }: { theme: Theme }) {
         ))}
       </nav>
 
-      <div className="flex flex-col gap-3 border-t-2 border-foreground py-4">
-        <div className="px-5">
-          <ThemeToggle initial={theme} />
-        </div>
+      <div className="flex flex-col border-t-2 border-foreground py-4">
+        <NoticesPanel notices={notices} />
         <div>
           <Item href="/settings" label="Ajustes" active={isActive("/settings")} />
           <form action={logout}>
