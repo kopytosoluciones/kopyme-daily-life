@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/(auth)/login/actions";
 import ThemeToggle from "./ThemeToggle";
+import type { Theme } from "@/lib/theme";
 
 const modules = [
   { href: "/dashboard",   label: "Inicio"     },
@@ -14,6 +15,7 @@ const modules = [
   { href: "/diary",       label: "Diario"     },
   { href: "/goals",       label: "Metas"      },
   { href: "/connections", label: "Vínculos"   },
+  { href: "/combustible", label: "Combustible" },
   { href: "/memories",    label: "Recuerdos"  },
   { href: "/letters",     label: "Cartas"     },
 ];
@@ -34,7 +36,7 @@ function Item({ href, label, active }: { href: string; label: string; active: bo
   );
 }
 
-export default function Sidebar() {
+export default function Sidebar({ theme }: { theme: Theme }) {
   const pathname = usePathname();
   const isActive = (href: string) =>
     pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
@@ -53,7 +55,7 @@ export default function Sidebar() {
 
       <div className="flex flex-col gap-3 border-t-2 border-foreground py-4">
         <div className="px-5">
-          <ThemeToggle />
+          <ThemeToggle initial={theme} />
         </div>
         <div>
           <Item href="/settings" label="Ajustes" active={isActive("/settings")} />

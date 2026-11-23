@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, startTransition } from "react";
+import { useState, startTransition } from "react";
 import { setTheme } from "@/app/actions/theme";
-import { THEME_COOKIE, parseTheme, type Theme } from "@/lib/theme";
+import type { Theme } from "@/lib/theme";
 
 const OPTIONS: { value: Theme; label: string }[] = [
   { value: "system", label: "Sist" },
@@ -10,17 +10,8 @@ const OPTIONS: { value: Theme; label: string }[] = [
   { value: "dark", label: "Oscuro" },
 ];
 
-function readCookieTheme(): Theme {
-  const match = document.cookie.match(new RegExp(`(?:^|; )${THEME_COOKIE}=([^;]*)`));
-  return parseTheme(match?.[1]);
-}
-
-export default function ThemeToggle() {
-  const [theme, setLocal] = useState<Theme>("system");
-
-  useEffect(() => {
-    setLocal(readCookieTheme());
-  }, []);
+export default function ThemeToggle({ initial }: { initial: Theme }) {
+  const [theme, setLocal] = useState<Theme>(initial);
 
   function choose(next: Theme) {
     setLocal(next);
