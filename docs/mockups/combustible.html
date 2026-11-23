@@ -1,0 +1,759 @@
+<title>Combustible · kopyme</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@400;500;700&display=swap">
+<style>
+/* Layout: rail de módulos a la izquierda + área de trabajo con tabs; todo sobre grilla de bordes duros 2px, sin radios. */
+:root {
+  --paper: #F3F3EF;
+  --card: #FFFFFF;
+  --ink: #121212;
+  --muted: #6E6E68;
+  --soft: #E7E7E1;
+  --accent: #2B44FF;
+  --accent-ink: #FFFFFF;
+  --pos: #0E7F4A;
+  --neg: #CC3227;
+  --font-ui: "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --font-data: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --b: 2px solid var(--ink);
+  --hair: 1px solid var(--soft);
+  --shadow-c: var(--ink);
+  --shadow-p: var(--ink);
+  --shadow: 4px 4px 0 var(--shadow-c);
+}
+/* Dark: no es la inversión del light. Bordes un tono abajo del texto para no encandilar,
+   sombra en acento (una sombra clara sobre negro parece un bloque blanco), celdas calculadas más separadas del fondo. */
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0E0E10; --card: #17171A; --ink: #E6E6E0; --muted: #8A8A86; --soft: #2B2B32;
+    --accent: #8A98FF; --accent-ink: #0B0B0D; --pos: #45D38F; --neg: #FF7466;
+    --shadow-c: #4A57C9; --shadow-p: #C9CCFF; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0E0E10; --card: #17171A; --ink: #E6E6E0; --muted: #8A8A86; --soft: #2B2B32;
+  --accent: #8A98FF; --accent-ink: #0B0B0D; --pos: #45D38F; --neg: #FF7466;
+  --shadow-c: #4A57C9; --shadow-p: #C9CCFF; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body { background: var(--paper); color: var(--ink); font-family: var(--font-ui); font-size: 14px; line-height: 1.45; }
+.mono { font-family: var(--font-data); font-variant-numeric: tabular-nums; }
+.label { font-family: var(--font-data); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pos { color: var(--pos); } .neg { color: var(--neg); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.app { display: grid; grid-template-columns: 200px minmax(0, 1fr); min-height: 100vh; }
+.rail { border-right: var(--b); padding: 20px 0; display: flex; flex-direction: column; gap: 2px; }
+.rail .brand { font-family: var(--font-data); font-weight: 700; padding: 0 20px 20px; font-size: 13px; letter-spacing: .04em; }
+.rail .brand span { color: var(--muted); font-weight: 400; }
+.rail a { font-family: var(--font-data); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); text-decoration: none; padding: 7px 20px; display: flex; gap: 10px; }
+.rail a::before { content: "·"; width: 10px; }
+.rail a.on { color: var(--ink); background: var(--soft); }
+.rail a.on::before { content: "▸"; color: var(--accent); }
+
+.main { min-width: 0; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 16px; display: flex; flex-direction: column; gap: 24px; }
+
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.head h1 { font-size: 40px; line-height: 1; margin: 0; font-weight: 700; letter-spacing: -.02em; }
+.head h1 .cursor { color: var(--accent); animation: blink 1.1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+.head .sub { font-family: var(--font-data); font-size: 12px; color: var(--muted); margin-top: 8px; }
+.head-r { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.theme { display: flex; border: var(--b); }
+.theme button { background: var(--card); border: 0; border-right: 1px solid var(--ink); padding: 5px 10px; font-family: var(--font-data); font-size: 11px; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; }
+.theme button:last-child { border-right: 0; }
+.theme button[aria-checked="true"] { background: var(--ink); color: var(--paper); }
+.theme button[aria-checked="true"]::before { content: "● "; }
+.theme button:not([aria-checked="true"]):hover { background: var(--soft); }
+.sample { font-family: var(--font-data); font-size: 11px; border: 1px dashed var(--muted); color: var(--muted); padding: 4px 8px; text-transform: uppercase; letter-spacing: .06em; }
+
+.tabs { display: flex; border: var(--b); width: fit-content; max-width: 100%; overflow-x: auto; background: var(--card); }
+.tab { background: none; border: 0; border-right: var(--b); padding: 10px 20px; font-family: var(--font-data); font-size: 12px; text-transform: uppercase; letter-spacing: .08em; cursor: pointer; white-space: nowrap; }
+.tab:last-child { border-right: 0; }
+.tab[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+.tab:not([aria-selected="true"]):hover { background: var(--soft); }
+
+.box { border: var(--b); background: var(--card); }
+.box-h { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 16px; border-bottom: var(--b); flex-wrap: wrap; }
+.box-b { padding: 16px; }
+.rule { font-family: var(--font-data); color: var(--muted); font-size: 12px; overflow: hidden; white-space: nowrap; user-select: none; }
+
+/* ---------- TABLERO ---------- */
+.hero { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); border: var(--b); background: var(--card); }
+.hero-main { padding: 24px; border-right: var(--b); display: flex; flex-direction: column; gap: 10px; }
+.big { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: clamp(40px, 6vw, 68px); font-weight: 700; line-height: 1; letter-spacing: -.03em; }
+.big small { font-size: .38em; color: var(--muted); font-weight: 400; letter-spacing: 0; margin-right: 6px; }
+.delta { font-family: var(--font-data); font-size: 13px; display: flex; gap: 16px; flex-wrap: wrap; }
+.spark { font-family: var(--font-data); font-size: 22px; letter-spacing: 2px; color: var(--ink); }
+.hero-side { display: grid; grid-template-columns: 1fr 1fr; }
+.kpi { padding: 16px 18px; border-bottom: var(--b); display: flex; flex-direction: column; gap: 4px; }
+.kpi:nth-child(odd) { border-right: var(--b); }
+.kpi:nth-last-child(-n+2) { border-bottom: 0; }
+.kpi .v { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 700; }
+.kpi .n { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.kpi.alert { background: color-mix(in srgb, var(--neg) 9%, var(--card)); }
+.chip { font-family: var(--font-data); font-size: 10px; text-transform: uppercase; letter-spacing: .08em; border: 1.5px solid currentColor; padding: 1px 6px; width: fit-content; }
+
+.proj { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.proj-card { padding: 18px; border-right: var(--b); display: flex; flex-direction: column; gap: 6px; cursor: pointer; text-align: left; background: none; border-top: 0; border-bottom: 0; border-left: 0; }
+.proj-card:last-child { border-right: 0; }
+.proj-card[aria-pressed="true"] { background: var(--soft); }
+.proj-card[aria-pressed="true"] .label { color: var(--ink); }
+.proj-card .v { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-size: 26px; font-weight: 700; }
+.proj-card .r { font-family: var(--font-data); font-size: 12px; color: var(--muted); }
+
+.legend { display: flex; gap: 16px; flex-wrap: wrap; font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.legend i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; vertical-align: middle; margin-right: 6px; }
+.chart { width: 100%; height: auto; display: block; }
+.chart text { font-family: var(--font-data); font-size: 11px; fill: var(--muted); }
+
+.two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; }
+.dist { font-family: var(--font-data); font-size: 12.5px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px 14px; align-items: center; }
+.dist .bar { white-space: nowrap; overflow: hidden; letter-spacing: -1px; }
+.dist .amt { text-align: right; font-variant-numeric: tabular-nums; }
+.dist .sep { grid-column: 1 / -1; border-top: 1px dashed var(--soft); margin: 4px 0; }
+
+/* ---------- BITÁCORA ---------- */
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.btn { border: var(--b); background: var(--card); padding: 8px 14px; font-family: var(--font-data); font-size: 12px; text-transform: uppercase; letter-spacing: .06em; cursor: pointer; box-shadow: var(--shadow); transition: transform 90ms, box-shadow 90ms; }
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--shadow-c); }
+.btn:active { transform: translate(4px, 4px); box-shadow: 0 0 0 var(--shadow-c); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); box-shadow: 4px 4px 0 var(--shadow-p); }
+.btn.primary:hover { box-shadow: 5px 5px 0 var(--shadow-p); }
+.keys { font-family: var(--font-data); font-size: 11px; color: var(--muted); margin-left: auto; }
+.keys kbd { border: 1px solid var(--muted); padding: 0 4px; font-family: inherit; }
+
+.sheet-wrap { overflow-x: auto; border: var(--b); background: var(--card); }
+table.sheet { border-collapse: collapse; font-family: var(--font-data); font-size: 12.5px; font-variant-numeric: tabular-nums; min-width: 100%; }
+.sheet th, .sheet td { border-bottom: var(--hair); border-right: var(--hair); padding: 0; height: 32px; white-space: nowrap; }
+.sheet thead th { position: sticky; top: 0; background: var(--ink); color: var(--paper); font-weight: 500; font-size: 11px; letter-spacing: .08em; padding: 0 12px; text-align: right; border-right-color: color-mix(in srgb, var(--paper) 20%, var(--ink)); }
+.sheet thead th.cur { background: var(--accent); color: var(--accent-ink); }
+.sheet th.rowh { position: sticky; left: 0; z-index: 1; background: var(--card); text-align: left; font-weight: 400; padding: 0 14px; min-width: 190px; border-right: var(--b); }
+.sheet thead th.rowh { background: var(--ink); color: var(--paper); z-index: 2; }
+.sheet tr.grp th { background: var(--paper); font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); height: 26px; text-align: left; padding: 0 14px; border-bottom: var(--b); border-top: var(--b); }
+.sheet tr.grp td { background: var(--paper); border-bottom: var(--b); border-top: var(--b); }
+.sheet .cur-tag { font-size: 10px; color: var(--muted); margin-left: 6px; }
+.sheet .debt-tag { font-size: 10px; color: var(--neg); margin-left: 6px; }
+.sheet td input { width: 100%; min-width: 108px; height: 31px; border: 0; background: transparent; font: inherit; color: inherit; text-align: right; padding: 0 12px; }
+.sheet td input:focus { outline: 2px solid var(--accent); outline-offset: -2px; background: color-mix(in srgb, var(--accent) 7%, var(--card)); }
+.sheet td input.txt { text-align: left; min-width: 160px; color: var(--muted); }
+.sheet td.calc { background: var(--soft); text-align: right; padding: 0 12px; min-width: 108px; cursor: cell; position: relative; }
+.sheet td.calc:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sheet td.calc.over { background: color-mix(in srgb, var(--accent) 14%, var(--card)); }
+.sheet td.calc.over::after { content: "*"; position: absolute; top: 3px; left: 5px; color: var(--accent); font-weight: 700; }
+.sheet td.calc input { padding: 0; }
+.sheet tr.total th.rowh, .sheet tr.total td { font-weight: 700; border-top: var(--b); }
+.sheet tr.key th.rowh { font-weight: 700; }
+.sheet tr.key td.calc { font-weight: 700; font-size: 13.5px; }
+.sheet td.flag { color: var(--neg); }
+.sheet .neg-v { color: var(--neg); }
+
+.legend-sheet { display: flex; gap: 18px; flex-wrap: wrap; font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+.legend-sheet span::before { content: ""; display: inline-block; width: 14px; height: 14px; vertical-align: -3px; margin-right: 6px; border: 1px solid var(--muted); }
+.legend-sheet .l-man::before { background: var(--card); }
+.legend-sheet .l-calc::before { background: var(--soft); }
+.legend-sheet .l-over::before { background: color-mix(in srgb, var(--accent) 14%, var(--card)); }
+
+.addw { display: none; gap: 8px; flex-wrap: wrap; align-items: center; border: 1.5px dashed var(--muted); padding: 10px; }
+.addw.open { display: flex; }
+.addw input, .addw select { border: var(--b); background: var(--card); color: var(--ink); font-family: var(--font-data); font-size: 12px; padding: 7px 8px; border-radius: 0; }
+
+/* ---------- SIMULADOR ---------- */
+.sim { display: grid; grid-template-columns: 320px minmax(0, 1fr); border: var(--b); background: var(--card); }
+.ctrls { border-right: var(--b); }
+.ctrl { padding: 14px 18px; border-bottom: var(--hair); display: flex; flex-direction: column; gap: 8px; }
+.ctrl-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ctrl-top output { font-family: var(--font-data); font-variant-numeric: tabular-nums; font-weight: 700; font-size: 15px; }
+.ctrl .hint { font-family: var(--font-data); font-size: 10.5px; color: var(--muted); }
+input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 18px; background: transparent; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 2px; background: var(--ink); }
+input[type=range]::-moz-range-track { height: 2px; background: var(--ink); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 18px; background: var(--accent); border: 2px solid var(--ink); margin-top: -8px; border-radius: 0; }
+input[type=range]::-moz-range-thumb { width: 12px; height: 16px; background: var(--accent); border: 2px solid var(--ink); border-radius: 0; }
+.ctrls .foot { padding: 14px 18px; display: flex; gap: 10px; }
+.sim-out { min-width: 0; display: flex; flex-direction: column; }
+.sim-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: var(--b); }
+.sim-stats .kpi { border-bottom: 0; border-right: var(--b); }
+.sim-stats .kpi:last-child { border-right: 0; }
+.sim-stats .kpi .v { font-size: clamp(18px, 2.2vw, 24px); }
+.sim-chart { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.ascii-sum { font-family: var(--font-data); font-size: 12px; white-space: pre; overflow-x: auto; border-top: var(--b); padding: 14px 16px; margin: 0; color: var(--ink); line-height: 1.6; }
+
+.note { font-family: var(--font-data); font-size: 11px; color: var(--muted); }
+
+@media (max-width: 1180px) {
+  .sim { grid-template-columns: minmax(0, 1fr); }
+  .ctrls { border-right: 0; border-bottom: var(--b); display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+  .ctrls .foot { grid-column: 1 / -1; }
+}
+@media (max-width: 960px) {
+  .app { grid-template-columns: minmax(0, 1fr); }
+  .rail { flex-direction: row; overflow-x: auto; border-right: 0; border-bottom: var(--b); padding: 10px 0; }
+  .rail .brand { padding: 7px 16px; }
+  .rail a { white-space: nowrap; padding: 7px 12px; }
+  .hero, .sim { grid-template-columns: minmax(0, 1fr); }
+  .hero-main { border-right: 0; border-bottom: var(--b); }
+  .ctrls { border-right: 0; border-bottom: var(--b); }
+  .two { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 620px) {
+  .wrap { padding: 0; }
+  .head h1 { font-size: 32px; }
+  .proj { grid-template-columns: minmax(0, 1fr); }
+  .proj-card { border-right: 0; border-bottom: var(--b); }
+  .proj-card:last-child { border-bottom: 0; }
+  .sim-stats { grid-template-columns: minmax(0, 1fr); }
+  .sim-stats .kpi { border-right: 0; border-bottom: var(--b); }
+  .keys { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .head h1 .cursor { animation: none; }
+  .btn { transition: none; }
+}
+</style>
+
+<div class="app">
+  <nav class="rail" aria-label="Módulos">
+    <div class="brand">KOPYME<span>/v2</span></div>
+    <a href="#">Tablero</a>
+    <a href="#">Árbol</a>
+    <a href="#">Hábitos</a>
+    <a href="#">Checklists</a>
+    <a href="#">Diario</a>
+    <a href="#">Vínculos</a>
+    <a href="#" class="on">Combustible</a>
+    <a href="#">Calendario</a>
+  </nav>
+
+  <main class="main">
+    <div class="wrap">
+      <header class="head">
+        <div>
+          <h1>Combustible<span class="cursor">_</span></h1>
+          <div class="sub" id="subline"></div>
+        </div>
+        <div class="head-r">
+          <div class="theme" role="radiogroup" aria-label="Tema">
+            <button role="radio" data-theme-set="system" aria-checked="true">Sistema</button>
+            <button role="radio" data-theme-set="light" aria-checked="false">Claro</button>
+            <button role="radio" data-theme-set="dark" aria-checked="false">Oscuro</button>
+          </div>
+          <div class="sample">◇ datos de ejemplo</div>
+        </div>
+      </header>
+
+      <div class="tabs" role="tablist" aria-label="Vistas">
+        <button class="tab" role="tab" id="t-tab" aria-controls="v-tablero" aria-selected="true" data-view="tablero">Tablero</button>
+        <button class="tab" role="tab" id="t-bit" aria-controls="v-bitacora" aria-selected="false" data-view="bitacora">Bitácora</button>
+        <button class="tab" role="tab" id="t-sim" aria-controls="v-simulador" aria-selected="false" data-view="simulador">Simulador</button>
+      </div>
+
+      <!-- TABLERO -->
+      <section id="v-tablero" role="tabpanel" aria-labelledby="t-tab" style="display:flex;flex-direction:column;gap:24px">
+        <div class="hero">
+          <div class="hero-main">
+            <div class="label">── Patrimonio neto · USD</div>
+            <div class="big" id="patri"><small>US$</small><span id="patri-n">0</span></div>
+            <div class="delta" id="patri-delta"></div>
+            <div class="spark" id="spark" aria-hidden="true"></div>
+            <div class="note" id="spark-l"></div>
+          </div>
+          <div class="hero-side" id="kpis"></div>
+        </div>
+
+        <div class="box">
+          <div class="box-h">
+            <span class="label">── Proyección · si todo se mantiene</span>
+            <div class="legend">
+              <span><i style="border-color:var(--ink)"></i>histórico</span>
+              <span><i style="border-color:var(--accent)"></i>plan (ingreso − gasto)</span>
+              <span><i style="border-color:var(--muted);border-top-style:dashed"></i>ritmo real (prom. 3m)</span>
+            </div>
+          </div>
+          <div class="proj" id="proj" role="group" aria-label="Horizonte"></div>
+          <div class="box-b" style="border-top:var(--b)">
+            <svg class="chart" id="chart-main" viewBox="0 0 900 280" role="img" aria-label="Patrimonio histórico y proyectado"></svg>
+          </div>
+        </div>
+
+        <div class="two">
+          <div class="box">
+            <div class="box-h"><span class="label">── Dónde está la plata</span><span class="note" id="dist-fx"></span></div>
+            <div class="box-b"><div class="dist" id="dist"></div></div>
+          </div>
+          <div class="box">
+            <div class="box-h"><span class="label">── Desvío mes a mes</span><span class="note">real − (ingreso − gasto)</span></div>
+            <div class="box-b"><svg class="chart" id="chart-dev" viewBox="0 0 440 220" role="img" aria-label="Desvío por mes"></svg>
+              <div class="note" style="margin-top:8px">Positivo: entró más de lo que anotaste. Negativo: plata que no sabés a dónde fue (gasto sin anotar, tipo de cambio).</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- BITÁCORA -->
+      <section id="v-bitacora" role="tabpanel" aria-labelledby="t-bit" hidden style="flex-direction:column;gap:16px">
+        <div class="toolbar">
+          <button class="btn primary" id="new-month">+ Nuevo mes</button>
+          <button class="btn" id="toggle-addw">+ Billetera</button>
+          <span class="keys"><kbd>↑</kbd><kbd>↓</kbd> <kbd>Enter</kbd> moverse · <kbd>Enter</kbd> en gris = pisar cálculo · <kbd>Esc</kbd> volver al cálculo</span>
+        </div>
+        <form class="addw" id="addw">
+          <label class="label" for="aw-name">Nombre</label>
+          <input id="aw-name" placeholder="ej. Binance" required>
+          <label class="label" for="aw-cur">Moneda</label>
+          <select id="aw-cur"><option>USD</option><option>ARS</option></select>
+          <label class="label" for="aw-kind">Tipo</label>
+          <select id="aw-kind"><option value="asset">Activo</option><option value="debt">Deuda</option></select>
+          <button class="btn" type="submit">Agregar</button>
+        </form>
+        <div class="sheet-wrap"><table class="sheet" id="sheet"></table></div>
+        <div class="legend-sheet">
+          <span class="l-man">manual</span>
+          <span class="l-calc">calculado</span>
+          <span class="l-over">calculado pisado a mano *</span>
+        </div>
+      </section>
+
+      <!-- SIMULADOR -->
+      <section id="v-simulador" role="tabpanel" aria-labelledby="t-sim" hidden style="flex-direction:column;gap:16px">
+        <div class="sim">
+          <div class="ctrls" id="ctrls"></div>
+          <div class="sim-out">
+            <div class="sim-stats" id="sim-stats"></div>
+            <div class="sim-chart">
+              <div class="legend">
+                <span><i style="border-color:var(--accent);border-top-width:8px"></i>rendimiento</span>
+                <span><i style="border-color:var(--ink);border-top-width:8px;opacity:.85"></i>lo que aportás</span>
+                <span><i style="border-color:var(--muted);border-top-style:dashed"></i>valores actuales, sin invertir</span>
+              </div>
+              <svg class="chart" id="chart-sim" viewBox="0 0 760 300" role="img" aria-label="Simulación de patrimonio"></svg>
+            </div>
+            <pre class="ascii-sum" id="ascii-sum" aria-label="Resumen"></pre>
+          </div>
+        </div>
+        <div class="note">Calculadora con supuestos que elegís vos. No es asesoramiento financiero.</div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+const MES = ["ENE","FEB","MAR","ABR","MAY","JUN","JUL","AGO","SEP","OCT","NOV","DIC"];
+const fmt = (n, d = 0) => (n < 0 ? "−" : "") + Math.abs(n).toLocaleString("es-AR", { minimumFractionDigits: d, maximumFractionDigits: d });
+const usd = n => "US$ " + fmt(Math.round(n));
+const sgn = n => (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(Math.round(n)));
+const parseNum = s => { const t = String(s).trim().replace(/\./g, "").replace(",", ".").replace(/[^\d.\-−]/g, "").replace("−", "-"); const n = parseFloat(t); return isNaN(n) ? 0 : n; };
+const mLabel = k => { const [y, m] = k.split("-").map(Number); return MES[m - 1] + " " + String(y).slice(2); };
+const addMonth = (k, n) => { let [y, m] = k.split("-").map(Number); m += n; y += Math.floor((m - 1) / 12); m = ((m - 1) % 12 + 12) % 12 + 1; return y + "-" + String(m).padStart(2, "0"); };
+const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+const wallets = [
+  { id: "eeuu", name: "Banco EEUU", cur: "USD", kind: "asset" },
+  { id: "revolut", name: "Revolut", cur: "USD", kind: "asset" },
+  { id: "wise", name: "Wise", cur: "USD", kind: "asset" },
+  { id: "deel", name: "Deel", cur: "USD", kind: "asset" },
+  { id: "efvo_usd", name: "Efectivo", cur: "USD", kind: "asset" },
+  { id: "mama", name: "Deuda mamá", cur: "USD", kind: "debt" },
+  { id: "bbva", name: "BBVA", cur: "ARS", kind: "asset" },
+  { id: "mp", name: "Mercado Pago", cur: "ARS", kind: "asset" },
+  { id: "efvo_ars", name: "Efectivo", cur: "ARS", kind: "asset" },
+  { id: "tarjeta", name: "Tarjeta", cur: "ARS", kind: "debt" },
+];
+
+const months = [
+  { key: "2026-06", fx: 1180, income: 4200, expense: 2500, invoice: 4200, comment: "", over: {}, bal: { eeuu: 12000, revolut: 1800, wise: 2400, deel: 3100, efvo_usd: 1500, mama: 3000, bbva: 850000, mp: 420000, efvo_ars: 300000, tarjeta: 380000 } },
+  { key: "2026-07", fx: 1240, income: 4200, expense: 2500, invoice: 4200, comment: "", over: {}, bal: { eeuu: 12800, revolut: 2100, wise: 2300, deel: 3900, efvo_usd: 1500, mama: 2800, bbva: 910000, mp: 380000, efvo_ars: 250000, tarjeta: 410000 } },
+  { key: "2026-08", fx: 1310, income: 4400, expense: 2600, invoice: 4400, comment: "aumento en Deel", over: {}, bal: { eeuu: 13600, revolut: 2200, wise: 2500, deel: 4500, efvo_usd: 1600, mama: 2600, bbva: 880000, mp: 430000, efvo_ars: 220000, tarjeta: 450000 } },
+  { key: "2026-09", fx: 1460, income: 4400, expense: 2600, invoice: 4400, comment: "viaje + devaluación", over: {}, bal: { eeuu: 14200, revolut: 1900, wise: 2400, deel: 4800, efvo_usd: 1300, mama: 2400, bbva: 820000, mp: 390000, efvo_ars: 200000, tarjeta: 620000 } },
+  { key: "2026-10", fx: 1450, income: 4400, expense: 2600, invoice: 4400, comment: "", over: {}, bal: { eeuu: 15300, revolut: 2200, wise: 2600, deel: 5100, efvo_usd: 1400, mama: 2200, bbva: 900000, mp: 410000, efvo_ars: 230000, tarjeta: 480000 } },
+  { key: "2026-11", fx: 1465, income: 4400, expense: 2650, invoice: 4400, comment: "", over: {}, bal: { eeuu: 16400, revolut: 2300, wise: 2700, deel: 5600, efvo_usd: 1400, mama: 2000, bbva: 940000, mp: 420000, efvo_ars: 240000, tarjeta: 450000 } },
+];
+
+/* ---------- cálculo ---------- */
+function compute() {
+  let prev = null;
+  return months.map(m => {
+    const o = m.over;
+    const sum = cur => wallets.filter(w => w.cur === cur).reduce((a, w) => a + (w.kind === "debt" ? -1 : 1) * (m.bal[w.id] || 0), 0);
+    const totUsdC = sum("USD"), totArsC = sum("ARS");
+    const totUsd = o.totUsd ?? totUsdC;
+    const totArs = o.totArs ?? totArsC;
+    const arsUsdC = m.fx ? totArs / m.fx : 0;
+    const arsUsd = o.arsUsd ?? arsUsdC;
+    const patriC = totUsd + arsUsd;
+    const patri = o.patri ?? patriC;
+    const diffC = prev ? patri - prev.patri : null;
+    const diff = o.diff ?? diffC;
+    const expected = m.income - m.expense;
+    const dev = diff == null ? null : diff - expected;
+    const r = { key: m.key, m, totUsd, totArs, arsUsd, patri, diff, expected, dev, calc: { totUsd: totUsdC, totArs: totArsC, arsUsd: arsUsdC, patri: patriC, diff: diffC } };
+    prev = r;
+    return r;
+  });
+}
+
+/* ---------- tabs ---------- */
+const views = { tablero: "v-tablero", bitacora: "v-bitacora", simulador: "v-simulador" };
+function show(view) {
+  document.querySelectorAll(".tab").forEach(t => t.setAttribute("aria-selected", String(t.dataset.view === view)));
+  Object.entries(views).forEach(([k, id]) => { const el = document.getElementById(id); el.hidden = k !== view; el.style.display = k === view ? "flex" : ""; });
+  if (view === "tablero") renderTablero();
+  if (view === "simulador") renderSim();
+  try { localStorage.setItem("comb-tab", view); } catch (e) {}
+}
+document.querySelectorAll(".tab").forEach(t => t.addEventListener("click", () => show(t.dataset.view)));
+
+/* ---------- efectos ASCII ---------- */
+function scramble(el, finalText) {
+  if (reduced) { el.textContent = finalText; return; }
+  const glyphs = "0123456789#%&$▓▒░";
+  let frame = 0; const total = 18;
+  const tick = () => {
+    el.textContent = finalText.split("").map((ch, i) => {
+      if (!/\d/.test(ch)) return ch;
+      return frame / total > i / finalText.length ? ch : glyphs[Math.floor(Math.random() * glyphs.length)];
+    }).join("");
+    if (++frame <= total) requestAnimationFrame(() => setTimeout(tick, 28)); else el.textContent = finalText;
+  };
+  tick();
+}
+const SPARK = "▁▂▃▄▅▆▇█";
+const spark = vals => { const lo = Math.min(...vals), hi = Math.max(...vals); return vals.map(v => SPARK[hi === lo ? 3 : Math.round((v - lo) / (hi - lo) * 7)]).join(""); };
+const asciiBar = (v, max, w = 22) => { const n = max ? Math.round(Math.abs(v) / max * w) : 0; return "█".repeat(n) + "░".repeat(w - n); };
+
+/* ---------- chart helper ---------- */
+const NS = "http://www.w3.org/2000/svg";
+const el = (tag, attrs, parent) => { const e = document.createElementNS(NS, tag); for (const k in attrs) e.setAttribute(k, attrs[k]); parent && parent.appendChild(e); return e; };
+function niceTicks(lo, hi, n = 4) {
+  const span = hi - lo || 1; const step0 = span / n; const mag = Math.pow(10, Math.floor(Math.log10(step0)));
+  const step = [1, 2, 2.5, 5, 10].map(s => s * mag).find(s => s >= step0);
+  const a = Math.floor(lo / step) * step, b = Math.ceil(hi / step) * step; const out = [];
+  for (let v = a; v <= b + step / 2; v += step) out.push(v);
+  return out;
+}
+const kfmt = v => Math.abs(v) >= 1000 ? (v < 0 ? "−" : "") + fmt(Math.abs(v) / 1000, Math.abs(v) >= 10000 ? 0 : 1) + "k" : fmt(v);
+
+/* ---------- TABLERO ---------- */
+let horizon = 12;
+function renderTablero() {
+  const rows = compute();
+  const last = rows[rows.length - 1], prev = rows[rows.length - 2];
+  const m = last.m;
+  document.getElementById("subline").textContent = `último registro ${mLabel(last.key)} · TC ${fmt(m.fx)} ARS/USD · ${wallets.length} billeteras`;
+
+  scramble(document.getElementById("patri-n"), fmt(Math.round(last.patri)));
+  const d = last.diff, pct = prev ? d / prev.patri * 100 : 0;
+  document.getElementById("patri-delta").innerHTML =
+    `<span class="${d >= 0 ? "pos" : "neg"}">${d >= 0 ? "▲" : "▼"} ${sgn(d)} vs ${mLabel(prev.key)}</span><span class="${d >= 0 ? "pos" : "neg"}">${pct >= 0 ? "+" : "−"}${fmt(Math.abs(pct), 1)}%</span>`;
+  document.getElementById("spark").textContent = spark(rows.map(r => r.patri));
+  document.getElementById("spark-l").textContent = `${mLabel(rows[0].key)} → ${mLabel(last.key)}`;
+
+  const save = m.income - m.expense, rate = save / m.income * 100;
+  const runway = last.patri / m.expense;
+  const devBad = Math.abs(last.dev) > m.income * 0.05;
+  document.getElementById("kpis").innerHTML = `
+    <div class="kpi"><span class="label">Ingreso</span><span class="v">${usd(m.income)}</span><span class="n">fijo mensual</span></div>
+    <div class="kpi"><span class="label">Gasto</span><span class="v">${usd(m.expense)}</span><span class="n">fijo mensual</span></div>
+    <div class="kpi"><span class="label">Ahorro</span><span class="v pos">${usd(save)}</span><span class="n">[${asciiBar(rate, 100, 10)}] ${fmt(rate)}%</span></div>
+    <div class="kpi"><span class="label">Pista</span><span class="v">${fmt(runway, 1)} m</span><span class="n">meses viviendo sin ingresos</span></div>
+    <div class="kpi ${devBad ? "alert" : ""}" style="grid-column:1/-1;border-right:0;border-bottom:0">
+      <span class="label">Desvío ${mLabel(last.key)}</span>
+      <span class="v ${last.dev < 0 ? "neg" : "pos"}">${sgn(last.dev)}</span>
+      <span class="n">${devBad ? '<span class="chip neg">revisar</span> ' : ""}esperabas ${sgn(last.expected)}, el patrimonio cambió ${sgn(last.diff)}</span>
+    </div>`;
+
+  const real3 = rows.slice(-3).map(r => r.diff).filter(v => v != null);
+  const realAvg = real3.reduce((a, b) => a + b, 0) / real3.length;
+  const H = [{ n: 3, l: "Corto · 3 meses" }, { n: 12, l: "Mediano · 1 año" }, { n: 60, l: "Largo · 5 años" }];
+  document.getElementById("proj").innerHTML = H.map(h => `
+    <button class="proj-card" aria-pressed="${h.n === horizon}" data-h="${h.n}">
+      <span class="label">${h.l} · ${mLabel(addMonth(last.key, h.n))}</span>
+      <span class="v">${usd(last.patri + save * h.n)}</span>
+      <span class="r">ritmo real: ${usd(last.patri + realAvg * h.n)}</span>
+    </button>`).join("");
+  document.querySelectorAll(".proj-card").forEach(b => b.addEventListener("click", () => { horizon = +b.dataset.h; renderTablero(); }));
+
+  drawMain(rows, save, realAvg);
+  drawDev(rows);
+
+  const assets = wallets.map(w => ({ w, v: (m.bal[w.id] || 0) / (w.cur === "ARS" ? m.fx : 1) }));
+  const max = Math.max(...assets.map(a => a.v));
+  const pos = assets.filter(a => a.w.kind === "asset").sort((a, b) => b.v - a.v);
+  const neg = assets.filter(a => a.w.kind === "debt");
+  const line = a => `<span>${a.w.name}<span class="note"> ${a.w.cur}</span></span><span class="bar ${a.w.kind === "debt" ? "neg" : ""}">${asciiBar(a.v, max)}</span><span class="amt ${a.w.kind === "debt" ? "neg" : ""}">${a.w.kind === "debt" ? "−" : ""}${fmt(Math.round(a.v))}</span>`;
+  document.getElementById("dist").innerHTML = pos.map(line).join("") + '<div class="sep"></div>' + neg.map(line).join("");
+  document.getElementById("dist-fx").textContent = `pesos a TC ${fmt(m.fx)}`;
+}
+
+function drawMain(rows, save, realAvg) {
+  const svg = document.getElementById("chart-main"); svg.innerHTML = "";
+  const W = 900, Hh = 280, L = 56, R = 16, T = 14, B = 30;
+  const last = rows[rows.length - 1];
+  const nHist = rows.length, N = nHist - 1 + horizon;
+  const hist = rows.map((r, i) => [i, r.patri]);
+  const plan = [[nHist - 1, last.patri]], real = [[nHist - 1, last.patri]];
+  for (let k = 1; k <= horizon; k++) { plan.push([nHist - 1 + k, last.patri + save * k]); real.push([nHist - 1 + k, last.patri + realAvg * k]); }
+  const all = [...hist, ...plan, ...real].map(p => p[1]);
+  const ticks = niceTicks(Math.min(...all), Math.max(...all));
+  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const X = i => L + i / N * (W - L - R), Y = v => T + (1 - (v - y0) / (y1 - y0)) * (Hh - T - B);
+  ticks.forEach(t => { el("line", { x1: L, x2: W - R, y1: Y(t), y2: Y(t), stroke: "var(--soft)", "stroke-width": 1 }, svg); el("text", { x: L - 8, y: Y(t) + 4, "text-anchor": "end" }, svg).textContent = kfmt(t); });
+  el("rect", { x: X(nHist - 1), y: T, width: X(N) - X(nHist - 1), height: Hh - T - B, fill: "var(--soft)", opacity: .45 }, svg);
+  el("line", { x1: X(nHist - 1), x2: X(nHist - 1), y1: T, y2: Hh - B, stroke: "var(--ink)", "stroke-width": 1, "stroke-dasharray": "2 3" }, svg);
+  el("text", { x: X(nHist - 1) + 6, y: T + 12 }, svg).textContent = "HOY";
+  const step = N <= 12 ? 1 : N <= 24 ? 3 : 12;
+  for (let i = 0; i <= N; i++) {
+    const fromEnd = i - (nHist - 1);
+    if (i < nHist ? i % Math.max(1, step) === 0 || i === nHist - 1 : fromEnd % step === 0)
+      el("text", { x: X(i), y: Hh - 10, "text-anchor": i === N ? "end" : i === 0 ? "start" : "middle" }, svg).textContent = mLabel(addMonth(rows[0].key, i));
+  }
+  el("line", { x1: L, x2: W - R, y1: Hh - B, y2: Hh - B, stroke: "var(--ink)", "stroke-width": 2 }, svg);
+  const path = pts => pts.map((p, i) => (i ? "L" : "M") + X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1)).join(" ");
+  el("path", { d: path(real), fill: "none", stroke: "var(--muted)", "stroke-width": 2, "stroke-dasharray": "6 5" }, svg);
+  el("path", { d: path(plan), fill: "none", stroke: "var(--accent)", "stroke-width": 2.5 }, svg);
+  el("path", { d: path(hist), fill: "none", stroke: "var(--ink)", "stroke-width": 2.5 }, svg);
+  hist.forEach(p => el("rect", { x: X(p[0]) - 3, y: Y(p[1]) - 3, width: 6, height: 6, fill: "var(--card)", stroke: "var(--ink)", "stroke-width": 2 }, svg));
+  const end = plan[plan.length - 1];
+  el("rect", { x: X(end[0]) - 4, y: Y(end[1]) - 4, width: 8, height: 8, fill: "var(--accent)" }, svg);
+  el("text", { x: X(end[0]) - 8, y: Y(end[1]) - 10, "text-anchor": "end", style: "fill:var(--accent);font-weight:700" }, svg).textContent = kfmt(end[1]);
+}
+
+function drawDev(rows) {
+  const svg = document.getElementById("chart-dev"); svg.innerHTML = "";
+  const W = 440, Hh = 220, L = 46, R = 10, T = 12, B = 28;
+  const data = rows.filter(r => r.dev != null);
+  const vals = data.map(r => r.dev);
+  const ticks = niceTicks(Math.min(0, ...vals), Math.max(0, ...vals), 4);
+  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const Y = v => T + (1 - (v - y0) / (y1 - y0)) * (Hh - T - B);
+  const bw = (W - L - R) / data.length;
+  ticks.forEach(t => { el("line", { x1: L, x2: W - R, y1: Y(t), y2: Y(t), stroke: t === 0 ? "var(--ink)" : "var(--soft)", "stroke-width": t === 0 ? 2 : 1 }, svg); el("text", { x: L - 6, y: Y(t) + 4, "text-anchor": "end" }, svg).textContent = kfmt(t); });
+  data.forEach((r, i) => {
+    const x = L + i * bw + bw * .22, w = bw * .56, v = r.dev;
+    el("rect", { x, y: Math.min(Y(v), Y(0)), width: w, height: Math.max(1, Math.abs(Y(v) - Y(0))), fill: v < 0 ? "var(--neg)" : "var(--pos)" }, svg);
+    el("text", { x: x + w / 2, y: Hh - 10, "text-anchor": "middle" }, svg).textContent = mLabel(r.key).slice(0, 3);
+  });
+}
+
+/* ---------- BITÁCORA ---------- */
+const CALC_LABEL = { totUsd: "Total USD", totArs: "Total ARS", arsUsd: "ARS → USD", patri: "Patrimonio", diff: "Diferencia" };
+function renderSheet(focusSel) {
+  const rows = compute();
+  const t = document.getElementById("sheet");
+  const lastKey = months[months.length - 1].key;
+  const head = `<thead><tr><th class="rowh">Campo</th>${months.map(m => `<th class="${m.key === lastKey ? "cur" : ""}">${mLabel(m.key)}</th>`).join("")}</tr></thead>`;
+  let r = 0; const body = [];
+  const grp = name => `<tr class="grp"><th class="rowh">${name}</th>${months.map(() => "<td></td>").join("")}</tr>`;
+  const man = (label, field, getter, opts = {}) => {
+    const rr = r++;
+    return `<tr><th class="rowh">${label}</th>${months.map((m, c) => `<td><input class="${opts.txt ? "txt" : ""} ${opts.neg ? "neg-v" : ""}" data-r="${rr}" data-c="${c}" data-f="${field}" aria-label="${label.replace(/<[^>]+>/g, "")} ${mLabel(m.key)}" value="${opts.txt ? (getter(m) || "") : fmt(getter(m) || 0)}" ${opts.txt ? 'placeholder="—"' : 'inputmode="decimal"'}></td>`).join("")}</tr>`;
+  };
+  const calc = (label, field, cls = "", flag) => {
+    const rr = r++;
+    return `<tr class="${cls}"><th class="rowh">${label}</th>${rows.map((x, c) => {
+      const v = x[field]; const over = x.m.over[field] != null;
+      const neg = flag && v != null && flag(v, x);
+      return `<td class="calc ${over ? "over" : ""} ${neg ? "flag" : ""}" tabindex="0" data-r="${rr}" data-c="${c}" data-calc="${field}" title="${over ? "Pisado a mano. Esc para volver al cálculo (" + fmt(Math.round(x.calc[field] ?? 0)) + ")" : "Calculado. Enter para pisar"}">${v == null ? "—" : (field === "dev" || field === "diff" ? sgn(v) : fmt(Math.round(v)))}</td>`;
+    }).join("")}</tr>`;
+  };
+  ["USD", "ARS"].forEach(cur => {
+    body.push(grp(`Billeteras ${cur}`));
+    wallets.filter(w => w.cur === cur).forEach(w => body.push(man(`${w.name}${w.kind === "debt" ? '<span class="debt-tag">deuda</span>' : ""}`, "bal:" + w.id, m => m.bal[w.id], { neg: w.kind === "debt" })));
+    body.push(calc(`Total ${cur}`, cur === "USD" ? "totUsd" : "totArs", "total"));
+  });
+  body.push(grp("Conversión"));
+  body.push(man('Tipo de cambio<span class="cur-tag">ARS/USD</span>', "fx", m => m.fx));
+  body.push(calc("ARS → USD", "arsUsd"));
+  body.push(grp("Flujo del mes · USD"));
+  body.push(man("Ingreso", "income", m => m.income));
+  body.push(man("Gasto", "expense", m => m.expense));
+  body.push(grp("Resultado · USD"));
+  body.push(calc("Patrimonio", "patri", "key total"));
+  body.push(calc("Diferencia", "diff", "", v => v < 0));
+  body.push(calc("Esperado (ingreso − gasto)", "expected"));
+  body.push(calc("Desvío", "dev", "key", (v, x) => Math.abs(v) > x.m.income * 0.05));
+  body.push(grp("Fiscal · no suma"));
+  body.push(man("Facturado", "invoice", m => m.invoice));
+  body.push(man("Comentario", "comment", m => m.comment, { txt: true }));
+  t.innerHTML = head + "<tbody>" + body.join("") + "</tbody>";
+  t.dataset.rows = r;
+  if (focusSel) { const f = t.querySelector(focusSel); f && f.focus(); }
+}
+
+function setField(m, f, raw) {
+  if (f === "comment") { m.comment = raw; return; }
+  const v = parseNum(raw);
+  if (f.startsWith("bal:")) m.bal[f.slice(4)] = v; else m[f] = v;
+}
+const sheet = document.getElementById("sheet");
+sheet.addEventListener("change", e => {
+  const i = e.target; if (!i.dataset.f) return;
+  setField(months[+i.dataset.c], i.dataset.f, i.value);
+  renderSheet(`[data-r="${i.dataset.r}"][data-c="${i.dataset.c}"]`);
+});
+sheet.addEventListener("focusin", e => { if (e.target.tagName === "INPUT" && !e.target.classList.contains("txt")) e.target.select(); });
+
+function move(from, dr) {
+  const r = +from.dataset.r + dr, c = +from.dataset.c;
+  const next = sheet.querySelector(`[data-r="${r}"][data-c="${c}"]`);
+  if (next) { if (from.tagName === "INPUT") from.dispatchEvent(new Event("change", { bubbles: true })); setTimeout(() => { const n = sheet.querySelector(`[data-r="${r}"][data-c="${c}"]`); n && n.focus(); }, 0); }
+}
+sheet.addEventListener("keydown", e => {
+  const tgt = e.target;
+  if (tgt.dataset.calc && !tgt.querySelector("input")) {
+    if (e.key === "Enter") { e.preventDefault(); editCalc(tgt); return; }
+    if (e.key === "Escape" || e.key === "Backspace" || e.key === "Delete") {
+      const m = months[+tgt.dataset.c]; if (m.over[tgt.dataset.calc] != null) { delete m.over[tgt.dataset.calc]; renderSheet(`[data-r="${tgt.dataset.r}"][data-c="${tgt.dataset.c}"]`); }
+      return;
+    }
+  }
+  if (tgt.dataset.overEdit) return;
+  if (e.key === "ArrowDown" || (e.key === "Enter" && tgt.tagName === "INPUT")) { e.preventDefault(); move(tgt, 1); }
+  if (e.key === "ArrowUp") { e.preventDefault(); move(tgt, -1); }
+});
+sheet.addEventListener("dblclick", e => { const td = e.target.closest("td.calc"); td && editCalc(td); });
+
+function editCalc(td) {
+  const field = td.dataset.calc;
+  if (field === "expected" || field === "dev") return;
+  const m = months[+td.dataset.c];
+  const cur = compute()[+td.dataset.c][field] ?? 0;
+  const inp = document.createElement("input");
+  inp.value = fmt(Math.round(cur)); inp.dataset.overEdit = "1"; inp.setAttribute("aria-label", "Pisar " + CALC_LABEL[field]);
+  td.textContent = ""; td.appendChild(inp); inp.focus(); inp.select();
+  const sel = `[data-r="${td.dataset.r}"][data-c="${td.dataset.c}"]`;
+  let done = false;
+  const commit = keep => { if (done) return; done = true; if (keep) m.over[field] = parseNum(inp.value); renderSheet(sel); };
+  inp.addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); ev.stopPropagation(); commit(true); } if (ev.key === "Escape") { ev.stopPropagation(); commit(false); } });
+  inp.addEventListener("blur", () => commit(true));
+}
+
+document.getElementById("new-month").addEventListener("click", () => {
+  const last = months[months.length - 1];
+  months.push({ key: addMonth(last.key, 1), fx: last.fx, income: last.income, expense: last.expense, invoice: last.income, comment: "", over: {}, bal: { ...last.bal } });
+  renderSheet();
+  const wrap = document.querySelector(".sheet-wrap"); wrap.scrollLeft = wrap.scrollWidth;
+  const first = sheet.querySelector(`[data-r="0"][data-c="${months.length - 1}"]`); first && first.focus();
+});
+document.getElementById("toggle-addw").addEventListener("click", () => { const f = document.getElementById("addw"); f.classList.toggle("open"); if (f.classList.contains("open")) document.getElementById("aw-name").focus(); });
+document.getElementById("addw").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = document.getElementById("aw-name").value.trim(); if (!name) return;
+  const id = "w" + Date.now();
+  wallets.push({ id, name, cur: document.getElementById("aw-cur").value, kind: document.getElementById("aw-kind").value });
+  wallets.sort((a, b) => (a.cur === b.cur ? (a.kind === "debt") - (b.kind === "debt") : a.cur === "USD" ? -1 : 1));
+  months.forEach(m => m.bal[id] = 0);
+  e.target.reset(); e.target.classList.remove("open");
+  renderSheet();
+});
+
+/* ---------- SIMULADOR ---------- */
+const simState = {};
+const CTRL = [
+  { id: "income", l: "Ingreso mensual", min: 1000, max: 15000, step: 100, f: v => usd(v), hint: "hoy: " },
+  { id: "expense", l: "Gasto mensual", min: 500, max: 10000, step: 50, f: v => usd(v), hint: "hoy: " },
+  { id: "growth", l: "Aumento anual del ingreso", min: 0, max: 30, step: 1, f: v => v + "%" },
+  { id: "pct", l: "% del ahorro que invertís", min: 0, max: 100, step: 5, f: v => v + "%" },
+  { id: "ret", l: "Rendimiento anual supuesto", min: 0, max: 15, step: 0.5, f: v => fmt(v, 1) + "%" },
+  { id: "years", l: "Horizonte", min: 1, max: 30, step: 1, f: v => v + (v === 1 ? " año" : " años") },
+];
+function simDefaults() {
+  const m = months[months.length - 1];
+  return { income: m.income, expense: m.expense, growth: 0, pct: 50, ret: 6, years: 5 };
+}
+function buildCtrls() {
+  Object.assign(simState, simDefaults());
+  const d = simDefaults();
+  document.getElementById("ctrls").innerHTML = CTRL.map(c => `
+    <div class="ctrl">
+      <div class="ctrl-top"><label class="label" for="s-${c.id}">${c.l}</label><output id="o-${c.id}" for="s-${c.id}"></output></div>
+      <input type="range" id="s-${c.id}" min="${c.min}" max="${c.max}" step="${c.step}" value="${simState[c.id]}">
+      ${c.hint ? `<span class="hint">${c.hint}${c.f(d[c.id])}</span>` : ""}
+    </div>`).join("") + `<div class="foot"><button class="btn" id="sim-reset">Volver a hoy</button></div>`;
+  CTRL.forEach(c => document.getElementById("s-" + c.id).addEventListener("input", e => { simState[c.id] = +e.target.value; renderSim(); }));
+  document.getElementById("sim-reset").addEventListener("click", buildCtrlsAndRender);
+}
+function buildCtrlsAndRender() { buildCtrls(); renderSim(); }
+
+function simulate(p, start) {
+  const n = p.years * 12, rm = Math.pow(1 + p.ret / 100, 1 / 12) - 1;
+  let inv = start * p.pct / 100, cash = start - inv, contrib = start;
+  const out = [{ m: 0, total: start, contrib }];
+  for (let k = 1; k <= n; k++) {
+    const inc = p.income * Math.pow(1 + p.growth / 100, Math.floor((k - 1) / 12));
+    const s = inc - p.expense;
+    inv = inv * (1 + rm) + Math.max(0, s) * p.pct / 100;
+    cash += s - Math.max(0, s) * p.pct / 100;
+    contrib += s;
+    out.push({ m: k, total: inv + cash, contrib });
+  }
+  return out;
+}
+function renderSim() {
+  if (!document.getElementById("s-income")) buildCtrls();
+  CTRL.forEach(c => document.getElementById("o-" + c.id).textContent = c.f(simState[c.id]));
+  const start = compute().slice(-1)[0].patri;
+  const sim = simulate(simState, start);
+  const base = simulate({ ...simDefaults(), years: simState.years, pct: 0, growth: 0 }, start);
+  const end = sim[sim.length - 1], bEnd = base[base.length - 1];
+  const gain = end.total - end.contrib;
+  const runway = end.total / simState.expense;
+  document.getElementById("sim-stats").innerHTML = `
+    <div class="kpi"><span class="label">Patrimonio en ${simState.years} ${simState.years === 1 ? "año" : "años"}</span><span class="v">${usd(end.total)}</span><span class="n">vs ${usd(bEnd.total)} con valores de hoy</span></div>
+    <div class="kpi"><span class="label">Generado por rendimiento</span><span class="v ${gain >= 0 ? "pos" : "neg"}">${usd(gain)}</span><span class="n">${fmt(end.total ? gain / end.total * 100 : 0)}% del total</span></div>
+    <div class="kpi"><span class="label">Pista final</span><span class="v">${fmt(runway, 0)} meses</span><span class="n">≈ ${fmt(runway / 12, 1)} años sin ingresos</span></div>`;
+  drawSim(sim, base);
+  const diff = end.total - bEnd.total;
+  const w = 28, mx = Math.max(end.total, bEnd.total, 1);
+  document.getElementById("ascii-sum").textContent =
+`── RESUMEN ${"─".repeat(40)}
+hoy          ${asciiBar(start, mx, w)}  ${usd(start)}
+sin cambios  ${asciiBar(bEnd.total, mx, w)}  ${usd(bEnd.total)}
+simulado     ${asciiBar(end.total, mx, w)}  ${usd(end.total)}
+${"─".repeat(51)}
+diferencia vs. no hacer nada   ${diff >= 0 ? "+" : "−"}${usd(Math.abs(diff))}`;
+}
+function drawSim(sim, base) {
+  const svg = document.getElementById("chart-sim"); svg.innerHTML = "";
+  const W = 760, Hh = 300, L = 56, R = 16, T = 14, B = 30;
+  const N = sim.length - 1;
+  const all = [...sim.map(p => p.total), ...sim.map(p => p.contrib), ...base.map(p => p.total)];
+  const ticks = niceTicks(Math.min(0, ...all), Math.max(...all));
+  const y0 = ticks[0], y1 = ticks[ticks.length - 1];
+  const X = i => L + i / N * (W - L - R), Y = v => T + (1 - (v - y0) / (y1 - y0)) * (Hh - T - B);
+  ticks.forEach(t => { el("line", { x1: L, x2: W - R, y1: Y(t), y2: Y(t), stroke: "var(--soft)", "stroke-width": 1 }, svg); el("text", { x: L - 8, y: Y(t) + 4, "text-anchor": "end" }, svg).textContent = kfmt(t); });
+  const yrs = N / 12, stepY = yrs <= 5 ? 1 : yrs <= 15 ? 3 : 5;
+  for (let y = 0; y <= yrs; y += stepY) el("text", { x: X(y * 12), y: Hh - 10, "text-anchor": "middle" }, svg).textContent = y === 0 ? "HOY" : "+" + y + "a";
+  const top = sim.map(p => [p.m, Math.max(p.total, p.contrib)]);
+  const mid = sim.map(p => [p.m, p.contrib]);
+  const pt = p => X(p[0]).toFixed(1) + " " + Y(p[1]).toFixed(1);
+  const area = (up, down) => "M" + up.map(pt).join(" L") + " L" + [...down].reverse().map(pt).join(" L") + " Z";
+  el("path", { d: area(top, mid), fill: "var(--accent)", opacity: .9 }, svg);
+  el("path", { d: area(mid, sim.map(p => [p.m, Math.min(0, p.contrib)])), fill: "var(--ink)", opacity: .85 }, svg);
+  el("path", { d: "M" + base.map(p => pt([p.m, p.total])).join(" L"), fill: "none", stroke: "var(--muted)", "stroke-width": 2, "stroke-dasharray": "6 5" }, svg);
+  el("line", { x1: L, x2: W - R, y1: Y(0), y2: Y(0), stroke: "var(--ink)", "stroke-width": 2 }, svg);
+}
+
+/* ---------- tema ---------- */
+function setTheme(t) {
+  const root = document.documentElement;
+  if (t === "system") root.removeAttribute("data-theme"); else root.setAttribute("data-theme", t);
+  document.querySelectorAll("[data-theme-set]").forEach(b => b.setAttribute("aria-checked", String(b.dataset.themeSet === t)));
+  try { localStorage.setItem("comb-theme", t); } catch (e) {}
+}
+document.querySelectorAll("[data-theme-set]").forEach(b => b.addEventListener("click", () => setTheme(b.dataset.themeSet)));
+try { const t = localStorage.getItem("comb-theme"); if (t) setTheme(t); } catch (e) {}
+
+/* ---------- init ---------- */
+renderSheet();
+let start = "tablero";
+try { const s = localStorage.getItem("comb-tab"); if (s && views[s]) start = s; } catch (e) {}
+show(start);
+})();
+</script>
