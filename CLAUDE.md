@@ -133,8 +133,10 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 - Cookie `kopyme-theme` leída en el root layout → `data-theme` en `<html>` desde el server (sin flash). `setTheme` action guarda cookie + `profiles.theme`.
 - No usar `dark:` de Tailwind: los tokens cambian solos.
 
-### Supabase MCP
-- Conectado en **solo lectura**: sirve para leer esquema/datos y validar. Las migraciones las corre Pedro en el SQL Editor.
+### Supabase / Vercel MCP
+- Supabase MCP con **escritura** (scope local del proyecto). Regla: leer libremente; cualquier migración o escritura se muestra primero y se aplica solo con OK explícito de Pedro. Contar filas antes/después en tablas con datos reales.
+- Vercel MCP (`https://mcp.vercel.com`) para deployments, logs y proyectos.
+- Git push: `.git/config` local fuerza el llavero (`credential.https://github.com.helper = osxkeychain`) porque el `~/.gitconfig` global usa `gh`, que está logueado con otra cuenta (pedrokopyto-sys).
 - Validar migraciones localmente con PGlite antes de pasarlas (stub de `auth.users`, `auth.uid()` y `uuid_generate_v4()`).
 
 ## Known bugs avoided (don't repeat)
@@ -170,7 +172,7 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 
 ### Sesión 2026-11-22
 
-**Rama**: `design/v2-system` · **Commits**: `78d28b4` → (ver git log)
+**Commits**: `78d28b4` → `4551278` · mergeado a `main` (fast-forward) y en producción
 
 #### Qué se hizo
 
@@ -197,7 +199,6 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 - **Push**: no había credenciales de `kopytosoluciones` en el llavero; Pedro pusheó con un PAT desde Terminal.app (la terminal integrada no deja pegar en prompts de contraseña).
 
 #### Pendiente / próxima sesión
-- Correr en Supabase las migraciones **008** y **009** (el MCP es solo lectura).
 - Dejar un solo proyecto en Vercel: **kopyme** es el vinculado a este repo; desconectar o borrar **kopyme-daily-life** (hoy cada push despliega dos veces y el cron de keepalive corre doble).
 - Activar "Leaked password protection" en Supabase Auth.
 - Worktrees viejos en `.claude/worktrees/` (uno con cambios sin commitear en `layout.tsx` y `JungleScene.tsx`): decidir si se borran.
