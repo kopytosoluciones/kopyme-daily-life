@@ -229,8 +229,28 @@ Cuando una vista muestra datos de ejemplo: `◇ DATOS DE EJEMPLO` en mono, borde
 
 ## Implementación
 
-### CSS
-Tokens como variables en `app/globals.css`, con la estructura:
+Stack: **Tailwind v4** (sin `tailwind.config`, todo en `app/globals.css` con `@theme inline`) + shadcn/ui + `next/font`.
+
+### Mapa de tokens
+
+Los tokens del manual viven en CSS con los nombres de shadcn, así los componentes de shadcn los heredan sin tocarlos. En Tailwind hay alias con los nombres del manual.
+
+| Manual | Variable CSS | Clase Tailwind |
+|---|---|---|
+| `paper` | `--background` | `bg-paper` / `bg-background` |
+| `card` | `--card` | `bg-card` |
+| `ink` | `--foreground` | `text-ink` / `border-foreground` |
+| `muted` (texto) | `--muted-foreground` | `text-dim` / `text-muted-foreground` |
+| `soft` | `--muted` | `bg-soft` / `bg-muted` |
+| `accent` | `--primary` | `bg-primary`, `text-primary` |
+| `accent-ink` | `--primary-foreground` | `text-primary-foreground` |
+| `pos` | `--success` | `text-pos` |
+| `neg` | `--destructive` | `text-neg` / `text-destructive` |
+| sombra | `--shadow-c` / `--shadow-p` | `shadow-hard`, `shadow-hard-lg`, `shadow-hard-primary` |
+
+⚠️ `--accent` de shadcn **no** es el acento del manual: es el fondo de hover (= `soft`). El acento azul es siempre `primary`.
+
+### Estructura de temas
 
 ```css
 :root { /* todos los tokens, valores light */ }
@@ -238,14 +258,16 @@ Tokens como variables en `app/globals.css`, con la estructura:
 :root[data-theme="dark"] { /* mismos valores dark */ color-scheme: dark; }
 ```
 
-### Tailwind
-- `theme.extend.colors` mapea cada token: `paper: "var(--paper)"`, `ink: "var(--ink)"`, etc.
-- `borderRadius`: todo en `0` (`none`, `sm`, `md`, `lg`, `full` excepto para elementos realmente circulares, que no deberían existir).
-- `boxShadow`: `hard: "4px 4px 0 var(--shadow-c)"`, `hard-lg: "8px 8px 0 var(--shadow-c)"`. Eliminar los difusos.
-- `fontFamily`: `sans: Space Grotesk`, `mono: JetBrains Mono`, cargadas con `next/font/google`.
+- El layout raíz lee la cookie `kopyme-theme` y pone `data-theme` en `<html>` desde el servidor: no hay parpadeo.
+- `ThemeToggle` cambia el atributo al instante, y la action `setTheme` guarda la cookie y `profiles.theme`.
+- La variante `dark:` de Tailwind solo responde a `data-theme="dark"` explícito. **No usar `dark:`**: los tokens ya cambian solos en los tres estados.
 
-### shadcn/ui
-Pisar `--radius: 0` y los colores base de shadcn (`--background`, `--foreground`, `--primary`, `--border`, `--ring`…) apuntando a los tokens de arriba, para que los componentes existentes hereden el sistema sin reescribirlos.
+### Resto
+- `--radius: 0` y todos los `--radius-*` en `0px`.
+- Fuentes: `Space_Grotesk` → `--font-grotesk` (`font-sans`), `JetBrains_Mono` → `--font-mono` (`font-mono`). Las variables viejas (`--font-playfair`, `--font-lora`, `--font-inter`) apuntan a Grotesk para que los módulos sin migrar no se rompan.
+- Números: `font-mono tabular` (la clase `.tabular` activa cifras tabulares).
+- Cursor del título: `<span className="k-cursor">_</span>`.
+- Botón: `components/ui/button.tsx` ya implementa las variantes del manual (`default` = primario, `outline` = default del manual, `destructive`, `ghost`, `link`).
 
 ---
 

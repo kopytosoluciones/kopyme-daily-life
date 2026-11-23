@@ -3,85 +3,67 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { logout } from "@/app/(auth)/login/actions";
-import {
-  Home,
-  TreePine,
-  Leaf,
-  CheckSquare,
-  CalendarDays,
-  BookHeart,
-  Target,
-  Network,
-  Camera,
-  Mail,
-  Settings,
-  LogOut,
-} from "lucide-react";
+import ThemeToggle from "./ThemeToggle";
 
 const modules = [
-  { href: "/dashboard",   Icon: Home,         label: "Inicio"            },
-  { href: "/tree",        Icon: TreePine,     label: "Árbol de la vida"  },
-  { href: "/habits",      Icon: Leaf,         label: "Hábitos"           },
-  { href: "/todos",       Icon: CheckSquare,  label: "Checklists"        },
-  { href: "/calendar",    Icon: CalendarDays, label: "Calendario"        },
-  { href: "/diary",       Icon: BookHeart,    label: "Diario Emocional"  },
-  { href: "/goals",       Icon: Target,       label: "Metas"             },
-  { href: "/connections", Icon: Network,      label: "Vínculos"          },
-  { href: "/memories",    Icon: Camera,       label: "Recuerdos"         },
-  { href: "/letters",     Icon: Mail,         label: "Cartas & Regalos"  },
+  { href: "/dashboard",   label: "Inicio"     },
+  { href: "/tree",        label: "Árbol"      },
+  { href: "/habits",      label: "Hábitos"    },
+  { href: "/todos",       label: "Checklists" },
+  { href: "/calendar",    label: "Calendario" },
+  { href: "/diary",       label: "Diario"     },
+  { href: "/goals",       label: "Metas"      },
+  { href: "/connections", label: "Vínculos"   },
+  { href: "/memories",    label: "Recuerdos"  },
+  { href: "/letters",     label: "Cartas"     },
 ];
+
+const itemBase =
+  "flex w-full items-center gap-2.5 px-5 py-[7px] font-mono text-xs uppercase tracking-[0.06em] text-left";
+
+function Item({ href, label, active }: { href: string; label: string; active: boolean }) {
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      className={`${itemBase} ${active ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"}`}
+    >
+      <span aria-hidden className={`w-2.5 ${active ? "text-primary" : ""}`}>{active ? "▸" : "·"}</span>
+      {label}
+    </Link>
+  );
+}
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const isActive = (href: string) =>
+    pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
   return (
-    <aside className="w-56 shrink-0 h-screen sticky top-0 flex flex-col border-r border-[#E5E7EB] bg-white z-10">
-      {/* Logo */}
-      <div className="px-5 py-6 border-b border-[#E5E7EB]">
-        <span className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-[#0A0A0A] tracking-tight">
-          kopyme
-        </span>
+    <aside className="sticky top-0 z-10 flex h-screen w-[200px] shrink-0 flex-col border-r-2 border-foreground bg-background">
+      <div className="px-5 pt-6 pb-5 font-mono text-[13px] font-bold tracking-[0.04em]">
+        KOPYME<span className="font-normal text-muted-foreground">/v2</span>
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 py-4 px-3 space-y-0.5 overflow-y-auto">
-        {modules.map(({ href, Icon, label }) => {
-          const active = pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${
-                active
-                  ? "bg-[#0A0A0A] text-white font-medium"
-                  : "text-[#6B7280] hover:bg-[#F5F5F5] hover:text-[#0A0A0A]"
-              }`}
-            >
-              <Icon size={16} strokeWidth={1.8} className="shrink-0" />
-              <span className="leading-none">{label}</span>
-            </Link>
-          );
-        })}
+      <nav aria-label="Módulos" className="flex-1 overflow-y-auto">
+        {modules.map((m) => (
+          <Item key={m.href} {...m} active={isActive(m.href)} />
+        ))}
       </nav>
 
-      {/* Bottom */}
-      <div className="px-3 py-4 border-t border-[#E5E7EB] space-y-0.5">
-        <Link
-          href="/settings"
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#6B7280] hover:bg-[#F5F5F5] hover:text-[#0A0A0A] transition-all"
-        >
-          <Settings size={16} strokeWidth={1.8} className="shrink-0" />
-          <span>Ajustes</span>
-        </Link>
-        <form action={logout}>
-          <button
-            type="submit"
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-[#6B7280] hover:bg-[#F5F5F5] hover:text-[#0A0A0A] transition-all text-left"
-          >
-            <LogOut size={16} strokeWidth={1.8} className="shrink-0" />
-            <span>Salir</span>
-          </button>
-        </form>
+      <div className="flex flex-col gap-3 border-t-2 border-foreground py-4">
+        <div className="px-5">
+          <ThemeToggle />
+        </div>
+        <div>
+          <Item href="/settings" label="Ajustes" active={isActive("/settings")} />
+          <form action={logout}>
+            <button type="submit" className={`${itemBase} text-muted-foreground hover:text-foreground`}>
+              <span aria-hidden className="w-2.5">·</span>
+              Salir
+            </button>
+          </form>
+        </div>
       </div>
     </aside>
   );
