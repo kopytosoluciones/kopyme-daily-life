@@ -42,7 +42,7 @@ export default function Sidebar({ notices }: { notices: Notice[] }) {
     pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
   return (
-    <aside className="sticky top-0 z-10 flex h-screen w-[200px] shrink-0 flex-col border-r-2 border-foreground bg-background">
+    <aside className="sticky top-0 z-40 flex h-screen w-[200px] shrink-0 flex-col border-r-2 border-foreground bg-background">
       <div className="px-5 pt-6 pb-5 font-mono text-[13px] font-bold tracking-[0.04em]">
         KOPYME<span className="font-normal text-muted-foreground">/v2</span>
       </div>
