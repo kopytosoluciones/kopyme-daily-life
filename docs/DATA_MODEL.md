@@ -191,6 +191,25 @@ Las FKs compuestas impiden que un saldo una el mes de un usuario con la billeter
 
 ---
 
+## Vínculos (grupos) — migración 010
+
+### connection_groups
+```sql
+id, user_id, name text, kind text  -- amistad | familia | trabajo | comunidad | otro
+pos_x int, pos_y int               -- posición en el mapa, relativa al centro (vos)
+sort_order int, created_at, updated_at
+unique (id, user_id)
+```
+
+### connections (columnas agregadas)
+```sql
+group_id uuid      -- FK compuesta (group_id, user_id) → connection_groups, on delete set null (group_id)
+affinity int       -- 1..10, default 5
+last_contact date
+```
+
+---
+
 ## Memories (Recuerdos)
 
 ### memories

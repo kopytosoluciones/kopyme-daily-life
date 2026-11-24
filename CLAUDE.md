@@ -69,7 +69,7 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 | Checklists | `app/(app)/todos/TodosClient.tsx` | Supabase (todo_lists + todos) | ✅ v2 |
 | Calendario | `app/(app)/calendar/CalendarClient.tsx` | localStorage `kopyme-cal-v2` | ✅ v2 |
 | Diario Emocional | `app/(app)/diary/DiaryClient.tsx` | Supabase diary_entries | ✅ v2 |
-| Vínculos | `app/(app)/connections/ConnectionsClient.tsx` | localStorage `kopyme-connections-v1` | ✅ v2 |
+| Vínculos | `app/(app)/connections/VinculosClient.tsx` + `lib/connections/` | Supabase connection_groups + connections | ✅ v2 · grupos arrastrables |
 | Combustible | `app/(app)/combustible/` (Tablero, Bitacora, Simulador, Onboarding, charts) + `lib/finance/` | Supabase finance_* | ✅ |
 | Ajustes | `app/(app)/settings/page.tsx` | cookie + profiles.theme | ✅ tema |
 | Avisos | `components/layout/NoticesPanel.tsx` + `lib/notifications.ts` | derivado | ✅ |
@@ -123,6 +123,11 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 - Meses: se calculan en zona `America/Argentina/Buenos_Aires` (`APP_TIME_ZONE`), Vercel corre en UTC.
 - Gráficos: SVG propio en `combustible/charts.tsx` (`LineChart`, `DeviationBars`, `StackedArea`, `ScrambleNumber`), colores siempre por `var(--token)`. Para verificar con datos sin tocar la base: página temporal con mock que se borra antes del commit.
 - Números: `parseAmount` acepta "1.234,56", "1234.56" y "1.465" (= 1465). Formato `es-AR` con `−` real.
+
+### Vínculos
+- Grupos en `connection_groups` (nombre, `kind`, `pos_x/pos_y` relativos al centro "VOS"); personas en `connections` con `group_id`, `affinity`, `last_contact`. Borrar grupo → personas a "Sin grupo" (`on delete set null (group_id)`).
+- Drag con pointer events en el header de la tabla; se guarda la posición al soltar. En < md se apilan como lista.
+- `importLegacy` trae `localStorage` `kopyme-connections-v1` mapeando nombres (ORT→Podcast, Macabi→Pekele, Universidad/UTN→Facultad, Trabajo→Atom, resto→Amigos sueltos) y marca `kopyme-connections-imported`.
 
 ### Tema
 - Cookie `kopyme-theme` leída en el root layout → `data-theme` en `<html>` desde el server (sin flash). `setTheme` action guarda cookie + `profiles.theme`.
@@ -187,8 +192,9 @@ Lista viva de lo que sigue abierto. La historia de cada sesión está en **`docs
 
 **Producto / código**
 - Árbol de la vida: ajustar coordenadas de zonas SVG si alguna queda desplazada (ahora hay lista de zonas como alternativa accesible).
-- Revisar paletas de color de usuario en Calendario y Vínculos (neón/negro se ven mal en dark).
-- Vínculos: evaluar volver a mostrar afinidad en el grosor de las curvas.
+- Revisar paleta de color de usuario en Calendario (neón/negro se ven mal en dark).
+- Vínculos: Pedro debe tocar **Importar** en el navegador donde tenía sus datos viejos (kopyme.vercel.app); ajustar afinidades de Familia (cargadas en 5).
+- Vínculos: en pantallas angostas (< ~1000px) los grupos de los costados quedan cortados hasta arrastrarlos; evaluar escalar posiciones al ancho del mapa.
 
 **Limpieza**
 - Nada pendiente. (Los cambios sin commitear del worktree viejo quedaron en `.claude/archive/`, fuera de git.)
