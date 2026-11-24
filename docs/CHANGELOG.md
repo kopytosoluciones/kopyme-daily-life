@@ -27,8 +27,11 @@ Lo que sigue abierto hoy vive en `CLAUDE.md` → **Pendiente**. Al cerrar una se
 #### Lo que salió mal ❌
 - La terminal integrada a veces deniega una navegación del navegador del panel; reintentar alcanza.
 
-#### Pendiente (en ese momento)
-- En la base hay un mes **diciembre 2026** creado (probablemente con "+ Nuevo mes") aunque estamos en noviembre: revisar si fue intencional.
+| 6 | Vercel: variables públicas de Supabase habilitadas también para Preview (la service role queda solo en Production) | Vercel MCP |
+
+#### Notas
+- Diciembre 2026 en Combustible fue creado a propósito por Pedro para proyectar.
+- Leaked password protection de Supabase requiere plan Pro: descartado (org en Free).
 
 ---
 
