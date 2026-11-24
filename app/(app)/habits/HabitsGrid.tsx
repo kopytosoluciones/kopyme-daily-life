@@ -6,7 +6,6 @@ import HabitCell from "./HabitCell";
 import NewHabitModal from "./NewHabitModal";
 import { updateHabitName, updateHabitGoal, archiveHabit } from "./actions";
 import { DAY_LABELS, toDateStr } from "@/lib/utils/dates";
-import { X } from "lucide-react";
 
 interface Habit {
   id: string;
@@ -62,135 +61,144 @@ export default function HabitsGrid({ habits, logs, weekDays, prevWeek, nextWeek,
     return `${start.toLocaleDateString("es-AR", opts)} – ${end.toLocaleDateString("es-AR", opts)}`;
   })();
 
+  const navBtn =
+    "border-2 border-foreground bg-card px-2.5 py-1 font-mono text-[11px] tracking-[0.06em] uppercase shadow-hard transition-transform duration-100 hover:-translate-x-px hover:-translate-y-px active:translate-x-1 active:translate-y-1 active:shadow-none disabled:translate-x-0 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-30 disabled:shadow-none";
+
   return (
     <>
       {showModal && <NewHabitModal onClose={() => { setShowModal(false); router.refresh(); }} />}
 
-      <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-        {/* Week navigation */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-[#F5F5F5]">
+      <section className="border-2 border-foreground bg-card">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-foreground px-4 py-2.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              type="button"
+              onClick={() => router.push(`/habits?week=${prevWeek}`)}
+              aria-label="Semana anterior"
+              className={navBtn}
+            >
+              ←
+            </button>
+            <span className="min-w-[8.5rem] text-center font-mono text-xs font-bold tabular">{weekLabel}</span>
+            <button
+              type="button"
+              disabled={!canGoNext}
+              onClick={() => router.push(`/habits?week=${nextWeek}`)}
+              aria-label="Semana siguiente"
+              className={navBtn}
+            >
+              →
+            </button>
+          </div>
           <button
-            onClick={() => router.push(`/habits?week=${prevWeek}`)}
-            className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] hover:text-[#0A0A0A] transition-colors px-2 py-1 rounded-lg hover:bg-[#F5F5F5]"
-          >
-            ← anterior
-          </button>
-          <span className="font-[family-name:var(--font-mono)] text-xs font-medium text-[#0A0A0A]">
-            {weekLabel}
-          </span>
-          <button
-            disabled={!canGoNext}
-            onClick={() => router.push(`/habits?week=${nextWeek}`)}
-            className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] hover:text-[#0A0A0A] transition-colors px-2 py-1 rounded-lg hover:bg-[#F5F5F5] disabled:opacity-30 disabled:cursor-not-allowed"
-          >
-            siguiente →
-          </button>
-        </div>
-
-        {/* Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-[#F5F5F5]">
-                <th className="text-left px-5 py-2.5 text-xs font-medium text-[#9CA3AF] w-44">Hábito</th>
-                <th className="text-center px-2 py-2.5 text-xs font-medium text-[#9CA3AF] w-20">Objetivo</th>
-                {weekDays.map((day, i) => {
-                  const ds = toDateStr(day);
-                  const isToday = ds === today;
-                  return (
-                    <th key={ds} className={`text-center px-1 py-2.5 w-14 ${isToday ? "text-[#9D4EDD]" : "text-[#9CA3AF]"}`}>
-                      <div className="font-[family-name:var(--font-mono)] text-[10px] font-medium">{DAY_LABELS[i]}</div>
-                      <div className={`font-[family-name:var(--font-mono)] text-[10px] mt-0.5 ${isToday ? "font-bold" : "font-normal"}`}>
-                        {day.getDate()}
-                      </div>
-                    </th>
-                  );
-                })}
-                <th className="w-8" />
-              </tr>
-            </thead>
-            <tbody>
-              {habits.length === 0 && (
-                <tr>
-                  <td colSpan={10} className="text-center py-10 text-[#D1D5DB] text-sm">
-                    Todavía no hay hábitos. ¡Creá el primero!
-                  </td>
-                </tr>
-              )}
-              {habits.map(habit => (
-                <tr key={habit.id} className="border-b border-[#F5F5F5] last:border-0 hover:bg-[#F5F5F5]/50 group">
-                  {/* Name */}
-                  <td className="px-5 py-2.5">
-                    {editingName === habit.id ? (
-                      <input
-                        autoFocus
-                        value={nameVal}
-                        onChange={e => setNameVal(e.target.value)}
-                        onBlur={() => handleNameSave(habit.id)}
-                        onKeyDown={e => { if (e.key === "Enter") handleNameSave(habit.id); if (e.key === "Escape") setEditingName(null); }}
-                        className="w-full bg-transparent text-[#0A0A0A] text-sm focus:outline-none border-b border-[#9D4EDD]"
-                      />
-                    ) : (
-                      <span
-                        onClick={() => { setEditingName(habit.id); setNameVal(habit.name); }}
-                        className="text-[#0A0A0A] cursor-text hover:text-[#9D4EDD] transition-colors"
-                      >
-                        {habit.name}
-                      </span>
-                    )}
-                  </td>
-
-                  {/* Goal target */}
-                  <td className="px-2 py-2.5 text-center">
-                    <GoalTarget habit={habit} />
-                  </td>
-
-                  {/* Day cells */}
-                  {weekDays.map(day => {
-                    const ds = toDateStr(day);
-                    const isToday = ds === today;
-                    const isFuture = ds > today;
-                    return (
-                      <td key={ds} className="px-1 py-2">
-                        <HabitCell
-                          habitId={habit.id}
-                          date={ds}
-                          value={logMap[habit.id]?.[ds] ?? null}
-                          goalType={habit.goal_type}
-                          goalOptions={habit.goal_options}
-                          isToday={isToday}
-                          isFuture={isFuture}
-                        />
-                      </td>
-                    );
-                  })}
-
-                  {/* Archive */}
-                  <td className="pr-3">
-                    <button
-                      onClick={() => startTransition(() => archiveHabit(habit.id))}
-                      title="Archivar hábito"
-                      className="opacity-0 group-hover:opacity-100 text-[#D1D5DB] hover:text-[#FF1493] transition-all"
-                    >
-                      <X size={14} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Add habit */}
-        <div className="px-5 py-3 border-t border-[#F5F5F5]">
-          <button
+            type="button"
             onClick={() => setShowModal(true)}
-            className="text-sm text-[#9D4EDD] hover:underline font-medium"
+            className="border-2 border-foreground bg-primary px-3.5 py-2 font-mono text-xs tracking-[0.06em] text-primary-foreground uppercase shadow-hard-primary transition-transform duration-100 hover:-translate-x-px hover:-translate-y-px active:translate-x-1 active:translate-y-1 active:shadow-none"
           >
             + Nuevo hábito
           </button>
         </div>
-      </div>
+
+        {habits.length === 0 ? (
+          <div className="px-6 py-14 text-center font-mono text-xs text-muted-foreground">
+            <pre aria-hidden className="mb-3 leading-tight select-none">{"┌─────────┐\n│ □ □ □ □ │\n│ □ □ □   │\n└─────────┘"}</pre>
+            Todavía no hay hábitos. Creá el primero para empezar a llevar la cuenta.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[640px] border-collapse text-sm">
+              <thead>
+                <tr className="bg-foreground text-background">
+                  <th className="sticky left-0 z-10 w-44 border-r-2 border-foreground bg-foreground px-4 py-2 text-left font-mono text-[11px] font-normal tracking-[0.08em] uppercase">
+                    Hábito
+                  </th>
+                  <th className="w-20 px-2 py-2 text-center font-mono text-[11px] font-normal tracking-[0.08em] uppercase">
+                    Objetivo
+                  </th>
+                  {weekDays.map((day, i) => {
+                    const ds = toDateStr(day);
+                    const isToday = ds === today;
+                    return (
+                      <th
+                        key={ds}
+                        aria-current={isToday ? "date" : undefined}
+                        className={`w-14 px-1 py-1.5 text-center font-mono font-normal ${isToday ? "bg-primary text-primary-foreground" : ""}`}
+                      >
+                        <div className="text-[10px] tracking-[0.08em] uppercase">{DAY_LABELS[i]}</div>
+                        <div className={`text-[11px] tabular ${isToday ? "font-bold" : ""}`}>{day.getDate()}</div>
+                      </th>
+                    );
+                  })}
+                  <th className="w-8" aria-label="Acciones" />
+                </tr>
+              </thead>
+              <tbody>
+                {habits.map(habit => (
+                  <tr key={habit.id} className="group border-b border-muted last:border-b-0 hover:bg-muted/40">
+                    <td className="sticky left-0 z-10 border-r-2 border-foreground bg-card px-4 py-2">
+                      {editingName === habit.id ? (
+                        <input
+                          autoFocus
+                          value={nameVal}
+                          onChange={e => setNameVal(e.target.value)}
+                          onBlur={() => handleNameSave(habit.id)}
+                          onKeyDown={e => { if (e.key === "Enter") handleNameSave(habit.id); if (e.key === "Escape") setEditingName(null); }}
+                          aria-label="Nombre del hábito"
+                          className="w-full border-b-2 border-primary bg-transparent text-sm outline-none"
+                        />
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => { setEditingName(habit.id); setNameVal(habit.name); }}
+                          title="Renombrar"
+                          className="w-full cursor-text truncate text-left font-medium hover:text-primary"
+                        >
+                          {habit.name}
+                        </button>
+                      )}
+                    </td>
+
+                    <td className="px-2 py-2 text-center">
+                      <GoalTarget habit={habit} />
+                    </td>
+
+                    {weekDays.map(day => {
+                      const ds = toDateStr(day);
+                      const isToday = ds === today;
+                      const isFuture = ds > today;
+                      return (
+                        <td key={ds} className={`px-1 py-1.5 ${isToday ? "bg-primary/10" : ""}`}>
+                          <HabitCell
+                            habitId={habit.id}
+                            date={ds}
+                            value={logMap[habit.id]?.[ds] ?? null}
+                            goalType={habit.goal_type}
+                            goalOptions={habit.goal_options}
+                            isToday={isToday}
+                            isFuture={isFuture}
+                          />
+                        </td>
+                      );
+                    })}
+
+                    <td className="pr-3 text-center">
+                      <button
+                        type="button"
+                        onClick={() => startTransition(() => archiveHabit(habit.id))}
+                        title="Archivar hábito"
+                        aria-label={`Archivar ${habit.name}`}
+                        className="font-mono text-[11px] text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-destructive focus-visible:opacity-100"
+                      >
+                        ✕
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
     </>
   );
 }
@@ -214,7 +222,7 @@ function GoalTarget({ habit }: { habit: Habit }) {
     : "—";
 
   if (habit.goal_type !== "numeric") {
-    return <span className="font-[family-name:var(--font-mono)] text-xs text-[#D1D5DB]">{display}</span>;
+    return <span className="font-mono text-[11px] text-muted-foreground tabular">{display}</span>;
   }
 
   if (editing) {
@@ -226,7 +234,8 @@ function GoalTarget({ habit }: { habit: Habit }) {
         onChange={e => setVal(e.target.value)}
         onBlur={save}
         onKeyDown={e => { if (e.key === "Enter") save(); if (e.key === "Escape") setEditing(false); }}
-        className="w-16 font-[family-name:var(--font-mono)] text-xs text-center bg-[#F5F5F5] border border-[#9D4EDD] rounded-lg px-1 py-0.5 focus:outline-none"
+        aria-label="Objetivo"
+        className="w-16 border-2 border-foreground bg-primary/10 px-1 py-0.5 text-center font-mono text-xs tabular outline-none"
       />
     );
   }
@@ -234,7 +243,8 @@ function GoalTarget({ habit }: { habit: Habit }) {
   return (
     <button
       onClick={() => setEditing(true)}
-      className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] hover:text-[#9D4EDD] transition-colors"
+      type="button"
+      className="border-b border-dashed border-muted-foreground font-mono text-xs tabular hover:border-primary hover:text-primary"
       title="Editar objetivo"
     >
       {display}

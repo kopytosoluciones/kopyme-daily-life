@@ -21,7 +21,7 @@ const modules = [
 ];
 
 const itemBase =
-  "flex w-full items-center gap-2.5 px-5 py-[7px] font-mono text-xs uppercase tracking-[0.06em] text-left";
+  "flex shrink-0 items-center gap-2.5 whitespace-nowrap px-3 py-[7px] text-left font-mono text-xs uppercase tracking-[0.06em] md:w-full md:px-5";
 
 function Item({ href, label, active }: { href: string; label: string; active: boolean }) {
   return (
@@ -42,20 +42,20 @@ export default function Sidebar({ notices }: { notices: Notice[] }) {
     pathname === href || (href !== "/dashboard" && pathname.startsWith(href));
 
   return (
-    <aside className="sticky top-0 z-40 flex h-screen w-[200px] shrink-0 flex-col border-r-2 border-foreground bg-background">
-      <div className="px-5 pt-6 pb-5 font-mono text-[13px] font-bold tracking-[0.04em]">
+    <aside className="sticky top-0 z-40 flex w-full shrink-0 flex-col border-b-2 border-foreground bg-background md:h-screen md:w-[200px] md:border-r-2 md:border-b-0">
+      <div className="px-3 pt-3 pb-1 font-mono text-[13px] font-bold tracking-[0.04em] md:px-5 md:pt-6 md:pb-5">
         KOPYME<span className="font-normal text-muted-foreground">/v2</span>
       </div>
 
-      <nav aria-label="Módulos" className="flex-1 overflow-y-auto">
+      <nav aria-label="Módulos" className="flex overflow-x-auto md:block md:flex-1 md:overflow-y-auto">
         {modules.map((m) => (
           <Item key={m.href} {...m} active={isActive(m.href)} />
         ))}
       </nav>
 
-      <div className="flex flex-col border-t-2 border-foreground py-4">
+      <div className="flex flex-row border-t-2 border-foreground md:flex-col md:py-4">
         <NoticesPanel notices={notices} />
-        <div>
+        <div className="flex md:block">
           <Item href="/settings" label="Ajustes" active={isActive("/settings")} />
           <form action={logout}>
             <button type="submit" className={`${itemBase} text-muted-foreground hover:text-foreground`}>

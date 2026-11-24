@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, X, Repeat2, Trash2, Pencil, Plus } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -25,8 +24,7 @@ const END_HOUR    = 24;
 const TOTAL_HOURS = END_HOUR - START_HOUR;  // 17 rows (7–23 inclusive)
 const ROW_H       = 26;                      // px per hour
 
-const HOUR_LABELS = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => START_HOUR + i); // 7..24
-const HOUR_ROWS   = Array.from({ length: TOTAL_HOURS },     (_, i) => START_HOUR + i); // 7..23 (slots)
+const HOUR_ROWS  = Array.from({ length: TOTAL_HOURS },     (_, i) => START_HOUR + i); // 7..23 (slots)
 
 const DURATION_OPTIONS = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8];
 
@@ -72,8 +70,17 @@ function sameDay(a: Date, b: Date) {
   return a.toDateString() === b.toDateString();
 }
 
-function textColor(hex: string): string {
-  return hex === "#39FF14" ? "#16a34a" : hex;
+const LABEL = "font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase";
+const FIELD = "w-full border-2 border-foreground bg-card px-3 py-2 font-mono text-sm text-foreground outline-none placeholder:text-muted-foreground focus:bg-primary/10";
+const BAR_W = 20;
+
+function asciiBar(ratio: number): string {
+  const filled = Math.round(Math.max(0, Math.min(1, ratio)) * BAR_W);
+  return "█".repeat(filled) + "░".repeat(BAR_W - filled);
+}
+
+function fmtHours(h: number): string {
+  return h.toLocaleString("es-AR", { maximumFractionDigits: 1 });
 }
 
 function hourLabel(h: number): string {
@@ -117,8 +124,8 @@ function YearStrip({ weekStart, today, onNavigate }: {
   const year = today.getFullYear();
 
   return (
-    <div className="flex items-end gap-4 overflow-x-auto py-3 px-8 border-b border-[#F5F5F5] bg-white/80 backdrop-blur-sm">
-      <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] shrink-0 pb-0.5">
+    <div className="flex items-end gap-4 overflow-x-auto border-2 border-foreground bg-card px-4 py-3">
+      <span className="shrink-0 pb-0.5 font-mono text-[11px] font-bold tabular text-foreground">
         {year}
       </span>
       {Array.from({ length: 12 }, (_, month) => {
@@ -136,21 +143,30 @@ function YearStrip({ weekStart, today, onNavigate }: {
         return (
           <div
             key={month}
-            className={`shrink-0 transition-opacity ${isCurrent ? "opacity-100" : "opacity-35 hover:opacity-65"}`}
+            className="shrink-0"
           >
-            <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#9CA3AF] mb-1.5 text-center">
+            <p className={`mb-1.5 text-center font-mono text-[10px] tracking-[0.08em] uppercase ${
+              isCurrent ? "font-bold text-foreground" : "text-muted-foreground"
+            }`}>
               {MONTH_NAMES[month]}
             </p>
             <div className="flex gap-0.5">
               {weeks.map((w, i) => {
                 const isThisWeek = toKey(w) === toKey(weekStart);
+                const label = `Semana del ${w.toLocaleDateString("es-AR")}`;
                 return (
                   <button
                     key={i}
                     onClick={() => onNavigate(w)}
-                    title={`Semana del ${w.toLocaleDateString("es-AR")}`}
-                    className={`h-4 w-1.5 rounded-sm transition-all ${
-                      isThisWeek ? "bg-[#9D4EDD] scale-y-125" : "bg-[#E5E7EB] hover:bg-[#D1D5DB]"
+                    title={label}
+                    aria-label={label}
+                    aria-current={isThisWeek ? "date" : undefined}
+                    className={`h-4 w-1.5 transition-colors duration-100 ${
+                      isThisWeek
+                        ? "bg-primary"
+                        : isCurrent
+                          ? "bg-muted-foreground hover:bg-foreground"
+                          : "bg-muted hover:bg-muted-foreground"
                     }`}
                   />
                 );
@@ -303,409 +319,437 @@ export default function CalendarClient() {
       : `${s.toLocaleDateString("es-AR", opts)} – ${en.toLocaleDateString("es-AR", opts)}`;
   })();
 
+  const totalWeekHours = summary.reduce((s, [, v]) => s + v.hours, 0);
+
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="mx-auto flex max-w-[1180px] flex-col gap-6 px-4 py-7 md:px-6">
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[40px] leading-none font-bold tracking-[-0.02em]">
+            Calendario<span className="k-cursor">_</span>
+          </h1>
+          <p className="mt-2 font-mono text-xs text-muted-foreground tabular">
+            {summary.length} {summary.length === 1 ? "actividad" : "actividades"} · {fmtHours(totalWeekHours)}h esta semana
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5">
+          {isCurrentWeek ? (
+            <span className="border-[1.5px] border-current px-1.5 py-0.5 font-mono text-[10px] tracking-[0.06em] text-primary uppercase">
+              esta semana
+            </span>
+          ) : (
+            <button
+              onClick={() => setWeekStart(monday(new Date()))}
+              className="border-2 border-foreground bg-card px-3 py-1.5 font-mono text-xs tracking-[0.06em] text-foreground uppercase shadow-hard transition-transform duration-100 hover:-translate-x-px hover:-translate-y-px active:translate-x-1 active:translate-y-1 active:shadow-none"
+            >
+              ▸ Hoy
+            </button>
+          )}
+
+          <div className="flex items-stretch border-2 border-foreground bg-card shadow-hard">
+            <button
+              onClick={() => setWeekStart(addDays(weekStart, -7))}
+              aria-label="Semana anterior"
+              className="px-3 py-1.5 font-mono text-sm text-foreground hover:bg-muted"
+            >
+              ←
+            </button>
+            <span className="flex items-center border-x-2 border-foreground px-3 font-mono text-xs font-bold tabular text-foreground">
+              {weekLabel}
+            </span>
+            <button
+              onClick={() => setWeekStart(addDays(weekStart, 7))}
+              aria-label="Semana siguiente"
+              className="px-3 py-1.5 font-mono text-sm text-foreground hover:bg-muted"
+            >
+              →
+            </button>
+          </div>
+        </div>
+      </header>
 
       {/* ── Year strip ─────────────────────────────────────────────────────── */}
       <YearStrip weekStart={weekStart} today={today} onNavigate={setWeekStart} />
 
-      {/* ── Week nav ───────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-8 py-4 border-b border-[#F5F5F5]">
-        <button
-          onClick={() => setWeekStart(addDays(weekStart, -7))}
-          className="p-1.5 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#0A0A0A] hover:text-[#0A0A0A] transition-all"
-        >
-          <ChevronLeft size={16} />
-        </button>
-
-        <h2 className="font-[family-name:var(--font-playfair)] text-xl font-bold text-[#0A0A0A]">
-          {weekLabel}
-        </h2>
-
-        {isCurrentWeek && (
-          <span className="font-[family-name:var(--font-mono)] text-[10px] bg-[#9D4EDD] text-white px-2 py-0.5 rounded-full">
-            esta semana
-          </span>
-        )}
-
-        <button
-          onClick={() => setWeekStart(addDays(weekStart, 7))}
-          className="p-1.5 rounded-lg border border-[#E5E7EB] text-[#6B7280] hover:border-[#0A0A0A] hover:text-[#0A0A0A] transition-all"
-        >
-          <ChevronRight size={16} />
-        </button>
-
-        {!isCurrentWeek && (
-          <button
-            onClick={() => setWeekStart(monday(new Date()))}
-            className="font-[family-name:var(--font-mono)] text-xs text-[#9D4EDD] hover:underline"
-          >
-            hoy
-          </button>
-        )}
-      </div>
-
       {/* ── Hourly grid ────────────────────────────────────────────────────── */}
-      <div className="flex-1 overflow-auto">
-        <div className="flex" style={{ minWidth: 720 }}>
+      <div className="border-2 border-foreground bg-card">
+        <div className="overflow-x-auto">
+          <div className="flex" style={{ minWidth: 720 }}>
 
-          {/* Time axis */}
-          <div className="shrink-0 w-14 bg-white">
-            {/* Spacer for day header row */}
-            <div style={{ height: 52 }} />
-            {HOUR_LABELS.map(h => (
-              <div
-                key={h}
-                className="flex items-start justify-end pr-2"
-                style={{ height: ROW_H }}
-              >
-                <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#C4C4C4] -translate-y-[7px]">
-                  {hourLabel(h)}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Day columns */}
-          {weekDays.map((day, dayIndex) => {
-            const isToday = sameDay(day, today);
-            const evs     = dayEvents(dayIndex);
-
-            return (
-              <div key={dayIndex} className="flex-1 min-w-0 border-l border-[#F0F0F0]">
-
-                {/* Day header */}
+            {/* Time axis */}
+            <div className="w-14 shrink-0 border-r-2 border-foreground">
+              <div className="border-b-2 border-foreground bg-foreground" style={{ height: 44 }} />
+              {HOUR_ROWS.map(h => (
                 <div
-                  className="flex flex-col items-center justify-center border-b border-[#F0F0F0] sticky top-0 bg-white z-20"
-                  style={{ height: 52 }}
+                  key={h}
+                  className="flex items-start justify-end border-b border-muted pt-0.5 pr-2"
+                  style={{ height: ROW_H }}
                 >
-                  <span className={`font-[family-name:var(--font-mono)] text-[10px] uppercase tracking-wide ${
-                    isToday ? "text-[#9D4EDD]" : dayIndex >= 5 ? "text-[#C4B5FD]" : "text-[#9CA3AF]"
-                  }`}>
-                    {DAY_NAMES[dayIndex]}
+                  <span className="font-mono text-[10px] text-muted-foreground tabular">
+                    {hourLabel(h)}
                   </span>
-                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-sm font-semibold mt-0.5 transition-colors ${
-                    isToday ? "bg-[#9D4EDD] text-white" : dayIndex >= 5 ? "text-[#9CA3AF]" : "text-[#0A0A0A]"
-                  }`}>
-                    {day.getDate()}
-                  </div>
                 </div>
+              ))}
+            </div>
 
-                {/* Hour rows + events */}
-                <div className="relative" style={{ height: TOTAL_HOURS * ROW_H }}>
+            {/* Day columns */}
+            {weekDays.map((day, dayIndex) => {
+              const isToday = sameDay(day, today);
+              const evs     = dayEvents(dayIndex);
 
-                  {/* Clickable hour rows */}
-                  {HOUR_ROWS.map((h, i) => (
-                    <div
-                      key={h}
-                      className="absolute inset-x-0 border-b border-[#F5F5F5] hover:bg-[#F9F5FF]/50 transition-colors cursor-pointer group/row"
-                      style={{ top: i * ROW_H, height: ROW_H, zIndex: 1 }}
-                      onClick={() => openCreate(dayIndex, h)}
-                    >
-                      <div className="absolute top-1 right-1 opacity-0 group-hover/row:opacity-100 transition-opacity">
-                        <Plus size={10} className="text-[#D1D5DB]" />
-                      </div>
-                    </div>
-                  ))}
+              return (
+                <div
+                  key={dayIndex}
+                  className={`min-w-0 flex-1 ${dayIndex > 0 ? "border-l border-muted" : ""}`}
+                >
 
-                  {/* Events (absolutely positioned) */}
-                  {evs.map(ev => {
-                    const top    = (ev.startHour - START_HOUR) * ROW_H;
-                    const height = ev.duration * ROW_H - 2;
-                    return (
+                  {/* Day header */}
+                  <div
+                    className={`flex items-baseline justify-center gap-1.5 border-b-2 border-foreground ${
+                      isToday ? "bg-primary text-primary-foreground" : "bg-foreground text-background"
+                    }`}
+                    style={{ height: 44, paddingTop: 13 }}
+                    aria-current={isToday ? "date" : undefined}
+                  >
+                    <span className="font-mono text-[10px] tracking-[0.08em] uppercase opacity-80">
+                      {DAY_NAMES[dayIndex]}
+                    </span>
+                    <span className="font-mono text-sm font-bold tabular">
+                      {day.getDate()}
+                    </span>
+                  </div>
+
+                  {/* Hour rows + events */}
+                  <div className="relative" style={{ height: TOTAL_HOURS * ROW_H }}>
+
+                    {/* Clickable hour rows */}
+                    {HOUR_ROWS.map((h, i) => (
                       <div
-                        key={ev.id}
-                        className="group/ev absolute rounded overflow-hidden cursor-pointer"
-                        style={{
-                          top,
-                          left: 2,
-                          right: 2,
-                          height,
-                          backgroundColor: ev.color + "20",
-                          borderLeft: `3px solid ${ev.color}`,
-                          zIndex: 10,
-                        }}
-                        onMouseEnter={e => {
-                          const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                          setTooltip({ event: ev, x: r.right + 10, y: r.top });
-                        }}
-                        onMouseLeave={() => setTooltip(null)}
-                        onClick={e => { e.stopPropagation(); openEdit(ev); }}
+                        key={h}
+                        className="group/row absolute inset-x-0 cursor-pointer border-b border-muted transition-colors duration-100 hover:bg-muted"
+                        style={{ top: i * ROW_H, height: ROW_H, zIndex: 1 }}
+                        onClick={() => openCreate(dayIndex, h)}
                       >
-                        <div className="px-2 pt-1 flex items-start justify-between gap-1 h-full">
-                          <div className="min-w-0 flex-1">
-                            <span
-                              className="text-[11px] font-semibold block truncate leading-tight"
-                              style={{ color: textColor(ev.color) }}
-                            >
-                              {ev.title}
-                            </span>
-                            {height > 32 && (
-                              <span
-                                className="font-[family-name:var(--font-mono)] text-[9px] opacity-60 block mt-0.5"
-                                style={{ color: textColor(ev.color) }}
-                              >
-                                {hourLabel(ev.startHour)} – {hourLabel(ev.startHour + ev.duration)}
+                        <span
+                          aria-hidden
+                          className="absolute top-0.5 right-1 font-mono text-[10px] leading-none text-muted-foreground opacity-0 group-hover/row:opacity-100"
+                        >
+                          +
+                        </span>
+                      </div>
+                    ))}
+
+                    {/* Events (absolutely positioned) */}
+                    {evs.map(ev => {
+                      const top    = (ev.startHour - START_HOUR) * ROW_H;
+                      const height = ev.duration * ROW_H - 2;
+                      return (
+                        <div
+                          key={ev.id}
+                          className="group/ev absolute cursor-pointer overflow-hidden border border-foreground bg-card text-foreground transition-colors duration-100 hover:bg-muted"
+                          style={{
+                            top,
+                            left: 2,
+                            right: 2,
+                            height,
+                            borderLeft: `3px solid ${ev.color}`,
+                            zIndex: 10,
+                          }}
+                          onMouseEnter={e => {
+                            const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                            setTooltip({ event: ev, x: r.right + 10, y: r.top });
+                          }}
+                          onMouseLeave={() => setTooltip(null)}
+                          onClick={e => { e.stopPropagation(); openEdit(ev); }}
+                        >
+                          <div className="flex h-full items-start justify-between gap-1 px-1.5 pt-0.5">
+                            <div className="min-w-0 flex-1">
+                              <span className="block truncate text-[11px] leading-tight font-medium">
+                                {ev.title}
                               </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover/ev:opacity-100 transition-opacity pt-0.5">
-                            {ev.recurring && (
-                              <Repeat2 size={9} style={{ color: ev.color }} className="opacity-60" />
-                            )}
-                            <button
-                              onPointerDown={e => e.stopPropagation()}
-                              onClick={e => { e.stopPropagation(); openEdit(ev); }}
-                              className="p-0.5 rounded hover:bg-white/60"
-                            >
-                              <Pencil size={9} style={{ color: textColor(ev.color) }} />
-                            </button>
+                              {height > 32 && (
+                                <span className="mt-0.5 block font-mono text-[9px] text-muted-foreground tabular">
+                                  {hourLabel(ev.startHour)}–{hourLabel(ev.startHour + ev.duration)}
+                                </span>
+                              )}
+                            </div>
+                            <div className="flex shrink-0 items-center gap-1 pt-0.5 font-mono text-[10px] leading-none text-muted-foreground">
+                              {ev.recurring && (
+                                <span aria-label="Se repite cada semana" title="Cada semana">↻</span>
+                              )}
+                              <button
+                                onPointerDown={e => e.stopPropagation()}
+                                onClick={e => { e.stopPropagation(); openEdit(ev); }}
+                                aria-label={`Editar ${ev.title}`}
+                                className="opacity-0 group-hover/ev:opacity-100 hover:text-foreground focus-visible:opacity-100"
+                              >
+                                ✎
+                              </button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* ── Hover tooltip ──────────────────────────────────────────────────── */}
       {tooltip && (
         <div
-          className="fixed z-50 bg-white border border-[#E5E7EB] rounded-2xl p-4 shadow-2xl pointer-events-none"
+          className="pointer-events-none fixed z-50 border-2 border-foreground bg-card p-3 shadow-hard-lg"
           style={{ left: Math.min(tooltip.x, window.innerWidth - 240), top: tooltip.y, maxWidth: 230 }}
         >
-          <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: tooltip.event.color }} />
-            <span className="font-[family-name:var(--font-playfair)] font-bold text-sm text-[#0A0A0A]">
+          <div className="mb-1 flex items-center gap-2">
+            <span aria-hidden className="size-2.5 shrink-0" style={{ backgroundColor: tooltip.event.color }} />
+            <span className="text-sm font-bold text-foreground">
               {tooltip.event.title}
             </span>
           </div>
-          <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] block">
-            {hourLabel(tooltip.event.startHour)} – {hourLabel(tooltip.event.startHour + tooltip.event.duration)}
-            {tooltip.event.duration > 1 && ` · ${tooltip.event.duration}h`}
+          <span className="block font-mono text-[11px] text-muted-foreground tabular">
+            {hourLabel(tooltip.event.startHour)}–{hourLabel(tooltip.event.startHour + tooltip.event.duration)}
+            {tooltip.event.duration > 1 && ` · ${fmtHours(tooltip.event.duration)}h`}
           </span>
           {tooltip.event.recurring && (
-            <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#C4B5FD] flex items-center gap-1 mt-1">
-              <Repeat2 size={9} /> cada semana
+            <span className="mt-1 block font-mono text-[10px] tracking-[0.06em] text-muted-foreground uppercase">
+              ↻ cada semana
             </span>
           )}
           {tooltip.event.notes && (
-            <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#6B7280] leading-relaxed mt-2 pt-2 border-t border-[#F5F5F5]">
+            <p className="mt-2 border-t border-muted pt-2 text-xs leading-relaxed text-foreground">
               {tooltip.event.notes}
             </p>
           )}
         </div>
       )}
 
-      {/* ── Weekly summary table ────────────────────────────────────────────── */}
-      {summary.length > 0 && (
-        <div className="px-8 py-8 border-t border-[#F5F5F5]">
-          <p className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB] uppercase tracking-widest mb-5">
-            resumen semanal
-          </p>
-          <div className="space-y-4">
+      {/* ── Weekly summary ─────────────────────────────────────────────────── */}
+      <section className="border-2 border-foreground bg-card">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b-2 border-foreground px-4 py-2.5">
+          <h2 className={LABEL}>── Resumen semanal</h2>
+          <span className="font-mono text-[11px] text-muted-foreground tabular">
+            {fmtHours(totalWeekHours)}h / {totalAvailableHours}h
+          </span>
+        </div>
+
+        {summary.length === 0 ? (
+          <div className="px-4 py-10 text-center font-mono text-xs text-muted-foreground">
+            <pre aria-hidden className="mb-3 leading-tight select-none">{"┌─┬─┬─┐\n│ │ │ │\n└─┴─┴─┘"}</pre>
+            Semana libre. Tocá una hora de la grilla para agregar una actividad.
+          </div>
+        ) : (
+          <ul>
             {summary.map(([title, { color, hours }]) => (
-              <div key={title} className="flex items-center gap-4">
-                <div
-                  className="w-3 h-3 rounded-full shrink-0"
-                  style={{ backgroundColor: color }}
-                />
-                <span className="font-[family-name:var(--font-playfair)] text-sm text-[#0A0A0A] w-28 shrink-0 truncate">
+              <li
+                key={title}
+                className="flex items-center gap-3 border-b border-muted px-4 py-2 last:border-b-0"
+              >
+                <span aria-hidden className="size-2.5 shrink-0" style={{ backgroundColor: color }} />
+                <span className="w-28 shrink-0 truncate text-sm text-foreground sm:w-40">
                   {title}
                 </span>
-                <div className="flex-1 flex items-center gap-3">
-                  <div className="flex-1 h-1.5 bg-[#F3F4F6] rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${(hours / maxHours) * 100}%`,
-                        backgroundColor: color,
-                        opacity: 0.8,
-                      }}
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <span className="font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] w-8 text-right">
-                      {hours}h
-                    </span>
-                    <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#D1D5DB] w-9 text-right">
-                      {Math.round((hours / totalAvailableHours) * 100)}%
-                    </span>
-                  </div>
-                </div>
-              </div>
+                <span
+                  aria-hidden
+                  className="min-w-0 flex-1 truncate font-mono text-xs leading-none text-foreground select-none"
+                >
+                  {asciiBar(hours / maxHours)}
+                </span>
+                <span className="w-10 shrink-0 text-right font-mono text-xs font-bold text-foreground tabular">
+                  {fmtHours(hours)}h
+                </span>
+                <span className="w-10 shrink-0 text-right font-mono text-[11px] text-muted-foreground tabular">
+                  {Math.round((hours / totalAvailableHours) * 100)}%
+                </span>
+              </li>
             ))}
-          </div>
-        </div>
-      )}
+          </ul>
+        )}
+      </section>
 
       {/* ── Create / Edit modal ─────────────────────────────────────────────── */}
       {modal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4"
           onClick={e => { if (e.target === e.currentTarget) setModal(null); }}
         >
           <form
             onSubmit={handleSubmit}
-            className="bg-white rounded-xl border-2 border-[#0A0A0A] shadow-[0_8px_24px_rgba(0,0,0,0.15)] w-full max-w-sm mx-4 p-6 max-h-[90vh] overflow-y-auto"
+            className="max-h-[90vh] w-full max-w-sm overflow-y-auto border-2 border-foreground bg-card shadow-hard-lg"
           >
             {/* Header */}
-            <div className="flex justify-between items-center mb-5">
-              <h3 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#0A0A0A]">
-                {modal.mode === "create" ? "Nueva actividad" : "Editar actividad"}
+            <div className="flex items-center justify-between border-b-2 border-foreground px-4 py-2.5">
+              <h3 className={LABEL}>
+                {modal.mode === "create" ? "── Nueva actividad" : "── Editar actividad"}
               </h3>
               <button
                 type="button"
                 onClick={() => setModal(null)}
-                className="text-[#D1D5DB] hover:text-[#0A0A0A] transition-colors"
+                aria-label="Cerrar"
+                className="font-mono text-xs text-muted-foreground hover:text-foreground"
               >
-                <X size={16} />
+                ✕
               </button>
             </div>
 
-            {/* Day label (create only) */}
-            {modal.mode === "create" && (
-              <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] mb-4">
-                {DAY_NAMES[modal.dayIndex!]} · {hourLabel(modal.startHour!)}
-              </p>
-            )}
+            <div className="flex flex-col gap-4 p-4">
+              {/* Day label (create only) */}
+              {modal.mode === "create" && (
+                <p className="font-mono text-[11px] text-muted-foreground tabular">
+                  ▸ {DAY_NAMES[modal.dayIndex!]} · {hourLabel(modal.startHour!)}
+                </p>
+              )}
 
-            {/* Title */}
-            <label className="block text-xs text-[#6B7280] mb-1.5">Título</label>
-            <input
-              autoFocus
-              value={formTitle}
-              onChange={e => setFormTitle(e.target.value)}
-              onKeyDown={e => { if (e.key === "Enter") e.preventDefault(); }}
-              placeholder="ej: Reunión, Gym, Cena..."
-              className="w-full px-4 py-2.5 rounded-lg border border-[#0A0A0A] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] text-sm transition-all mb-4"
-            />
-
-            {/* Start time + Duration */}
-            <div className="flex gap-3 mb-4">
-              <div className="flex-1">
-                <label className="block text-xs text-[#6B7280] mb-1.5">Inicio</label>
-                <select
-                  value={formStartHour}
-                  onChange={e => setFormStartHour(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 rounded-lg border border-[#E5E7EB] bg-[#F5F5F5] text-[#0A0A0A] text-sm focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] transition-all"
-                >
-                  {HOUR_ROWS.map(h => (
-                    <option key={h} value={h}>{hourLabel(h)}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs text-[#6B7280] mb-1.5">Duración</label>
-                <select
-                  value={formDuration}
-                  onChange={e => setFormDuration(Number(e.target.value))}
-                  className="w-full px-3 py-2.5 rounded-lg border border-[#E5E7EB] bg-[#F5F5F5] text-[#0A0A0A] text-sm focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] transition-all"
-                >
-                  {DURATION_OPTIONS.map(d => (
-                    <option key={d} value={d}>
-                      {d === 1 ? "1 hora" : d % 1 === 0.5 ? `${d}h` : `${d} horas`}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            {/* Color */}
-            <label className="block text-xs text-[#6B7280] mb-2">Color</label>
-            <div className="flex gap-2 flex-wrap mb-5">
-              {COLORS.map(c => (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => setFormColor(c)}
-                  className={`w-6 h-6 rounded-full border-2 transition-all ${
-                    formColor === c ? "border-[#0A0A0A] scale-110" : "border-transparent hover:scale-105"
-                  }`}
-                  style={{ background: c }}
+              {/* Title */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="cal-title" className={LABEL}>Título</label>
+                <input
+                  id="cal-title"
+                  autoFocus
+                  value={formTitle}
+                  onChange={e => setFormTitle(e.target.value)}
+                  onKeyDown={e => { if (e.key === "Enter") e.preventDefault(); }}
+                  placeholder="ej: Reunión, Gym, Cena..."
+                  className={FIELD}
                 />
-              ))}
-            </div>
+              </div>
 
-            {/* Notes */}
-            <label className="block text-xs text-[#6B7280] mb-1.5">Notas</label>
-            <textarea
-              value={formNotes}
-              onChange={e => setFormNotes(e.target.value)}
-              placeholder="Notas opcionales..."
-              rows={3}
-              className="w-full px-4 py-2.5 rounded-lg border border-[#E5E7EB] bg-[#F5F5F5] text-[#0A0A0A] placeholder-[#D1D5DB] focus:outline-none focus:ring-2 focus:ring-[#9D4EDD] focus:border-[#9D4EDD] text-sm resize-none transition-all mb-5"
-            />
-
-            {/* Recurring toggle */}
-            <label className="flex items-center gap-3 cursor-pointer mb-4">
-              <button
-                type="button"
-                onClick={() => setFormRecurring(!formRecurring)}
-                className={`w-9 h-5 rounded-full transition-colors flex items-center shrink-0 ${
-                  formRecurring ? "bg-[#9D4EDD]" : "bg-[#E5E7EB]"
-                }`}
-              >
-                <div className={`w-4 h-4 bg-white rounded-full shadow transition-transform mx-0.5 ${
-                  formRecurring ? "translate-x-4" : "translate-x-0"
-                }`} />
-              </button>
-              <span className="text-sm text-[#6B7280]">Repetir cada semana</span>
-            </label>
-
-            {/* Day selector (only when recurring) */}
-            {formRecurring && (
-              <div className="mb-6">
-                <p className="text-xs text-[#6B7280] mb-2">¿Qué días?</p>
-                <div className="flex gap-1.5">
-                  {DAY_NAMES.map((name, i) => {
-                    const selected = formDayIndices.includes(i);
-                    return (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setFormDayIndices(prev =>
-                          prev.includes(i)
-                            ? prev.length > 1 ? prev.filter(d => d !== i) : prev
-                            : [...prev, i].sort()
-                        )}
-                        className="w-8 h-8 rounded-full text-[11px] font-semibold transition-all border-2 flex items-center justify-center"
-                        style={selected
-                          ? { backgroundColor: formColor, borderColor: formColor, color: formColor === "#39FF14" ? "#16a34a" : "#fff" }
-                          : { backgroundColor: "transparent", borderColor: "#E5E7EB", color: "#9CA3AF" }
-                        }
-                      >
-                        {name.charAt(0)}
-                      </button>
-                    );
-                  })}
+              {/* Start time + Duration */}
+              <div className="flex gap-3">
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <label htmlFor="cal-start" className={LABEL}>Inicio</label>
+                  <select
+                    id="cal-start"
+                    value={formStartHour}
+                    onChange={e => setFormStartHour(Number(e.target.value))}
+                    className={`${FIELD} tabular`}
+                  >
+                    {HOUR_ROWS.map(h => (
+                      <option key={h} value={h}>{hourLabel(h)}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="flex flex-1 flex-col gap-1.5">
+                  <label htmlFor="cal-duration" className={LABEL}>Duración</label>
+                  <select
+                    id="cal-duration"
+                    value={formDuration}
+                    onChange={e => setFormDuration(Number(e.target.value))}
+                    className={`${FIELD} tabular`}
+                  >
+                    {DURATION_OPTIONS.map(d => (
+                      <option key={d} value={d}>
+                        {d === 1 ? "1 hora" : d % 1 === 0.5 ? `${d}h` : `${d} horas`}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
-            )}
 
-            {/* Actions */}
-            <div className="flex gap-2">
-              {modal.mode === "edit" && (
+              {/* Color */}
+              <div className="flex flex-col gap-2">
+                <span className={LABEL}>Marca</span>
+                <div className="flex flex-wrap gap-2">
+                  {COLORS.map(c => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setFormColor(c)}
+                      aria-label={`Color ${c}`}
+                      aria-pressed={formColor === c}
+                      className={`size-6 border-2 ${
+                        formColor === c ? "border-foreground outline-2 outline-offset-2 outline-foreground" : "border-transparent"
+                      }`}
+                      style={{ background: c }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Notes */}
+              <div className="flex flex-col gap-1.5">
+                <label htmlFor="cal-notes" className={LABEL}>Notas</label>
+                <textarea
+                  id="cal-notes"
+                  value={formNotes}
+                  onChange={e => setFormNotes(e.target.value)}
+                  placeholder="Notas opcionales..."
+                  rows={3}
+                  className={`${FIELD} resize-none font-sans`}
+                />
+              </div>
+
+              {/* Recurring toggle */}
+              <label className="flex cursor-pointer items-center gap-2.5">
                 <button
                   type="button"
-                  onClick={handleDelete}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-[#E5E7EB] text-sm text-[#9CA3AF] hover:text-[#FF1493] hover:border-[#FF1493] transition-all"
+                  role="switch"
+                  aria-checked={formRecurring}
+                  onClick={() => setFormRecurring(!formRecurring)}
+                  className={`flex size-5 shrink-0 items-center justify-center border-2 border-foreground font-mono text-[11px] leading-none ${
+                    formRecurring ? "bg-foreground text-background" : "bg-card text-transparent"
+                  }`}
                 >
-                  <Trash2 size={13} />
-                  Eliminar
+                  ✓
                 </button>
+                <span className="text-sm text-foreground">Repetir cada semana</span>
+              </label>
+
+              {/* Day selector (only when recurring) */}
+              {formRecurring && (
+                <div className="flex flex-col gap-2">
+                  <span className={LABEL}>¿Qué días?</span>
+                  <div className="flex border-2 border-foreground">
+                    {DAY_NAMES.map((name, i) => {
+                      const selected = formDayIndices.includes(i);
+                      return (
+                        <button
+                          key={i}
+                          type="button"
+                          aria-label={name}
+                          aria-pressed={selected}
+                          onClick={() => setFormDayIndices(prev =>
+                            prev.includes(i)
+                              ? prev.length > 1 ? prev.filter(d => d !== i) : prev
+                              : [...prev, i].sort()
+                          )}
+                          className={`h-8 flex-1 font-mono text-[11px] font-bold uppercase ${
+                            i > 0 ? "border-l-2 border-foreground" : ""
+                          } ${selected ? "bg-foreground text-background" : "bg-card text-muted-foreground hover:bg-muted"}`}
+                        >
+                          {name.charAt(0)}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
-              <button
-                type="submit"
-                disabled={!formTitle.trim()}
-                className="flex-1 py-2 rounded-lg bg-[#0A0A0A] text-white text-sm font-medium border-2 border-[#0A0A0A] hover:bg-[#1f1f1f] transition-all disabled:opacity-40"
-              >
-                {modal.mode === "create" ? "Crear" : "Guardar"}
-              </button>
+
+              {/* Actions */}
+              <div className="flex gap-2 pt-1">
+                {modal.mode === "edit" && (
+                  <button
+                    type="button"
+                    onClick={handleDelete}
+                    className="border-2 border-destructive bg-card px-3 py-2 font-mono text-xs text-destructive uppercase hover:bg-destructive/10"
+                  >
+                    ✕ Eliminar
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={!formTitle.trim()}
+                  className="flex-1 border-2 border-foreground bg-primary px-3 py-2 font-mono text-xs tracking-[0.06em] text-primary-foreground uppercase shadow-hard-primary transition-transform duration-100 hover:-translate-x-px hover:-translate-y-px active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40"
+                >
+                  {modal.mode === "create" ? "+ Crear" : "✓ Guardar"}
+                </button>
+              </div>
             </div>
           </form>
         </div>

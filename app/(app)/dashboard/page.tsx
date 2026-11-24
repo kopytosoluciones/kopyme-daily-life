@@ -1,7 +1,7 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import Egg from "@/components/avatar/Egg";
-import { Waves, BookOpen, Leaf, Target } from "lucide-react";
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -11,11 +11,22 @@ function getGreeting() {
 }
 
 const quickActions = [
-  { href: "/mood",   Icon: Waves,    label: "¿Cómo estás hoy?" },
-  { href: "/diary",  Icon: BookOpen, label: "Escribir algo"     },
-  { href: "/habits", Icon: Leaf,     label: "Mis hábitos"       },
-  { href: "/goals",  Icon: Target,   label: "Mis metas"         },
+  { href: "/mood",   label: "¿Cómo estás hoy?" },
+  { href: "/diary",  label: "Escribir algo"     },
+  { href: "/habits", label: "Mis hábitos"       },
+  { href: "/goals",  label: "Mis metas"         },
 ];
+
+const stageLabels: Record<string, string> = {
+  egg: "huevo", cracking: "grieta", hatching: "eclosión", emerging: "tomando forma", self: "vos",
+};
+
+const label = "font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase";
+
+function asciiBar(pct: number, width = 20) {
+  const filled = Math.round((pct / 100) * width);
+  return "█".repeat(filled) + "░".repeat(width - filled);
+}
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -39,55 +50,71 @@ export default async function DashboardPage() {
   const progress = Math.min((points / nextPoints) * 100, 100);
 
   return (
-    <div className="min-h-screen bg-white px-8 py-12 max-w-lg mx-auto">
-
-      {/* Greeting */}
-      <div className="mb-10">
-        <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] mb-1">
-          {getGreeting()},
-        </p>
-        <h1 className="font-[family-name:var(--font-playfair)] text-4xl font-bold text-[#0A0A0A]">
-          {name}
+    <div className="mx-auto flex max-w-[1180px] flex-col gap-6 px-4 py-7 md:px-6">
+      <div>
+        <h1 className="text-[40px] leading-none font-bold tracking-[-0.02em] break-words">
+          {getGreeting()}, {name}<span className="k-cursor">_</span>
         </h1>
+        <p className="mt-2 font-mono text-xs text-muted-foreground">
+          etapa: {stageLabels[stage] ?? stage} · <span className="tabular">{points}</span> pts
+        </p>
       </div>
 
-      {/* Egg */}
-      <div className="flex justify-center">
-        <Egg stage={stage as "egg" | "cracking" | "hatching" | "emerging" | "self"} />
-      </div>
+      <div className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
+        <section className="border-2 border-foreground bg-card">
+          <div className="border-b-2 border-foreground px-4 py-2.5">
+            <span className={label}>── Avatar</span>
+          </div>
+          <div className="flex justify-center px-4 py-8">
+            <Egg stage={stage as "egg" | "cracking" | "hatching" | "emerging" | "self"} />
+          </div>
+        </section>
 
-      {/* Progress bar */}
-      {stage !== "self" && (
-        <div className="mt-10 w-full">
-          <div className="flex justify-between mb-1.5">
-            <span className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">
-              {points} pts
-            </span>
-            <span className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">
-              próxima etapa: {nextPoints}
-            </span>
-          </div>
-          <div className="h-1.5 bg-[#F5F5F5] rounded-full overflow-hidden border border-[#E5E7EB]">
-            <div
-              className="h-full bg-[#39FF14] rounded-full transition-all duration-700"
-              style={{ width: `${progress}%` }}
-            />
-          </div>
+        <div className="flex flex-col gap-6">
+          <section className="border-2 border-foreground bg-card">
+            <div className="flex items-center justify-between gap-3 border-b-2 border-foreground px-4 py-2.5">
+              <span className={label}>── Progreso</span>
+              <span className="font-mono text-[11px] text-muted-foreground">{stageLabels[stage] ?? stage}</span>
+            </div>
+            <div className="flex flex-col gap-1 p-4">
+              <span className={label}>Puntos</span>
+              <span className="font-mono text-[22px] font-bold tabular">{points}</span>
+              {stage !== "self" ? (
+                <>
+                  <span className="overflow-hidden font-mono text-xs whitespace-nowrap">
+                    <span aria-hidden className="select-none">[{asciiBar(progress)}]</span>{" "}
+                    <span className="tabular">{Math.round(progress)}%</span>
+                  </span>
+                  <span className="font-mono text-[11px] text-muted-foreground">
+                    próxima etapa: <span className="tabular">{nextPoints}</span> pts
+                  </span>
+                </>
+              ) : (
+                <span className="font-mono text-[11px] text-muted-foreground">etapa final</span>
+              )}
+            </div>
+          </section>
+
+          <nav aria-label="Accesos rápidos" className="border-2 border-foreground bg-card">
+            <div className="border-b-2 border-foreground px-4 py-2.5">
+              <span className={label}>── Para hoy</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2">
+              {quickActions.map(({ href, label: text }, i) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={`flex min-h-[44px] items-center justify-between gap-3 border-muted px-4 py-3 text-sm font-medium hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary ${
+                    i < quickActions.length - 1 ? "max-sm:border-b" : ""
+                  } ${i % 2 === 0 ? "sm:border-r" : ""} ${i < 2 ? "sm:border-b" : ""}`}
+                >
+                  <span className="leading-tight">{text}</span>
+                  <span aria-hidden className="font-mono text-muted-foreground">→</span>
+                </Link>
+              ))}
+            </div>
+          </nav>
         </div>
-      )}
-
-      {/* Quick actions */}
-      <div className="mt-10 grid grid-cols-2 gap-3">
-        {quickActions.map(({ href, Icon, label }) => (
-          <a
-            key={href}
-            href={href}
-            className="flex items-center gap-2.5 bg-white border-2 border-[#0A0A0A] rounded-xl px-4 py-3 text-sm text-[#0A0A0A] font-medium hover:bg-[#F5F5F5] active:scale-[0.97] transition-all"
-          >
-            <Icon size={16} strokeWidth={1.8} className="shrink-0 text-[#9D4EDD]" />
-            <span className="leading-tight">{label}</span>
-          </a>
-        ))}
       </div>
     </div>
   );

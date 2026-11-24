@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useRef, useTransition, useCallback } from "react";
+import { useState, useRef, useTransition, useCallback, useEffect } from "react";
 import { createEntry, updateEntry, deleteEntry, restoreLastDeleted } from "./actions";
 import { analyzeEmotions, type AnalysisEntry } from "./analyze";
-import { X, Trash2, Smile, Pencil, Undo2, Sparkles, Loader2 } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,14 +16,18 @@ interface Entry {
 
 // ─── Mood helpers ─────────────────────────────────────────────────────────────
 
-const MOOD_COLORS = [
-  "#FF1493", "#FF3DA6", "#FF6BB5",
-  "#C084FC", "#A855F7", "#9D4EDD",
-  "#86EFAC", "#4ADE80", "#22C55E", "#39FF14",
-];
-
+// Escala divergente con tokens v2: 1–3 tensión (destructive), 4–6 neutro, 7–10 bien (success).
 function moodColor(n: number): string {
-  return MOOD_COLORS[Math.max(0, Math.min(9, n - 1))];
+  const v = Math.max(1, Math.min(10, Math.round(n)));
+  if (v <= 3) return `color-mix(in srgb, var(--destructive) ${100 - (v - 1) * 20}%, var(--card))`;
+  if (v <= 6) return `color-mix(in srgb, var(--muted-foreground) ${40 + (v - 4) * 15}%, var(--card))`;
+  return `color-mix(in srgb, var(--success) ${55 + (v - 7) * 15}%, var(--card))`;
+}
+
+function moodTextClass(n: number): string {
+  if (n <= 3) return "text-destructive";
+  if (n <= 6) return "text-muted-foreground";
+  return "text-pos";
 }
 
 function moodEmoji(n: number | null): string {
@@ -61,6 +64,19 @@ function todayStr(): string {
 }
 
 const DAYS_SHORT = ["do", "lu", "ma", "mi", "ju", "vi", "sá"];
+
+const LABEL = "font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase";
+const BTN = "border-2 border-foreground bg-card px-3.5 py-2 font-mono text-xs tracking-[0.06em] uppercase shadow-hard transition-transform duration-100 hover:-translate-x-px hover:-translate-y-px active:translate-x-1 active:translate-y-1 active:shadow-none disabled:pointer-events-none disabled:opacity-40";
+const BTN_PRIMARY = "border-2 border-foreground bg-primary px-4 py-2 font-mono text-xs tracking-[0.06em] text-primary-foreground uppercase shadow-hard-primary transition-transform duration-100 hover:-translate-x-px hover:-translate-y-px active:translate-x-1 active:translate-y-1 active:shadow-none disabled:pointer-events-none disabled:opacity-40";
+
+function useEscape(onEscape: () => void, active = true) {
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onEscape();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onEscape, active]);
+}
 
 // ─── Emotion map ──────────────────────────────────────────────────────────────
 
@@ -117,7 +133,17 @@ function MoodMeter({ value, onChange }: { value: number | null; onChange: (v: nu
     <div className="flex items-end gap-3">
       <div
         ref={containerRef}
-        className="flex items-end gap-[4px] cursor-pointer select-none"
+        role="slider"
+        tabIndex={0}
+        aria-label="Puntaje del día"
+        aria-valuemin={1}
+        aria-valuemax={10}
+        aria-valuenow={value ?? undefined}
+        onKeyDown={e => {
+          if (e.key === "ArrowRight" || e.key === "ArrowUp") { e.preventDefault(); onChange(Math.min(10, (value ?? 0) + 1)); }
+          if (e.key === "ArrowLeft" || e.key === "ArrowDown") { e.preventDefault(); onChange(Math.max(1, (value ?? 2) - 1)); }
+        }}
+        className="flex cursor-pointer items-end gap-[3px] select-none focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
         onMouseDown={e => { setDragging(true); computeFromX(e.clientX); }}
         onMouseMove={e => { if (dragging) computeFromX(e.clientX); }}
         onMouseUp={() => setDragging(false)}
@@ -134,13 +160,12 @@ function MoodMeter({ value, onChange }: { value: number | null; onChange: (v: nu
           return (
             <div
               key={n}
+              className={isSelected ? "outline-2 outline-offset-1 outline-foreground" : ""}
               style={{
-                width: 13,
+                width: 12,
                 height: isSelected ? baseH + 6 : baseH,
-                backgroundColor: active ? moodColor(n) : "#EBEBEB",
-                borderRadius: 4,
-                transition: "height 0.1s ease, background-color 0.15s",
-                boxShadow: isSelected ? `0 0 10px ${moodColor(n)}60` : undefined,
+                backgroundColor: active ? moodColor(n) : "var(--muted)",
+                transition: "height 0.1s ease, background-color 0.12s",
               }}
             />
           );
@@ -150,19 +175,14 @@ function MoodMeter({ value, onChange }: { value: number | null; onChange: (v: nu
       {value ? (
         <div className="flex items-center gap-1.5">
           <span className="text-base leading-none">{moodEmoji(value)}</span>
-          <span
-            className="font-[family-name:var(--font-mono)] text-xs font-bold transition-colors"
-            style={{ color: moodColor(value) }}
-          >
-            {value}/10
-          </span>
+          <span className={`font-mono text-xs font-bold tabular ${moodTextClass(value)}`}>{value}/10</span>
           <button
             type="button"
             onClick={() => onChange(0)}
-            className="text-[#D1D5DB] hover:text-[#9CA3AF] transition-colors ml-0.5"
-            title="Quitar"
+            aria-label="Quitar puntaje"
+            className="ml-0.5 font-mono text-[10px] text-muted-foreground hover:text-foreground"
           >
-            <X size={11} />
+            ✕
           </button>
         </div>
       ) : null}
@@ -180,6 +200,8 @@ function EmotionPicker({
   onClear: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const close = useCallback(() => setOpen(false), []);
+  useEscape(close, open);
 
   return (
     <>
@@ -187,80 +209,68 @@ function EmotionPicker({
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-[#F5F5F7] transition-colors"
-          title="Elegir emoji"
+          aria-label={emoji ? `Emoji elegido ${emoji}. Cambiar` : "Elegir emoji"}
+          className="flex size-9 items-center justify-center border-2 border-dashed border-muted-foreground hover:border-foreground"
         >
           {emoji
             ? <span className="text-xl leading-none">{emoji}</span>
-            : <Smile size={16} className="text-[#C9C9C9]" />
+            : <span aria-hidden className="font-mono text-xs text-muted-foreground">:)</span>
           }
         </button>
         {emoji && (
           <button
             type="button"
             onClick={onClear}
-            className="absolute -top-1.5 -right-1.5 w-3.5 h-3.5 bg-[#9CA3AF] hover:bg-[#6B7280] rounded-full flex items-center justify-center transition-colors"
+            aria-label="Quitar emoji"
+            className="absolute -top-2 -right-2 flex size-4 items-center justify-center border border-foreground bg-card font-mono text-[8px] leading-none hover:bg-foreground hover:text-background"
           >
-            <X size={7} className="text-white" />
+            ✕
           </button>
         )}
       </div>
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm p-4"
-          onClick={() => setOpen(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4"
+          onClick={close}
         >
           <div
-            className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden"
+            role="dialog"
+            aria-label="Elegir emoji"
+            className="w-full max-w-2xl border-2 border-foreground bg-card shadow-hard-lg"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-6 pt-5 pb-3">
+            <div className="flex items-center justify-between border-b-2 border-foreground px-4 py-2.5">
               <div>
-                <p className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#0A0A0A]">
-                  ¿cómo te sentís?
-                </p>
-                <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#C9C9C9] mt-0.5">
-                  tocá el emoji que mejor lo represente
-                </p>
+                <p className={LABEL}>── ¿Cómo te sentís?</p>
+                <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">tocá el emoji que mejor lo represente</p>
               </div>
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="p-2 text-[#C9C9C9] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] rounded-xl transition-colors"
-              >
-                <X size={16} />
-              </button>
+              <button type="button" onClick={close} aria-label="Cerrar" className="font-mono text-xs text-muted-foreground hover:text-foreground">✕</button>
             </div>
 
-            <div className="px-4 pb-4">
+            <div className="p-4">
               <div className="flex gap-2">
-                <div className="flex flex-col items-center justify-between py-6 shrink-0" style={{ width: 28 }}>
-                  <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#9D4EDD] font-medium">alegre</span>
-                  <div className="flex-1 flex items-center">
-                    <div className="w-px flex-1 bg-gradient-to-b from-[#9D4EDD]/30 to-[#9CA3AF]/20 mx-auto" style={{ height: 200 }} />
-                  </div>
-                  <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#9CA3AF]">triste</span>
+                <div className="flex w-7 shrink-0 flex-col items-center justify-between py-6 font-mono text-[9px] text-muted-foreground">
+                  <span>alegre</span>
+                  <span aria-hidden className="my-2 w-px flex-1 bg-muted-foreground/40" />
+                  <span>triste</span>
                 </div>
 
-                <div className="flex-1 flex flex-col gap-1">
-                  <div
-                    className="relative rounded-2xl overflow-hidden"
-                    style={{ height: 380, background: "linear-gradient(135deg, #F9F5FF 0%, #FFFBF0 35%, #F0FFF4 65%, #FFF0F5 100%)" }}
-                  >
-                    <div className="absolute inset-0 pointer-events-none">
-                      <div className="absolute top-1/2 left-0 right-0 h-px bg-[#E5E7EB]/80" />
-                      <div className="absolute left-1/2 top-0 bottom-0 w-px bg-[#E5E7EB]/80" />
+                <div className="flex flex-1 flex-col gap-1">
+                  <div className="relative h-[380px] overflow-hidden border-2 border-foreground bg-muted/40">
+                    <div aria-hidden className="pointer-events-none absolute inset-0">
+                      <div className="absolute top-1/2 right-0 left-0 border-t border-dashed border-muted-foreground/50" />
+                      <div className="absolute top-0 bottom-0 left-1/2 border-l border-dashed border-muted-foreground/50" />
                     </div>
-                    <span className="absolute top-2.5 left-3 font-[family-name:var(--font-mono)] text-[9px] text-[#9D4EDD]/50 pointer-events-none">calma</span>
-                    <span className="absolute top-2.5 right-3 font-[family-name:var(--font-mono)] text-[9px] text-[#F59E0B]/60 pointer-events-none">euforia</span>
-                    <span className="absolute bottom-2.5 left-3 font-[family-name:var(--font-mono)] text-[9px] text-[#6B7280]/50 pointer-events-none">tristeza</span>
-                    <span className="absolute bottom-2.5 right-3 font-[family-name:var(--font-mono)] text-[9px] text-[#FF1493]/50 pointer-events-none">tensión</span>
+                    <span className="pointer-events-none absolute top-2 left-2.5 font-mono text-[9px] text-muted-foreground uppercase">calma</span>
+                    <span className="pointer-events-none absolute top-2 right-2.5 font-mono text-[9px] text-muted-foreground uppercase">euforia</span>
+                    <span className="pointer-events-none absolute bottom-2 left-2.5 font-mono text-[9px] text-muted-foreground uppercase">tristeza</span>
+                    <span className="pointer-events-none absolute right-2.5 bottom-2 font-mono text-[9px] text-muted-foreground uppercase">tensión</span>
                     {EMOTION_EMOJIS.map(([e, energy, happiness]) => (
                       <button
                         key={e}
                         type="button"
-                        onClick={() => { onSelect(e); setOpen(false); }}
+                        onClick={() => { onSelect(e); close(); }}
                         style={{
                           position: "absolute",
                           left: `${energy}%`,
@@ -268,20 +278,18 @@ function EmotionPicker({
                           transform: "translate(-50%, -50%)",
                           fontSize: emoji === e ? 26 : 20,
                           lineHeight: 1,
-                          transition: "font-size 0.1s, filter 0.1s",
-                          filter: emoji === e ? "drop-shadow(0 0 6px #9D4EDD)" : undefined,
                           zIndex: emoji === e ? 10 : 1,
                         }}
-                        className="hover:scale-150 transition-transform duration-100 leading-none p-0.5"
+                        className={`p-0.5 leading-none transition-transform duration-100 hover:scale-150 ${emoji === e ? "outline-2 outline-primary" : ""}`}
                         title={e}
                       >
                         {e}
                       </button>
                     ))}
                   </div>
-                  <div className="flex items-center justify-between px-1">
-                    <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#9CA3AF]">poca energía</span>
-                    <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#F59E0B]/80">mucha energía</span>
+                  <div className="flex items-center justify-between px-1 font-mono text-[9px] text-muted-foreground">
+                    <span>poca energía</span>
+                    <span>mucha energía →</span>
                   </div>
                 </div>
               </div>
@@ -365,148 +373,113 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
   });
 
   return (
-    <div className="mt-6">
-      {/* Section label */}
-      <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#B0B7C3] uppercase tracking-[0.1em] font-medium mb-3">
-        {year} — mapa emocional
-      </p>
-
-      {/* Legend */}
-      <div className="flex items-center gap-2 mb-2">
-        <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#C9C9C9]">menos</span>
-        {MOOD_COLORS.map((c, i) => (
-          <div
-            key={i}
-            style={{
-              width: 12, height: 12,
-              backgroundColor: c,
-              borderRadius: 3,
-              opacity: 0.35 + (i / 9) * 0.65,
-            }}
-          />
-        ))}
-        <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#C9C9C9]">más</span>
-      </div>
-
-      {/* Month labels */}
-      <div className="flex w-full mb-1 pl-5">
-        {weeks.map((_, wi) => {
-          const lbl = monthLabels.find(m => m.col === wi);
-          return (
-            <div key={wi} className="flex-1 min-w-0">
-              {lbl && (
-                <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] tracking-wide">
-                  {lbl.label}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Grid */}
-      <div className="flex w-full items-start" style={{ gap: GAP }}>
-        {/* Day labels */}
-        <div className="flex flex-col shrink-0" style={{ gap: GAP, width: 16 }}>
-          {DAYS_ES.map((d, i) => (
-            <div
-              key={d}
-              className="font-[family-name:var(--font-mono)] text-[8px] text-[#C9C9C9] flex items-center justify-end pr-1"
-              style={{ aspectRatio: "1", opacity: i % 2 === 0 ? 1 : 0 }}
-            >
-              {d}
-            </div>
+    <section className="border-2 border-foreground bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-foreground px-4 py-2.5">
+        <span className={LABEL}>── {year} · mapa emocional</span>
+        <div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground">
+          <span>tensión</span>
+          {Array.from({ length: 10 }, (_, i) => (
+            <span key={i} aria-hidden className="inline-block size-3" style={{ backgroundColor: moodColor(i + 1) }} />
           ))}
+          <span>bien</span>
         </div>
+      </div>
 
-        {/* Week columns */}
-        {weeks.map((week, wi) => (
-          <div key={wi} className="flex flex-col flex-1 min-w-0" style={{ gap: GAP }}>
-            {week.map((day, di) => {
-              if (!day.inYear) return <div key={di} className="w-full" style={{ aspectRatio: "1" }} />;
-              const hasMood = day.avgMood !== null;
-              const bg = hasMood ? moodColor(Math.round(day.avgMood!)) : "#F3F4F6";
-              const op = hasMood ? 0.35 + (day.avgMood! / 10) * 0.65 : 1;
-              const topEmoji = day.dayEntries.find(e => e.emoji)?.emoji ?? null;
+      <div className="overflow-x-auto p-4">
+        <div className="min-w-[640px]">
+          <div className="mb-1 flex w-full pl-5">
+            {weeks.map((_, wi) => {
+              const lbl = monthLabels.find(m => m.col === wi);
               return (
-                <div
-                  key={di}
-                  className="w-full relative overflow-hidden"
-                  style={{
-                    aspectRatio: "1",
-                    backgroundColor: bg,
-                    opacity: op,
-                    borderRadius: 3,
-                    cursor: "crosshair",
-                    minWidth: 10,
-                    minHeight: 10,
-                  }}
-                  onMouseEnter={e => {
-                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                    setTip({ date: day.date, dayEntries: day.dayEntries, avgMood: day.avgMood, x: r.left, y: r.top });
-                  }}
-                  onMouseLeave={() => setTip(null)}
-                >
-                  {topEmoji && (
-                    <span
-                      className="absolute inset-0 flex items-center justify-center pointer-events-none select-none"
-                      style={{ fontSize: "9px", lineHeight: 1 }}
-                    >
-                      {topEmoji}
-                    </span>
-                  )}
+                <div key={wi} className="min-w-0 flex-1">
+                  {lbl && <span className="font-mono text-[10px] text-muted-foreground uppercase">{lbl.label}</span>}
                 </div>
               );
             })}
           </div>
-        ))}
+
+          <div className="flex w-full items-start" style={{ gap: GAP }}>
+            <div className="flex w-4 shrink-0 flex-col" style={{ gap: GAP }}>
+              {DAYS_ES.map((d, i) => (
+                <div
+                  key={d}
+                  className="flex items-center justify-end pr-1 font-mono text-[8px] text-muted-foreground"
+                  style={{ aspectRatio: "1", opacity: i % 2 === 0 ? 1 : 0 }}
+                >
+                  {d}
+                </div>
+              ))}
+            </div>
+
+            {weeks.map((week, wi) => (
+              <div key={wi} className="flex min-w-0 flex-1 flex-col" style={{ gap: GAP }}>
+                {week.map((day, di) => {
+                  if (!day.inYear) return <div key={di} className="w-full" style={{ aspectRatio: "1" }} />;
+                  const hasMood = day.avgMood !== null;
+                  const topEmoji = day.dayEntries.find(e => e.emoji)?.emoji ?? null;
+                  return (
+                    <div
+                      key={di}
+                      className={`relative w-full cursor-crosshair overflow-hidden ${day.date === todayStr() ? "outline-2 outline-primary" : ""}`}
+                      style={{
+                        aspectRatio: "1",
+                        backgroundColor: hasMood ? moodColor(day.avgMood!) : day.dayEntries.length ? "var(--muted-foreground)" : "var(--muted)",
+                        minWidth: 8,
+                        minHeight: 8,
+                      }}
+                      onMouseEnter={e => {
+                        const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                        setTip({ date: day.date, dayEntries: day.dayEntries, avgMood: day.avgMood, x: r.left, y: r.top });
+                      }}
+                      onMouseLeave={() => setTip(null)}
+                    >
+                      {topEmoji && (
+                        <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-[9px] leading-none select-none">
+                          {topEmoji}
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
-      {/* Tooltip */}
       {tip && (
         <div
-          className="fixed z-50 bg-white border border-[#E5E7EB] rounded-2xl p-4 shadow-2xl pointer-events-none"
-          style={{ left: tip.x + 16, top: Math.max(8, tip.y - 80), maxWidth: 300 }}
+          className="pointer-events-none fixed z-50 max-w-[300px] border-2 border-foreground bg-card p-3 shadow-hard"
+          style={{ left: tip.x + 16, top: Math.max(8, tip.y - 80) }}
         >
-          <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A] text-sm mb-2">
+          <p className="mb-2 text-sm font-bold">
             {new Date(tip.date + "T00:00:00").toLocaleDateString("es-AR", {
               weekday: "long", day: "numeric", month: "long",
             })}
           </p>
           {tip.dayEntries.length > 0 ? (
             <>
-              <div className="flex items-center gap-2 mb-2">
-                {tip.dayEntries[0].emoji && (
-                  <span className="text-xl leading-none">{tip.dayEntries[0].emoji}</span>
-                )}
+              <div className="mb-2 flex items-center gap-2">
+                {tip.dayEntries[0].emoji && <span className="text-xl leading-none">{tip.dayEntries[0].emoji}</span>}
                 {tip.avgMood !== null && (
-                  <span
-                    className="font-[family-name:var(--font-mono)] text-sm font-bold"
-                    style={{ color: moodColor(Math.round(tip.avgMood)) }}
-                  >
-                    {tip.avgMood}/10
-                  </span>
+                  <span className={`font-mono text-sm font-bold tabular ${moodTextClass(Math.round(tip.avgMood))}`}>{tip.avgMood}/10</span>
                 )}
                 {tip.dayEntries.length > 1 && (
-                  <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB]">
-                    {tip.dayEntries.length} registros
-                  </span>
+                  <span className="font-mono text-[9px] text-muted-foreground">{tip.dayEntries.length} registros</span>
                 )}
               </div>
               {tip.dayEntries[0].body && (
-                <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#6B7280] leading-relaxed">
-                  {tip.dayEntries[0].body.length > 200
-                    ? tip.dayEntries[0].body.slice(0, 200) + "…"
-                    : tip.dayEntries[0].body}
+                <p className="font-mono text-[11px] leading-relaxed text-muted-foreground">
+                  {tip.dayEntries[0].body.length > 200 ? tip.dayEntries[0].body.slice(0, 200) + "…" : tip.dayEntries[0].body}
                 </p>
               )}
             </>
           ) : (
-            <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#D1D5DB]">sin registro</p>
+            <p className="font-mono text-[10px] text-muted-foreground">sin registro</p>
           )}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -515,6 +488,7 @@ function YearHeatmap({ entries }: { entries: Entry[] }) {
 const BAR_H = 66;
 
 function Last14Days({ entries }: { entries: Entry[] }) {
+  const today = todayStr();
   const days: { date: string; avgMood: number | null; emoji: string | null }[] = [];
   for (let i = 13; i >= 0; i--) {
     const d = new Date();
@@ -530,56 +504,38 @@ function Last14Days({ entries }: { entries: Entry[] }) {
   }
 
   return (
-    <div className="mt-5">
-      <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#B0B7C3] uppercase tracking-[0.1em] font-medium mb-3">
-        últimos 14 días
-      </p>
-      <div className="flex items-end gap-[8px]" style={{ height: BAR_H + 28 }}>
+    <section className="border-2 border-foreground bg-card">
+      <div className="border-b-2 border-foreground px-4 py-2.5">
+        <span className={LABEL}>── Últimos 14 días</span>
+      </div>
+      <div className="flex items-end gap-1.5 px-4 pt-2 pb-3 sm:gap-2" style={{ height: BAR_H + 52 }}>
         {days.map(({ date, avgMood, emoji }) => {
-          const barH    = avgMood !== null ? Math.max(6, (avgMood / 10) * BAR_H) : 5;
-          const color   = avgMood !== null ? moodColor(Math.round(avgMood)) : "#EBEBEB";
-          const isToday = date === todayStr();
+          const barH    = avgMood !== null ? Math.max(6, (avgMood / 10) * BAR_H) : 4;
+          const isToday = date === today;
           const d       = new Date(date + "T00:00:00");
-          const dayName = DAYS_SHORT[d.getDay()];
-          const dayNum  = d.getDate();
           return (
-            <div key={date} className="flex-1 flex flex-col items-center gap-1.5 group/bar">
-              <div className="h-5 flex items-end justify-center">
+            <div key={date} className="group/bar flex flex-1 flex-col items-center gap-1.5">
+              <div className="flex h-5 items-end justify-center">
                 {emoji && (
-                  <span className="text-[10px] leading-none opacity-0 group-hover/bar:opacity-100 transition-opacity duration-150">
-                    {emoji}
-                  </span>
+                  <span className="text-[10px] leading-none opacity-0 transition-opacity duration-150 group-hover/bar:opacity-100">{emoji}</span>
                 )}
               </div>
               <div
-                className="w-full transition-all duration-300"
-                style={{
-                  height: barH,
-                  backgroundColor: color,
-                  borderRadius: 6,
-                  opacity: avgMood !== null ? 0.45 + (avgMood / 10) * 0.55 : 1,
-                  outline: isToday ? `2px solid #9D4EDD` : undefined,
-                  outlineOffset: 2,
-                }}
+                className={`w-full ${isToday ? "outline-2 outline-offset-2 outline-primary" : ""}`}
+                title={avgMood !== null ? `${avgMood}/10` : "sin puntaje"}
+                style={{ height: barH, backgroundColor: avgMood !== null ? moodColor(avgMood) : "var(--muted)" }}
               />
-              <div className="flex flex-col items-center" style={{ lineHeight: 1 }}>
-                <span
-                  className="font-[family-name:var(--font-mono)] text-[7px] leading-none"
-                  style={{ color: isToday ? "#9D4EDD" : "#C9C9C9" }}
-                >
-                  {isToday ? "hoy" : dayName}
+              <div className="flex flex-col items-center font-mono leading-none">
+                <span className={`text-[8px] uppercase ${isToday ? "text-primary" : "text-muted-foreground"}`}>
+                  {isToday ? "hoy" : DAYS_SHORT[d.getDay()]}
                 </span>
-                {!isToday && (
-                  <span className="font-[family-name:var(--font-mono)] text-[8px] leading-none mt-0.5" style={{ color: "#B0B7C3" }}>
-                    {dayNum}
-                  </span>
-                )}
+                {!isToday && <span className="mt-0.5 text-[8px] text-muted-foreground tabular">{d.getDate()}</span>}
               </div>
             </div>
           );
         })}
       </div>
-    </div>
+    </section>
   );
 }
 
@@ -624,71 +580,48 @@ function EntryForm({
   const canSave = !isPending && (!!body.trim() || mood !== null);
 
   return (
-    <div className="space-y-0">
-      {/* Top row: label + date */}
-      <div className="flex items-center justify-between mb-3">
-        {isEdit ? (
-          <span className="font-[family-name:var(--font-playfair)] text-sm font-bold text-[#0A0A0A]">
-            Editar registro
-          </span>
-        ) : (
-          <span className="font-[family-name:var(--font-mono)] text-[11px] text-[#B0B7C3] uppercase tracking-[0.1em] font-medium">
-            nueva entrada
-          </span>
-        )}
+    <div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <span className={LABEL}>── {isEdit ? "Editar registro" : "Nueva entrada"}</span>
         <input
           type="date"
           value={date}
+          aria-label="Fecha"
           onChange={e => setDate(e.target.value)}
-          className="font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] bg-transparent focus:outline-none focus:text-[#0A0A0A] cursor-pointer transition-colors"
+          className="cursor-pointer border-b border-dashed border-muted-foreground bg-transparent font-mono text-[11px] text-muted-foreground outline-none focus:border-solid focus:border-foreground focus:text-foreground"
         />
       </div>
 
-      {/* Textarea */}
       <textarea
         ref={textareaRef}
         value={body}
         onChange={e => { setBody(e.target.value); autoResize(); }}
         placeholder="¿Qué siento hoy?"
+        aria-label="Qué siento hoy"
         rows={isEdit ? 3 : 4}
         autoFocus={!isEdit}
-        className="w-full bg-transparent resize-none text-[#0A0A0A] text-[17px] leading-loose placeholder:text-[#D8DCE4] focus:outline-none"
+        className="w-full resize-none bg-transparent text-[17px] leading-loose outline-none placeholder:text-muted-foreground/60"
       />
 
-      {/* Bottom row: Puntaje + mood + emoji | (delete) + cancel + save */}
-      <div className="mt-3 pt-3 border-t border-[#F0F0F2] flex items-center gap-3">
-        {/* Left: label + meter + emoji */}
-        <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#B0B7C3] uppercase tracking-[0.08em] shrink-0">
-          Puntaje
-        </span>
+      <div className="mt-3 flex flex-wrap items-center gap-3 border-t border-muted pt-3">
+        <span className={`${LABEL} shrink-0`}>Puntaje</span>
         <MoodMeter value={mood} onChange={v => setMood(v === 0 ? null : v)} />
-        <EmotionPicker
-          emoji={emoji}
-          onSelect={setEmoji}
-          onClear={() => setEmoji(null)}
-        />
+        <EmotionPicker emoji={emoji} onSelect={setEmoji} onClear={() => setEmoji(null)} />
 
-        {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Right: delete (edit only) + cancel + save */}
         {isEdit && onDelete && (
           <button
             type="button"
             onClick={onDelete}
             disabled={isPending}
-            className="p-1.5 text-[#E5E7EB] hover:text-[#FF1493] hover:bg-[#FFF0F5] rounded-xl transition-colors"
-            title="Eliminar entrada"
+            className="border-2 border-destructive bg-card px-3 py-1.5 font-mono text-xs text-destructive uppercase hover:bg-destructive/10 disabled:opacity-40"
           >
-            <Trash2 size={14} />
+            Borrar
           </button>
         )}
         {onClose && (
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-3 py-1.5 text-[11px] font-medium rounded-lg font-[family-name:var(--font-mono)] text-[#9CA3AF] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] transition-all"
-          >
+          <button type="button" onClick={onClose} className="px-2 py-1.5 font-mono text-[11px] text-muted-foreground uppercase hover:text-foreground">
             cancelar
           </button>
         )}
@@ -697,18 +630,16 @@ function EntryForm({
           onClick={() => onSave(body, date, emoji, mood)}
           disabled={!canSave}
           title={!canSave ? "Escribí algo para guardar" : undefined}
-          className="px-5 py-2 text-[12px] font-medium rounded-xl font-[family-name:var(--font-mono)] bg-[#0A0A0A] text-white hover:bg-[#374151] disabled:opacity-20 disabled:cursor-not-allowed transition-all"
+          className={BTN_PRIMARY}
         >
           {isPending ? "guardando…" : isEdit ? "guardar cambios" : "guardar"}
         </button>
       </div>
 
       {saveError && (
-        <div className="mt-3 px-4 py-2.5 bg-[#FFF0F5] border border-[#FF1493]/20 rounded-xl">
-          <span className="font-[family-name:var(--font-mono)] text-[11px] text-[#FF1493]">
-            {saveError}
-          </span>
-        </div>
+        <p role="alert" className="mt-3 border-2 border-destructive px-3 py-2 font-mono text-[11px] text-destructive">
+          ✗ {saveError}
+        </p>
       )}
     </div>
   );
@@ -737,6 +668,11 @@ export default function DiaryClient({
   const [aiLoading,      setAiLoading]      = useState(false);
   const [aiAnalysis,     setAiAnalysis]     = useState<string | null>(null);
   const [aiError,        setAiError]        = useState<string | null>(null);
+
+  const closeAi = useCallback(() => setAiOpen(false), []);
+  const closeEdit = useCallback(() => setEditing(null), []);
+  useEscape(closeAi, aiOpen);
+  useEscape(closeEdit, !!editing);
 
   const analysisEntries: AnalysisEntry[] = entries
     .filter(e => {
@@ -804,245 +740,141 @@ export default function DiaryClient({
   }
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="px-8 py-6 max-w-screen-xl mx-auto">
-
-        {/* ── Header ── */}
-        <div className="mb-5 flex items-start justify-between">
-          <div>
-            {view === "records" && (
-              <button
-                type="button"
-                onClick={() => setView("write")}
-                className="flex items-center gap-1.5 font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] hover:text-[#0A0A0A] transition-colors mb-3"
-              >
-                ← volver al diario
-              </button>
-            )}
-            <h1 className="font-[family-name:var(--font-playfair)] text-[26px] font-bold text-[#0A0A0A] leading-tight">
-              {view === "records" ? "Registros" : "Diario Emocional"}
-            </h1>
-            <p className="font-[family-name:var(--font-mono)] text-[12px] text-[#B0B7C3] mt-1.5">
-              {entries.length} {entries.length === 1 ? "registro" : "registros"}
-            </p>
-          </div>
-
-          {/* Right side: análisis + view toggle + restore */}
-          <div className="flex flex-col items-end gap-2 pt-1">
-            {view === "write" && (
-              <div className="flex items-center gap-2">
-                {/* Análisis Emocional */}
-                {hasAiKey ? (
-                  <button
-                    type="button"
-                    onClick={handleAnalyze}
-                    disabled={analysisEntries.length === 0}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-[family-name:var(--font-mono)] bg-[#0A0A0A] text-white hover:bg-[#9D4EDD] shadow-sm hover:shadow-md hover:shadow-[#9D4EDD]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-[#0A0A0A] disabled:hover:shadow-sm"
-                  >
-                    <Sparkles size={12} />
-                    Análisis Emocional
-                  </button>
-                ) : (
-                  <div
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-[family-name:var(--font-mono)] bg-[#F9FAFB] border border-[#E5E7EB] text-[#C9C9C9] cursor-not-allowed select-none"
-                    title="próximamente"
-                  >
-                    <Sparkles size={12} />
-                    Análisis Emocional
-                  </div>
-                )}
-                {/* Ver registros */}
-                <button
-                  type="button"
-                  onClick={() => setView("records")}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-[family-name:var(--font-mono)] border border-[#E5E7EB] text-[#374151] hover:border-[#9D4EDD] hover:text-[#9D4EDD] transition-all"
-                >
-                  ver registros →
-                </button>
-              </div>
-            )}
-
-            {/* Restore — link style, no competition */}
+    <div className="mx-auto flex max-w-[1180px] flex-col gap-6 px-4 py-7 md:px-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          {view === "records" && (
             <button
               type="button"
-              onClick={handleRestore}
-              disabled={isPending}
-              className={`flex items-center gap-1 font-[family-name:var(--font-mono)] text-[10px] transition-colors disabled:opacity-40 ${
-                restored
-                  ? "text-[#22C55E]"
-                  : "text-[#C9C9C9] hover:text-[#9CA3AF]"
-              }`}
-              title="Recuperar el último registro borrado"
+              onClick={() => setView("write")}
+              className="mb-3 font-mono text-[11px] text-muted-foreground uppercase hover:text-foreground"
             >
-              <Undo2 size={10} />
-              {restored ? "recuperado ✓" : "recuperar borrado"}
+              ← volver al diario
             </button>
-
-            {restoreError && (
-              <span className="font-[family-name:var(--font-mono)] text-[10px] text-[#FF1493]">
-                {restoreError}
-              </span>
-            )}
-          </div>
+          )}
+          <h1 className="text-[40px] leading-none font-bold tracking-[-0.02em]">
+            {view === "records" ? "Registros" : "Diario"}<span className="k-cursor">_</span>
+          </h1>
+          <p className="mt-2 font-mono text-xs text-muted-foreground">
+            {entries.length} {entries.length === 1 ? "registro" : "registros"}
+          </p>
         </div>
 
-        {view === "write" ? (
-          <>
-            {/* ── Write card ── */}
-            <div
-              className={`mb-6 bg-white rounded-2xl px-7 pt-5 pb-4 transition-all duration-300 ${
-                saved
-                  ? "shadow-[0_4px_24px_rgba(57,255,20,0.12)] ring-1 ring-[#39FF14]/30"
-                  : "shadow-[0_2px_16px_rgba(0,0,0,0.06)] hover:shadow-[0_4px_20px_rgba(0,0,0,0.08)] focus-within:shadow-[0_4px_24px_rgba(157,78,221,0.10)] focus-within:ring-1 focus-within:ring-[#9D4EDD]/20"
-              }`}
-            >
-              {saved ? (
-                <div className="py-10 flex flex-col items-center gap-3">
-                  <span className="text-4xl leading-none">✓</span>
-                  <span className="font-[family-name:var(--font-mono)] text-sm font-medium text-[#22C55E]">
-                    registro guardado
-                  </span>
-                </div>
+        <div className="flex flex-col items-end gap-2">
+          {view === "write" && (
+            <div className="flex flex-wrap items-center justify-end gap-2.5">
+              {hasAiKey ? (
+                <button type="button" onClick={handleAnalyze} disabled={analysisEntries.length === 0} className={BTN}>
+                  ✦ Análisis emocional
+                </button>
               ) : (
-                <EntryForm
-                  initialDate={todayStr()}
-                  onSave={handleSave}
-                  isPending={isPending}
-                  saveError={saveError}
-                />
+                <span title="próximamente" className="border-2 border-dashed border-muted-foreground px-3.5 py-2 font-mono text-xs text-muted-foreground uppercase select-none">
+                  ✦ Análisis emocional
+                </span>
               )}
+              <button type="button" onClick={() => setView("records")} className={BTN}>
+                Ver registros →
+              </button>
             </div>
+          )}
 
-            {/* ── Year heatmap ── */}
-            <YearHeatmap entries={entries} />
+          <button
+            type="button"
+            onClick={handleRestore}
+            disabled={isPending}
+            title="Recuperar el último registro borrado"
+            className={`font-mono text-[10px] uppercase disabled:opacity-40 ${restored ? "text-pos" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {restored ? "✓ recuperado" : "↶ recuperar borrado"}
+          </button>
+          {restoreError && <span role="alert" className="font-mono text-[10px] text-destructive">{restoreError}</span>}
+        </div>
+      </header>
 
-            {/* ── Last 14 days + Análisis ── */}
-            <Last14Days entries={entries} />
-          </>
-        ) : (
-          /* ── Records view ── */
-          <div>
-            {entries.length === 0 ? (
-              <div className="py-24 text-center">
-                <p className="font-[family-name:var(--font-mono)] text-sm text-[#D1D5DB]">
-                  Todavía no escribiste nada.
-                </p>
-                <p className="font-[family-name:var(--font-mono)] text-xs text-[#E5E7EB] mt-1.5">
-                  El primer paso es el más importante.
-                </p>
+      {view === "write" ? (
+        <>
+          <section className={`border-2 bg-card px-5 pt-4 pb-4 md:px-7 ${saved ? "border-pos" : "border-foreground focus-within:shadow-hard"}`}>
+            {saved ? (
+              <div className="flex flex-col items-center gap-3 py-10 font-mono">
+                <span aria-hidden className="text-2xl text-pos">[ ✓ ]</span>
+                <span className="text-sm text-pos uppercase">registro guardado</span>
               </div>
             ) : (
-              <div className="space-y-4">
-                {entries.map(entry => (
-                  <div
-                    key={entry.id}
-                    className="bg-white rounded-2xl px-7 py-6 shadow-[0_1px_8px_rgba(0,0,0,0.05)] hover:shadow-[0_4px_16px_rgba(0,0,0,0.08)] transition-shadow duration-200"
-                  >
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3 flex-wrap">
-                        {entry.emoji && (
-                          <span className="text-2xl leading-none">{entry.emoji}</span>
-                        )}
-                        <div>
-                          <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A] text-base">
-                            {formatDate(entry.entry_date)}
-                          </p>
-                          <p className="font-[family-name:var(--font-mono)] text-[10px] text-[#B0B7C3] mt-0.5">
-                            {daysAgo(entry.entry_date)}
-                          </p>
-                        </div>
-                        {entry.mood && (
-                          <span
-                            className="font-[family-name:var(--font-mono)] text-sm font-bold"
-                            style={{ color: moodColor(entry.mood) }}
-                          >
-                            {entry.mood}/10
-                          </span>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <button
-                          type="button"
-                          onClick={() => setEditing(entry)}
-                          className="p-2 text-[#C9C9C9] hover:text-[#9D4EDD] hover:bg-[#F5F0FF] rounded-xl transition-all"
-                          title="Editar"
-                        >
-                          <Pencil size={14} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(entry.id)}
-                          className="p-2 text-[#E5E7EB] hover:text-[#FF1493] hover:bg-[#FFF0F5] rounded-xl transition-all"
-                          title="Eliminar"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </div>
-
-                    {entry.body ? (
-                      <p className="text-[#374151] text-[15px] leading-relaxed whitespace-pre-wrap">
-                        {entry.body}
-                      </p>
-                    ) : (
-                      <p className="font-[family-name:var(--font-mono)] text-[11px] text-[#D1D5DB] italic">
-                        sin anotación
-                      </p>
-                    )}
-                  </div>
-                ))}
-              </div>
+              <EntryForm initialDate={todayStr()} onSave={handleSave} isPending={isPending} saveError={saveError} />
             )}
-          </div>
-        )}
-      </div>
+          </section>
 
-      {/* ── Analysis modal ── */}
+          <YearHeatmap entries={entries} />
+          <Last14Days entries={entries} />
+        </>
+      ) : entries.length === 0 ? (
+        <div className="border-2 border-dashed border-muted-foreground px-6 py-16 text-center font-mono text-xs text-muted-foreground">
+          <pre aria-hidden className="mb-3 leading-tight">{"┌──────┐\n│ ___  │\n│ __   │\n└──────┘"}</pre>
+          Todavía no escribiste nada. El primer paso es el más importante.
+        </div>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {entries.map(entry => (
+            <article key={entry.id} className="group border-2 border-foreground bg-card px-5 py-4 md:px-7 md:py-5">
+              <div className="mb-3 flex items-start justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-3">
+                  {entry.emoji && <span className="text-2xl leading-none">{entry.emoji}</span>}
+                  <div>
+                    <p className="font-bold">{formatDate(entry.entry_date)}</p>
+                    <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">{daysAgo(entry.entry_date)}</p>
+                  </div>
+                  {entry.mood && (
+                    <span className={`font-mono text-sm font-bold tabular ${moodTextClass(entry.mood)}`}>{entry.mood}/10</span>
+                  )}
+                </div>
+                <div className="flex shrink-0 items-center gap-3 font-mono text-[10px] uppercase">
+                  <button type="button" onClick={() => setEditing(entry)} className="text-muted-foreground hover:text-foreground">
+                    editar
+                  </button>
+                  <button type="button" onClick={() => handleDelete(entry.id)} className="text-muted-foreground hover:text-destructive">
+                    borrar
+                  </button>
+                </div>
+              </div>
+              {entry.body ? (
+                <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{entry.body}</p>
+              ) : (
+                <p className="font-mono text-[11px] text-muted-foreground italic">sin anotación</p>
+              )}
+            </article>
+          ))}
+        </div>
+      )}
+
       {aiOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/25 backdrop-blur-sm p-6"
-          onClick={() => setAiOpen(false)}
-        >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6" onClick={closeAi}>
           <div
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-xl overflow-hidden"
+            role="dialog"
+            aria-label="Análisis emocional"
+            className="w-full max-w-xl border-2 border-foreground bg-card shadow-hard-lg"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-7 pt-6 pb-4 border-b border-[#F5F5F5]">
-              <div className="flex items-center gap-2.5">
-                <Sparkles size={15} className="text-[#9D4EDD]" />
-                <p className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A]">
-                  Análisis Emocional
-                </p>
-              </div>
+            <div className="flex items-center justify-between border-b-2 border-foreground px-4 py-2.5">
+              <span className={LABEL}>── ✦ Análisis emocional</span>
               <div className="flex items-center gap-3">
-                <span className="font-[family-name:var(--font-mono)] text-[9px] text-[#D1D5DB]">
-                  últimos 14 días
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setAiOpen(false)}
-                  className="p-1.5 text-[#C9C9C9] hover:text-[#0A0A0A] hover:bg-[#F5F5F5] rounded-lg transition-colors"
-                >
-                  <X size={15} />
-                </button>
+                <span className="font-mono text-[10px] text-muted-foreground">últimos 14 días</span>
+                <button type="button" onClick={closeAi} aria-label="Cerrar" className="font-mono text-xs text-muted-foreground hover:text-foreground">✕</button>
               </div>
             </div>
-            <div className="px-7 py-6 max-h-[60vh] overflow-y-auto">
+            <div className="max-h-[60vh] overflow-y-auto px-5 py-5">
               {aiLoading ? (
-                <div className="flex flex-col items-center gap-3 py-10">
-                  <Loader2 size={22} className="text-[#9D4EDD] animate-spin" />
-                  <span className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">
-                    analizando los últimos 14 días…
-                  </span>
+                <div className="flex flex-col items-center gap-3 py-10 font-mono text-xs text-muted-foreground">
+                  <span aria-hidden className="animate-pulse text-primary">[▓▓▓░░░]</span>
+                  analizando los últimos 14 días…
                 </div>
               ) : aiError ? (
-                <p className="font-[family-name:var(--font-mono)] text-sm text-[#FF1493]">{aiError}</p>
+                <p role="alert" className="font-mono text-sm text-destructive">{aiError}</p>
               ) : aiAnalysis ? (
-                <p className="text-[#374151] text-[15px] leading-relaxed whitespace-pre-wrap">{aiAnalysis}</p>
+                <p className="text-[15px] leading-relaxed whitespace-pre-wrap">{aiAnalysis}</p>
               ) : null}
             </div>
             {!aiLoading && aiAnalysis && (
-              <div className="px-7 pb-5 flex justify-end">
+              <div className="flex justify-end border-t border-muted px-5 py-3">
                 <button
                   type="button"
                   onClick={() => {
@@ -1054,9 +886,9 @@ export default function DiaryClient({
                       else setAiAnalysis(r.analysis);
                     });
                   }}
-                  className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] hover:text-[#9D4EDD] transition-colors"
+                  className="font-mono text-[10px] text-muted-foreground uppercase hover:text-foreground"
                 >
-                  regenerar análisis
+                  ↻ regenerar análisis
                 </button>
               </div>
             )}
@@ -1064,16 +896,9 @@ export default function DiaryClient({
         </div>
       )}
 
-      {/* ── Edit modal ── */}
       {editing && (
-        <div
-          className="fixed inset-0 bg-black/15 backdrop-blur-sm z-50 flex items-center justify-center p-6"
-          onClick={() => setEditing(null)}
-        >
-          <div
-            className="bg-white rounded-2xl px-8 py-7 max-w-lg w-full shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-6" onClick={closeEdit}>
+          <div className="w-full max-w-lg border-2 border-foreground bg-card px-6 py-5 shadow-hard-lg" onClick={e => e.stopPropagation()}>
             <EntryForm
               key={editing.id}
               initialBody={editing.body}
@@ -1082,7 +907,7 @@ export default function DiaryClient({
               initialMood={editing.mood}
               onSave={handleEditSave}
               onDelete={() => handleDelete(editing.id)}
-              onClose={() => setEditing(null)}
+              onClose={closeEdit}
               isPending={isPending}
               saveError={editError}
               isEdit

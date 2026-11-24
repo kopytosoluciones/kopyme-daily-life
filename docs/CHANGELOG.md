@@ -28,6 +28,7 @@ Lo que sigue abierto hoy vive en `CLAUDE.md` → **Pendiente**. Al cerrar una se
 - La terminal integrada a veces deniega una navegación del navegador del panel; reintentar alcanza.
 
 | 6 | Vercel: variables públicas de Supabase habilitadas también para Preview (la service role queda solo en Production) | Vercel MCP |
+| 8 | **Diario, Hábitos, Calendario, Vínculos e Inicio migrados a v2** (rama `v2/modulos`). Backup previo del Diario (58 entradas) en `.claude/archive/`. Diario y rail hechos en la sesión; los otros 4 con subagentes en paralelo y revisados en navegador. Rail pasa a barra superior en < 768px. Esc cierra los modales. Fix de hydration en Vínculos (redondeo de coordenadas) | `app/(app)/*`, `components/layout/` |
 | 7 | **Checklists migrado a v2** en rama `v2/checklists`: cards brutalistas, marcadores ASCII, color de lista solo como marcador, modal v2 con Esc, fix de hydration de dnd-kit, borrados 3 componentes muertos | `app/(app)/todos/` |
 
 #### Notas

@@ -2,7 +2,6 @@
 
 import { useTransition, useState, useRef } from "react";
 import { upsertHabitLog, deleteHabitLog } from "./actions";
-import { Check } from "lucide-react";
 
 interface Props {
   habitId: string;
@@ -30,25 +29,37 @@ export default function HabitCell({ habitId, date, value, goalType, goalOptions,
     }
   }
 
+  const cellBase = "font-mono text-[10px] tabular outline-none transition-colors duration-100 disabled:cursor-not-allowed";
+  const cellState = isFuture
+    ? "border-muted text-muted-foreground"
+    : hasValue
+    ? "border-foreground bg-foreground text-background"
+    : isToday
+    ? "border-primary bg-card text-muted-foreground hover:bg-muted"
+    : "border-foreground bg-card text-muted-foreground hover:bg-muted";
+
   // BOOLEAN
   if (goalType === "boolean") {
     const checked = value === "true";
     return (
       <button
+        type="button"
         disabled={isFuture || pending}
         onClick={() => save(checked ? "" : "true")}
         title={isFuture ? "Día futuro" : ""}
-        className={`w-8 h-8 rounded-full border-2 flex items-center justify-center transition-all mx-auto ${
+        aria-label={checked ? `Desmarcar ${date}` : `Marcar ${date}`}
+        aria-pressed={checked}
+        className={`mx-auto flex size-7 items-center justify-center border-2 font-mono text-xs leading-none transition-colors duration-100 disabled:cursor-not-allowed ${
           isFuture
-            ? "border-[#F5F5F5] cursor-not-allowed"
+            ? "border-muted"
             : checked
-            ? "bg-[#39FF14] border-[#39FF14] hover:opacity-80"
+            ? "border-foreground bg-foreground text-background"
             : isToday
-            ? "border-[#9D4EDD]/50 hover:border-[#39FF14] hover:bg-[#39FF14]/10"
-            : "border-[#E5E7EB] hover:border-[#39FF14] hover:bg-[#39FF14]/10"
-        }`}
+            ? "border-primary bg-card hover:bg-muted"
+            : "border-foreground bg-card hover:bg-muted"
+        } ${pending ? "opacity-60" : ""}`}
       >
-        {checked && <Check size={12} strokeWidth={3} className="text-black" />}
+        {checked && <span aria-hidden>✓</span>}
       </button>
     );
   }
@@ -60,15 +71,8 @@ export default function HabitCell({ habitId, date, value, goalType, goalOptions,
         disabled={isFuture || pending}
         value={value ?? ""}
         onChange={e => save(e.target.value)}
-        className={`w-full font-[family-name:var(--font-mono)] text-[10px] text-center bg-transparent border rounded-lg px-1 py-1 focus:outline-none transition-all ${
-          isFuture
-            ? "border-transparent text-[#E5E7EB] cursor-not-allowed"
-            : hasValue
-            ? "border-[#39FF14] text-[#0A0A0A] bg-[#39FF14]/5"
-            : isToday
-            ? "border-[#9D4EDD]/40 text-[#9CA3AF] hover:border-[#39FF14]"
-            : "border-[#E5E7EB] text-[#9CA3AF] hover:border-[#39FF14]"
-        }`}
+        aria-label={`Valor ${date}`}
+        className={`w-full appearance-none border-2 px-1 py-1 text-center [&>option]:bg-card [&>option]:text-foreground ${cellBase} ${cellState}`}
       >
         <option value="">—</option>
         {goalOptions.map(opt => (
@@ -93,24 +97,19 @@ export default function HabitCell({ habitId, date, value, goalType, goalOptions,
           if (e.key === "Enter") { setEditing(false); save(inputVal); }
           if (e.key === "Escape") { setEditing(false); setInputVal(value ?? ""); }
         }}
-        className="w-full font-[family-name:var(--font-mono)] text-[10px] text-center bg-white border border-[#9D4EDD] rounded-lg px-1 py-1 focus:outline-none"
+        aria-label={`Valor ${date}`}
+        className={`w-full border-2 border-foreground bg-primary/10 px-1 py-1 text-center text-foreground ${cellBase}`}
       />
     );
   }
 
   return (
     <button
+      type="button"
       disabled={isFuture || pending}
       onClick={() => { if (!isFuture) { setEditing(true); setTimeout(() => inputRef.current?.focus(), 0); } }}
-      className={`w-full font-[family-name:var(--font-mono)] text-[10px] rounded-lg px-1 py-1 border transition-all ${
-        isFuture
-          ? "border-transparent text-[#E5E7EB] cursor-not-allowed"
-          : hasValue
-          ? "border-[#39FF14] text-[#0A0A0A] bg-[#39FF14]/5 hover:opacity-80"
-          : isToday
-          ? "border-[#9D4EDD]/40 text-[#9CA3AF] hover:border-[#39FF14]"
-          : "border-[#E5E7EB] text-[#9CA3AF] hover:border-[#39FF14]"
-      }`}
+      aria-label={`Valor ${date}`}
+      className={`w-full border-2 px-1 py-1 ${cellBase} ${cellState}`}
     >
       {hasValue ? value : "—"}
     </button>

@@ -39,21 +39,18 @@ export default function HabitsDashboard({ habits, allLogs }: Props) {
   const totalDays = period === "week" ? 7 : period === "month" ? 30 : 365;
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-      {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-[#F5F5F5]">
-        <h2 className="font-[family-name:var(--font-playfair)] text-lg font-bold text-[#0A0A0A]">
-          Progreso
-        </h2>
-        <div className="flex gap-1 bg-[#F5F5F5] p-1 rounded-lg text-xs">
+    <section className="border-2 border-foreground bg-card">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b-2 border-foreground px-4 py-2.5">
+        <h2 className={label}>── Progreso</h2>
+        <div role="group" aria-label="Período" className="flex border-2 border-foreground">
           {(["week", "month", "year"] as Period[]).map(p => (
             <button
               key={p}
+              type="button"
+              aria-pressed={period === p}
               onClick={() => setPeriod(p)}
-              className={`px-3 py-1 rounded-md transition-all ${
-                period === p
-                  ? "bg-white text-[#0A0A0A] font-medium shadow-sm"
-                  : "text-[#6B7280] hover:text-[#0A0A0A]"
+              className={`border-r-2 border-foreground px-3 py-1 font-mono text-[11px] tracking-[0.06em] uppercase last:border-r-0 ${
+                period === p ? "bg-foreground text-background" : "bg-card text-foreground hover:bg-muted"
               }`}
             >
               {p === "week" ? "Semana" : p === "month" ? "Mes" : "Año"}
@@ -63,7 +60,7 @@ export default function HabitsDashboard({ habits, allLogs }: Props) {
       </div>
 
       {/* Cards */}
-      <div className="p-5 grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-px bg-muted sm:grid-cols-2">
         {habits.map(habit => {
           const logs = filteredLogs.filter(l => l.habit_id === habit.id);
 
@@ -96,21 +93,30 @@ export default function HabitsDashboard({ habits, allLogs }: Props) {
           return null;
         })}
       </div>
-    </div>
+    </section>
   );
+}
+
+const label = "font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase";
+const card = "flex flex-col gap-2.5 bg-card p-4 sm:last:odd:col-span-2";
+const fmt1 = (n: number) => n.toLocaleString("es-AR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+
+function asciiBar(pct: number, width = 10) {
+  const filled = Math.max(0, Math.min(width, Math.round((pct / 100) * width)));
+  return "█".repeat(filled) + "░".repeat(width - filled);
 }
 
 function BooleanCard({ name, done, total, pct }: { name: string; done: number; total: number; pct: number }) {
   return (
-    <div className="p-4 bg-[#F5F5F5] rounded-xl">
-      <div className="flex justify-between items-start mb-3">
-        <p className="text-sm font-medium text-[#0A0A0A]">{name}</p>
-        <span className="font-[family-name:var(--font-mono)] text-xs text-[#6B7280]">{done}/{total} días</span>
+    <div className={card}>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="min-w-0 truncate font-bold">{name}</p>
+        <span className="shrink-0 font-mono text-[11px] text-muted-foreground tabular">{done}/{total} días</span>
       </div>
-      <div className="h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden mb-1.5">
-        <div className="h-full bg-[#39FF14] rounded-full transition-all" style={{ width: `${pct}%` }} />
-      </div>
-      <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF]">{pct}% completado</p>
+      <p className="font-mono text-[13px] tabular" aria-label={`${pct}% completado`}>
+        <span aria-hidden className="tracking-[-1px] select-none">[{asciiBar(pct)}]</span>{" "}
+        <span className="font-bold">{pct}%</span>
+      </p>
     </div>
   );
 }
@@ -120,29 +126,29 @@ function NumericCard({ name, avg, values, unit, target }: { name: string; avg: n
   const last8 = values.slice(-8);
 
   return (
-    <div className="p-4 bg-[#F5F5F5] rounded-xl">
-      <div className="flex justify-between items-start mb-3">
-        <p className="text-sm font-medium text-[#0A0A0A]">{name}</p>
-        <span className="font-[family-name:var(--font-mono)] text-xs text-[#6B7280]">
-          prom: {avg.toFixed(1)}{unit ? ` ${unit}` : ""}
+    <div className={card}>
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="min-w-0 truncate font-bold">{name}</p>
+        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">
+          prom <span className="font-bold text-foreground tabular">{fmt1(avg)}</span>{unit ? ` ${unit}` : ""}
         </span>
       </div>
-      <div className="flex items-end gap-1 h-10">
+      <div className="flex h-10 items-end gap-1 border-b-2 border-foreground">
         {last8.length === 0 && (
-          <p className="font-[family-name:var(--font-mono)] text-xs text-[#D1D5DB]">Sin datos aún</p>
+          <p className="self-center font-mono text-[11px] text-muted-foreground">Sin datos aún</p>
         )}
         {last8.map((v, i) => (
           <div
             key={i}
-            className="flex-1 rounded-sm bg-[#9D4EDD] transition-all"
-            style={{ height: `${Math.max((v / max) * 100, 4)}%`, opacity: 0.4 + (i / last8.length) * 0.6 }}
+            className={`flex-1 ${i === last8.length - 1 ? "bg-primary" : "bg-foreground"}`}
+            style={{ height: `${Math.max((v / max) * 100, 4)}%` }}
             title={`${v}${unit ? ` ${unit}` : ""}`}
           />
         ))}
       </div>
       {target && (
-        <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] mt-1.5">
-          objetivo: {target}{unit ? ` ${unit}` : ""}
+        <p className="font-mono text-[11px] text-muted-foreground">
+          objetivo: <span className="tabular">{target}</span>{unit ? ` ${unit}` : ""}
         </p>
       )}
     </div>
@@ -151,33 +157,25 @@ function NumericCard({ name, avg, values, unit, target }: { name: string; avg: n
 
 function DropdownCard({ name, counts, options }: { name: string; counts: Record<string, number>; options: string[] }) {
   const total = Object.values(counts).reduce((a, b) => a + b, 0);
-  const colors = ["#39FF14", "#9D4EDD", "#F4A9D6", "#D9B3E8", "#B8E8C1"];
 
   return (
-    <div className="p-4 bg-[#F5F5F5] rounded-xl">
-      <p className="text-sm font-medium text-[#0A0A0A] mb-3">{name}</p>
-      <div className="space-y-2">
-        {options.map((opt, i) => {
+    <div className={card}>
+      <p className="truncate font-bold">{name}</p>
+      <div className="grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 font-mono text-[12px]">
+        {options.map(opt => {
           const count = counts[opt] ?? 0;
           const pct = total > 0 ? Math.round((count / total) * 100) : 0;
           return (
-            <div key={opt}>
-              <div className="flex justify-between text-xs mb-0.5">
-                <span className="text-[#6B7280]">{opt}</span>
-                <span className="font-[family-name:var(--font-mono)] text-[#9CA3AF]">{count}×</span>
-              </div>
-              <div className="h-1.5 bg-[#E5E7EB] rounded-full overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${pct}%`, backgroundColor: colors[i % colors.length] }}
-                />
-              </div>
+            <div key={opt} className="contents">
+              <span className="max-w-[10rem] truncate text-muted-foreground">{opt}</span>
+              <span aria-hidden className="overflow-hidden tracking-[-1px] whitespace-nowrap select-none">{asciiBar(pct)}</span>
+              <span className="text-right tabular">{count}×</span>
             </div>
           );
         })}
       </div>
       {total === 0 && (
-        <p className="font-[family-name:var(--font-mono)] text-xs text-[#D1D5DB] mt-2">Sin datos aún</p>
+        <p className="font-mono text-[11px] text-muted-foreground">Sin datos aún</p>
       )}
     </div>
   );

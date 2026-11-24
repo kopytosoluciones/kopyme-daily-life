@@ -8,7 +8,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const notices = user ? await getNotices(user.id) : [];
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen flex-col bg-background md:flex-row">
       <Sidebar notices={notices} />
       <main className="flex-1 overflow-y-auto">
         {children}

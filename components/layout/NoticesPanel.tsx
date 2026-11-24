@@ -42,7 +42,7 @@ export default function NoticesPanel({ notices }: { notices: Notice[] }) {
           setOpenedAt(pathname);
           setOpen((o) => !o);
         }}
-        className={`flex w-full items-center gap-2.5 px-5 py-[7px] text-left font-mono text-xs tracking-[0.06em] uppercase ${
+        className={`flex items-center gap-2.5 whitespace-nowrap px-3 py-[7px] text-left font-mono md:w-full md:px-5 text-xs tracking-[0.06em] uppercase ${
           open ? "bg-muted text-foreground" : "text-muted-foreground hover:text-foreground"
         }`}
       >
@@ -58,7 +58,7 @@ export default function NoticesPanel({ notices }: { notices: Notice[] }) {
           id="notices-panel"
           role="dialog"
           aria-label="Avisos"
-          className="absolute bottom-0 left-[calc(100%+10px)] z-30 w-[340px] max-w-[calc(100vw-220px)] border-2 border-foreground bg-card shadow-hard-lg"
+          className="absolute top-[calc(100%+8px)] left-2 z-30 w-[min(340px,calc(100vw-32px))] border-2 md:top-auto md:bottom-0 md:left-[calc(100%+10px)] md:max-w-[calc(100vw-220px)] border-foreground bg-card shadow-hard-lg"
         >
           <div className="flex items-center justify-between border-b-2 border-foreground px-4 py-2.5">
             <span className="font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">── Avisos</span>

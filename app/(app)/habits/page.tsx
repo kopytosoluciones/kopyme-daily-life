@@ -50,13 +50,15 @@ export default async function HabitsPage({
     .order("logged_date");
 
   return (
-    <div className="max-w-5xl mx-auto px-6 py-10 space-y-6">
-      <div>
-        <h1 className="font-[family-name:var(--font-playfair)] text-3xl font-bold text-[#0A0A0A]">
-          Hábitos
+    <div className="mx-auto flex max-w-[1180px] flex-col gap-6 px-4 py-7 md:px-6">
+      <header>
+        <h1 className="text-[40px] leading-none font-bold tracking-[-0.02em]">
+          Hábitos<span className="k-cursor">_</span>
         </h1>
-        <p className="font-[family-name:var(--font-mono)] text-xs text-[#9CA3AF] mt-1">Tu semana de un vistazo.</p>
-      </div>
+        <p className="mt-2 font-mono text-xs text-muted-foreground">
+          <span className="tabular">{habits?.length ?? 0}</span> {habits?.length === 1 ? "hábito" : "hábitos"} · tu semana de un vistazo
+        </p>
+      </header>
 
       <HabitsGrid
         habits={habits ?? []}

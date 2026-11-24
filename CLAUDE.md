@@ -63,19 +63,19 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 
 | Módulo | Archivo principal | Backend | Estado |
 |---|---|---|---|
-| Dashboard | `app/(app)/dashboard/` | Supabase profiles | ✅ |
+| Dashboard | `app/(app)/dashboard/` | Supabase profiles | ✅ v2 (avatar pendiente) |
 | Árbol de la vida | `app/(app)/tree/TreeClient.tsx` | Supabase life_tree_entries | ✅ |
-| Hábitos | `app/(app)/habits/` | Supabase | ✅ |
+| Hábitos | `app/(app)/habits/` | Supabase | ✅ v2 |
 | Checklists | `app/(app)/todos/TodosClient.tsx` | Supabase (todo_lists + todos) | ✅ v2 |
-| Calendario | `app/(app)/calendar/CalendarClient.tsx` | localStorage `kopyme-cal-v1` | ✅ |
-| Diario Emocional | `app/(app)/diary/DiaryClient.tsx` | Supabase diary_entries | ✅ redesigned |
-| Vínculos | `app/(app)/connections/ConnectionsClient.tsx` | localStorage `kopyme-connections-v1` | ✅ redesigned |
+| Calendario | `app/(app)/calendar/CalendarClient.tsx` | localStorage `kopyme-cal-v2` | ✅ v2 |
+| Diario Emocional | `app/(app)/diary/DiaryClient.tsx` | Supabase diary_entries | ✅ v2 |
+| Vínculos | `app/(app)/connections/ConnectionsClient.tsx` | localStorage `kopyme-connections-v1` | ✅ v2 |
 | Combustible | `app/(app)/combustible/` (Tablero, Bitacora, Simulador, Onboarding, charts) + `lib/finance/` | Supabase finance_* | ✅ |
 | Ajustes | `app/(app)/settings/page.tsx` | cookie + profiles.theme | ✅ tema |
 | Avisos | `components/layout/NoticesPanel.tsx` + `lib/notifications.ts` | derivado | ✅ |
 | Metas | `app/(app)/goals/` | — | stub |
 
-> Rediseño v2: Combustible, Checklists, Ajustes, Avisos y el rail ya están en v2. Los demás módulos siguen con colores fijos en el código (se ven "islas blancas" en modo oscuro) hasta migrarlos uno por uno.
+> Rediseño v2: todos los módulos activos están en v2. Excepciones pendientes de decisión: **Árbol de la vida** (ilustración) y **Avatar/Egg** (colores propios, burbuja blanca en dark).
 | Recuerdos | `app/(app)/memories/` | — | stub |
 | Cartas & Regalos | `app/(app)/letters/` | — | stub |
 
@@ -146,7 +146,8 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 6. **Foco en `requestAnimationFrame`** — mover el foco de celda en un frame posterior hace que lo tipeado rápido después de Enter caiga en la celda anterior. Mover el foco síncrono.
 7. **setState dentro de useEffect** — el lint de React 19 lo marca como error. Pasar el valor inicial desde el server (ej. tema) o usar borrador solo mientras hay foco.
 8. **dnd-kit sin `id` en `DndContext`** — los `aria-describedby` autogenerados difieren entre server y cliente → hydration mismatch. Pasar siempre un `id` estable.
-9. **Migraciones creadas desde el dashboard** — `life_tree_entries` y `todo_lists` no tenían archivo. Toda tabla nueva va con migración en `supabase/migrations/`.
+9. **Floats de trigonometría en SVG con SSR** — Node y el navegador difieren en los últimos decimales de `Math.cos/sin` → hydration mismatch. Redondear coordenadas (`r2`, `toFixed(2)`) antes de renderizar.
+10. **Migraciones creadas desde el dashboard** — `life_tree_entries` y `todo_lists` no tenían archivo. Toda tabla nueva va con migración en `supabase/migrations/`.
 
 ## DB schemas (detalle de tablas clave)
 
@@ -185,7 +186,6 @@ Lista viva de lo que sigue abierto. La historia de cada sesión está en **`docs
 - ~~Leaked password protection~~: requiere plan Pro de Supabase (la org Kopyme está en Free). Descartado mientras siga en Free.
 
 **Producto / código**
-- Migrar módulos viejos a v2, uno por rama `v2/<módulo>`: **Diario** (backup antes) → Hábitos → Calendario → Vínculos → Dashboard.
 - Árbol de la vida: verificar/ajustar zonas SVG; decidir tratamiento visual en v2.
 - Avatar: definir tratamiento visual en v2.
 

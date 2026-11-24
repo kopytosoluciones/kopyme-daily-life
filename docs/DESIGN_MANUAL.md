@@ -119,7 +119,7 @@ Base de 8pt: `4 · 8 · 12 · 16 · 24 · 32 · 48`.
 - Padding de caja: 16px. Padding de KPI: 16–18px. Hero: 24px.
 - Separación entre bloques: 24px. Dentro de toolbars: 10px.
 - Contenedor máximo: **1180px**, centrado.
-- **Rail lateral** de 200px con los módulos en mono uppercase. Activo: fondo `--soft` + `▸` en acento. En < 960px pasa a barra horizontal arriba con scroll.
+- **Rail lateral** de 200px con los módulos en mono uppercase. Activo: fondo `--soft` + `▸` en acento. En < 768px (`md`) pasa a barra horizontal arriba: marca, módulos con scroll horizontal y fila de Avisos/Ajustes/Salir.
 - Breakpoints: `620px` (todo a una columna), `960px` (rail arriba, heros apilados), `1180px` (paneles de controles pasan arriba).
 - Para pantallas que tienen que entrar sin scroll, seguir el orden de compactación de `CLAUDE.md` (padding → márgenes → cards → filas). No tocar tamaños de fuente hasta agotar el espaciado.
 
@@ -284,7 +284,8 @@ Orden propuesto, un módulo por vez:
 1. ✅ Tokens + fuentes + shadcn overrides + selector de tema.
 2. ✅ Rail lateral y layout general (+ Avisos, Ajustes).
 3. ✅ **Combustible** (nació con el sistema).
-4. Checklists ✅ → Diario → Hábitos → Calendario → Vínculos → Dashboard.
+4. ✅ Checklists → Diario → Hábitos → Calendario → Vínculos → Dashboard.
+   - Escala de ánimo (Diario): divergente con tokens — 1–3 `--destructive`, 4–6 `--muted-foreground`, 7–10 `--success`, mezclados con `color-mix` sobre `--card`.
    - Cada módulo en su rama `v2/<módulo>`, verificado en preview y mergeado a `main`.
    - El color propio de una entidad (ej. color de lista) se conserva como dato pero se muestra solo como **marcador cuadrado de 10px**, nunca como fondo de header.
 5. **Árbol de la vida**: decidir aparte. La ilustración actual choca con el sistema; opciones: redibujarlo en ASCII/línea, o mantenerlo como excepción explícita.
