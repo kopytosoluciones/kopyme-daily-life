@@ -1,7 +1,6 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
-import { Plus, X, Trash2, Pencil, GripVertical, ChevronDown, Check } from "lucide-react";
+import { useEffect, useState, useTransition, useRef } from "react";
 import {
   DndContext,
   closestCenter,
@@ -69,97 +68,80 @@ function ListModal({
   const [name,  setName]  = useState(list?.name  ?? "");
   const [color, setColor] = useState(list?.color ?? LIST_COLORS[0]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) return;
     onSave(name.trim(), color);
   }
 
-  const isLight = color === "#39FF14" || color === "#F59E0B";
-
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/35 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 px-4"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-2xl p-6 w-full max-w-xs shadow-2xl"
+        role="dialog"
+        aria-label={isEdit ? "Editar lista" : "Nueva lista"}
+        className="w-full max-w-sm border-2 border-foreground bg-card shadow-hard-lg"
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-[family-name:var(--font-playfair)] font-bold text-[#0A0A0A] text-lg">
-            {isEdit ? "Editar lista" : "Nueva lista"}
+        <div className="flex items-center justify-between border-b-2 border-foreground px-4 py-2.5">
+          <h3 className="font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">
+            ── {isEdit ? "Editar lista" : "Nueva lista"}
           </h3>
-          <button onClick={onClose} className="text-[#9CA3AF] hover:text-[#0A0A0A] transition-colors">
-            <X size={16} />
-          </button>
+          <button onClick={onClose} aria-label="Cerrar" className="font-mono text-xs text-muted-foreground hover:text-foreground">✕</button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] uppercase tracking-wide block mb-1.5">
-              nombre
-            </label>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4 p-4">
+          <div className="flex flex-col gap-1.5">
+            <label htmlFor="list-name" className="font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">Nombre</label>
             <input
+              id="list-name"
               autoFocus
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="Ej: Trabajo, Personal..."
-              className="w-full border border-[#E5E7EB] rounded-lg px-3 py-2 text-sm font-[family-name:var(--font-mono)] text-[#0A0A0A] focus:outline-none focus:border-[#9D4EDD] placeholder:text-[#D1D5DB]"
+              placeholder="Ej: Trabajo, Personal…"
+              className="border-2 border-foreground bg-card px-3 py-2 font-mono text-sm outline-none placeholder:text-muted-foreground focus:bg-primary/10"
             />
           </div>
 
-          <div>
-            <label className="font-[family-name:var(--font-mono)] text-[10px] text-[#9CA3AF] uppercase tracking-wide block mb-2">
-              color
-            </label>
-            <div className="flex gap-2 flex-wrap">
+          <div className="flex flex-col gap-2">
+            <span className="font-mono text-[11px] tracking-[0.08em] text-muted-foreground uppercase">Marca</span>
+            <div className="flex flex-wrap gap-2">
               {LIST_COLORS.map(c => (
                 <button
                   key={c}
                   type="button"
+                  aria-label={`Color ${c}`}
+                  aria-pressed={color === c}
                   onClick={() => setColor(c)}
-                  className="w-7 h-7 rounded-full border-2 transition-all"
-                  style={{
-                    backgroundColor: c,
-                    borderColor: color === c ? "#0A0A0A" : "transparent",
-                    transform: color === c ? "scale(1.25)" : "scale(1)",
-                  }}
+                  className={`size-6 border-2 ${color === c ? "border-foreground outline-2 outline-offset-2 outline-foreground" : "border-transparent"}`}
+                  style={{ backgroundColor: c }}
                 />
               ))}
             </div>
           </div>
-
-          {/* Preview */}
-          {name.trim() && (
-            <div
-              className="rounded-xl px-3 py-2 flex items-center gap-2"
-              style={{ backgroundColor: color }}
-            >
-              <span
-                className="font-[family-name:var(--font-playfair)] font-bold text-sm"
-                style={{ color: isLight ? "#0A0A0A" : "white" }}
-              >
-                {name}
-              </span>
-            </div>
-          )}
 
           <div className="flex gap-2 pt-1">
             {isEdit && onDelete && (
               <button
                 type="button"
                 onClick={onDelete}
-                className="p-2 rounded-lg border border-[#FFE4E4] text-[#EF4444] hover:bg-[#FFF5F5] transition-colors"
+                className="border-2 border-destructive bg-card px-3 py-2 font-mono text-xs text-destructive uppercase hover:bg-destructive/10"
               >
-                <Trash2 size={14} />
+                Borrar
               </button>
             )}
             <button
               type="submit"
               disabled={!name.trim()}
-              className="flex-1 py-2 rounded-xl text-sm font-[family-name:var(--font-mono)] font-medium text-white disabled:opacity-30 transition-opacity hover:opacity-90"
-              style={{ backgroundColor: isLight ? "#0A0A0A" : color }}
+              className="flex-1 border-2 border-foreground bg-primary px-3 py-2 font-mono text-xs tracking-[0.06em] text-primary-foreground uppercase shadow-hard-primary transition-transform duration-100 hover:-translate-x-px hover:-translate-y-px active:translate-x-1 active:translate-y-1 active:shadow-none disabled:opacity-40"
             >
               {isEdit ? "Guardar" : "Crear lista"}
             </button>
@@ -173,10 +155,9 @@ function ListModal({
 // ─── Task item (sortable, within card) ───────────────────────────────────────
 
 function TaskItem({
-  todo, listColor, checking, onCheck, onDelete,
+  todo, checking, onCheck, onDelete,
 }: {
   todo: Todo;
-  listColor: string;
   checking: boolean;
   onCheck: () => void;
   onDelete: () => void;
@@ -200,42 +181,33 @@ function TaskItem({
     <div
       ref={setNodeRef}
       style={style}
-      className={`flex items-center gap-2 py-2 px-1.5 rounded-xl group/task ${
-        isDragging ? "bg-[#F5F0FF]" : "hover:bg-[#FAFAFA]"
-      } transition-colors`}
+      className={`group/task flex items-center gap-2 px-1.5 py-1.5 ${isDragging ? "bg-muted" : "hover:bg-muted/60"}`}
     >
-      {/* Drag handle */}
       <button
         {...attributes}
         {...listeners}
-        className="shrink-0 text-[#E5E7EB] hover:text-[#C9C9C9] cursor-grab active:cursor-grabbing transition-colors touch-none opacity-0 group-hover/task:opacity-100"
+        aria-label="Mover tarea"
+        className="shrink-0 cursor-grab touch-none font-mono text-xs text-muted-foreground opacity-0 group-hover/task:opacity-100 focus-visible:opacity-100 active:cursor-grabbing"
       >
-        <GripVertical size={12} />
+        ⠿
       </button>
 
-      {/* Checkbox */}
       <button
         type="button"
         onClick={onCheck}
-        className="shrink-0 w-[15px] h-[15px] rounded border-2 flex items-center justify-center transition-all hover:scale-110"
-        style={{
-          borderColor: listColor,
-          backgroundColor: "transparent",
-        }}
+        aria-label={`Completar ${todo.title}`}
+        className="size-[15px] shrink-0 border-2 border-foreground bg-card hover:bg-muted"
       />
 
-      {/* Title */}
-      <span className="flex-1 min-w-0 text-[13px] font-[family-name:var(--font-mono)] text-[#0A0A0A] truncate leading-snug">
-        {todo.title}
-      </span>
+      <span className="min-w-0 flex-1 truncate font-mono text-[13px] leading-snug">{todo.title}</span>
 
-      {/* Delete */}
       <button
         type="button"
         onClick={onDelete}
-        className="shrink-0 opacity-0 group-hover/task:opacity-100 text-[#D1D5DB] hover:text-[#FF1493] transition-all"
+        aria-label={`Borrar ${todo.title}`}
+        className="shrink-0 font-mono text-[11px] text-muted-foreground opacity-0 group-hover/task:opacity-100 hover:text-destructive focus-visible:opacity-100"
       >
-        <X size={11} />
+        ✕
       </button>
     </div>
   );
@@ -244,33 +216,31 @@ function TaskItem({
 // ─── Done item ────────────────────────────────────────────────────────────────
 
 function DoneItem({
-  todo, listColor, onUncheck, onDelete,
+  todo, onUncheck, onDelete,
 }: {
   todo: Todo;
-  listColor: string;
   onUncheck: () => void;
   onDelete: () => void;
 }) {
   return (
-    <div className="flex items-center gap-2 py-1.5 px-1.5 rounded-xl group/done hover:bg-[#FAFAFA] transition-colors">
-      <div className="shrink-0 w-3" />
+    <div className="group/done flex items-center gap-2 px-1.5 py-1 hover:bg-muted/60">
+      <span aria-hidden className="w-3 shrink-0" />
       <button
         type="button"
         onClick={onUncheck}
-        className="shrink-0 w-[15px] h-[15px] rounded border-2 flex items-center justify-center transition-all hover:scale-110"
-        style={{ borderColor: listColor, backgroundColor: listColor }}
+        aria-label={`Desmarcar ${todo.title}`}
+        className="flex size-[15px] shrink-0 items-center justify-center border-2 border-foreground bg-foreground font-mono text-[9px] leading-none text-background"
       >
-        <Check size={8} color="white" strokeWidth={3} />
+        ✓
       </button>
-      <span className="flex-1 min-w-0 text-[12px] font-[family-name:var(--font-mono)] text-[#C9C9C9] line-through truncate">
-        {todo.title}
-      </span>
+      <span className="min-w-0 flex-1 truncate font-mono text-[12px] text-muted-foreground line-through">{todo.title}</span>
       <button
         type="button"
         onClick={onDelete}
-        className="shrink-0 opacity-0 group-hover/done:opacity-100 text-[#E5E7EB] hover:text-[#FF1493] transition-all"
+        aria-label={`Borrar ${todo.title}`}
+        className="shrink-0 font-mono text-[10px] text-muted-foreground opacity-0 group-hover/done:opacity-100 hover:text-destructive focus-visible:opacity-100"
       >
-        <X size={10} />
+        ✕
       </button>
     </div>
   );
@@ -380,102 +350,69 @@ function ChecklistCard({
     });
   }
 
-  const accentColor = list.color ?? "#9D4EDD";
-  const isLight     = accentColor === "#39FF14" || accentColor === "#F59E0B";
-  const headerText  = isLight ? "#0A0A0A" : "#ffffff";
-  const headerMuted = isLight ? "rgba(0,0,0,0.4)" : "rgba(255,255,255,0.55)";
+  const marker = list.color ?? "#9D4EDD";
 
   return (
     <div
-      className={`flex flex-col rounded-2xl overflow-hidden transition-shadow duration-200 ${
-        isDragging
-          ? "shadow-2xl ring-2 ring-[#9D4EDD]/30 rotate-1"
-          : "shadow-[0_2px_12px_rgba(0,0,0,0.06)] hover:shadow-[0_6px_24px_rgba(0,0,0,0.09)]"
-      }`}
-      style={{ minHeight: 280, background: "white" }}
+      className={`flex min-h-[280px] flex-col border-2 border-foreground bg-card ${isDragging ? "shadow-hard-lg" : ""}`}
     >
-      {/* ── Colored header ── */}
-      <div
-        className="flex items-center gap-2 px-4 py-3 shrink-0"
-        style={{ backgroundColor: accentColor }}
-      >
-        {/* Grid drag handle */}
+      <div className="flex shrink-0 items-center gap-2 border-b-2 border-foreground px-3 py-2.5">
         <button
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {...(dragHandleAttributes as any)}
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           {...(dragHandleListeners as any)}
-          className="shrink-0 cursor-grab active:cursor-grabbing touch-none"
-          style={{ color: headerMuted }}
+          aria-label={`Mover lista ${list.name}`}
+          className="shrink-0 cursor-grab touch-none font-mono text-xs text-muted-foreground hover:text-foreground active:cursor-grabbing"
         >
-          <GripVertical size={14} />
+          ⠿
         </button>
-
-        <span
-          className="flex-1 font-[family-name:var(--font-playfair)] font-bold text-sm truncate"
-          style={{ color: headerText }}
-        >
-          {list.name}
-        </span>
-
+        <span aria-hidden className="size-2.5 shrink-0" style={{ backgroundColor: marker }} />
+        <span className="flex-1 truncate font-bold">{list.name}</span>
         {pendingTodos.length > 0 && (
-          <span
-            className="font-[family-name:var(--font-mono)] text-[10px] font-semibold px-1.5 py-0.5 rounded-full"
-            style={{
-              background: isLight ? "rgba(0,0,0,0.12)" : "rgba(255,255,255,0.22)",
-              color: headerText,
-            }}
-          >
-            {pendingTodos.length}
-          </span>
+          <span className="font-mono text-[11px] text-muted-foreground tabular">[{pendingTodos.length}]</span>
         )}
-
         <button
           type="button"
           onClick={onEdit}
-          className="shrink-0 transition-colors hover:opacity-100"
-          style={{ color: headerMuted }}
+          className="shrink-0 font-mono text-[10px] text-muted-foreground uppercase hover:text-foreground"
         >
-          <Pencil size={12} />
+          editar
         </button>
       </div>
 
-      {/* ── Card body ── */}
-      <div className="flex-1 flex flex-col px-4 pt-3 pb-4 gap-2 min-h-0">
-        {/* New task input */}
+      <div className="flex min-h-0 flex-1 flex-col gap-2 px-3 pt-2.5 pb-3">
         <form onSubmit={handleAddTask}>
-          <div className="flex items-center gap-2 bg-[#F9F9FB] rounded-xl px-3 py-2 focus-within:bg-white focus-within:shadow-[0_0_0_2px_#E5E7EB] transition-all">
-            <Plus size={11} className="text-[#C9C9C9] shrink-0" />
+          <label className="flex items-center gap-2 border-b border-dashed border-muted-foreground px-1.5 py-1.5 focus-within:border-solid focus-within:border-foreground">
+            <span aria-hidden className="font-mono text-xs text-muted-foreground">+</span>
             <input
               ref={inputRef}
               value={newTitle}
               onChange={e => setNewTitle(e.target.value)}
-              placeholder="Nueva tarea..."
-              className="flex-1 bg-transparent text-[13px] font-[family-name:var(--font-mono)] text-[#0A0A0A] placeholder:text-[#D1D5DB] focus:outline-none min-w-0"
+              placeholder="Nueva tarea…"
+              aria-label={`Nueva tarea en ${list.name}`}
+              className="min-w-0 flex-1 bg-transparent font-mono text-[13px] outline-none placeholder:text-muted-foreground"
             />
-          </div>
+          </label>
         </form>
 
-        {/* Todo tasks */}
         {pendingTodos.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center py-8">
-            <span className="font-[family-name:var(--font-mono)] text-[11px] text-[#E5E7EB]">
-              todo limpio ✓
-            </span>
+          <div className="flex flex-1 items-center justify-center py-8">
+            <span className="font-mono text-[11px] text-muted-foreground">[ ✓ ] todo limpio</span>
           </div>
         ) : (
           <DndContext
+            id={`list-${list.id}`}
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
             <SortableContext items={pendingTodos.map(t => t.id)} strategy={verticalListSortingStrategy}>
-              <div className="overflow-y-auto" style={{ maxHeight: 220 }}>
+              <div className="max-h-[220px] overflow-y-auto">
                 {pendingTodos.map(todo => (
                   <TaskItem
                     key={todo.id}
                     todo={todo}
-                    listColor={accentColor}
                     checking={checkingIds.has(todo.id)}
                     onCheck={() => handleCheck(todo)}
                     onDelete={() => handleDelete(todo.id)}
@@ -486,28 +423,23 @@ function ChecklistCard({
           </DndContext>
         )}
 
-        {/* Done section */}
         {doneTodos.length > 0 && (
-          <div className="border-t border-[#F5F5F5] pt-2 mt-auto">
+          <div className="mt-auto border-t border-muted pt-2">
             <button
               type="button"
+              aria-expanded={doneOpen}
               onClick={() => setDoneOpen(o => !o)}
-              className="flex items-center gap-1.5 font-[family-name:var(--font-mono)] text-[10px] text-[#C9C9C9] hover:text-[#9CA3AF] transition-colors w-full mb-1"
+              className="mb-1 flex w-full items-center gap-1.5 font-mono text-[10px] tracking-[0.06em] text-muted-foreground uppercase hover:text-foreground"
             >
-              <ChevronDown
-                size={11}
-                className="transition-transform duration-200 shrink-0"
-                style={{ transform: doneOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
-              />
+              <span aria-hidden>{doneOpen ? "▾" : "▸"}</span>
               completadas ({doneTodos.length})
             </button>
             {doneOpen && (
-              <div className="overflow-y-auto" style={{ maxHeight: 160 }}>
+              <div className="max-h-[160px] overflow-y-auto">
                 {doneTodos.map(todo => (
                   <DoneItem
                     key={todo.id}
                     todo={todo}
-                    listColor={accentColor}
                     onUncheck={() => handleCheck(todo)}
                     onDelete={() => handleDelete(todo.id)}
                   />
@@ -612,108 +544,93 @@ export default function TodosClient({ lists: initialLists }: { lists: ListWithTo
   }
 
   return (
-    <div className="min-h-screen bg-white">
-
-      {/* ── Header ── */}
-      <div className="px-8 pt-10 pb-6 flex items-center justify-between">
+    <div className="mx-auto flex max-w-[1180px] flex-col gap-6 px-4 py-7 md:px-6">
+      <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="font-[family-name:var(--font-playfair)] text-[32px] font-bold text-[#0A0A0A] leading-tight">
-            Checklists
+          <h1 className="text-[40px] leading-none font-bold tracking-[-0.02em]">
+            Checklists<span className="k-cursor">_</span>
           </h1>
-          <p className="font-[family-name:var(--font-mono)] text-[12px] text-[#B0B7C3] mt-1.5">
+          <p className="mt-2 font-mono text-xs text-muted-foreground">
             {listsData.length} {listsData.length === 1 ? "lista" : "listas"} · {totalPending} pendientes
           </p>
         </div>
-
         <button
           onClick={() => setModal({ type: "create" })}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0A0A0A] text-white font-[family-name:var(--font-mono)] text-[12px] hover:bg-[#2D2D2D] transition-colors shadow-sm"
+          className="border-2 border-foreground bg-primary px-3.5 py-2 font-mono text-xs tracking-[0.06em] text-primary-foreground uppercase shadow-hard-primary transition-transform duration-100 hover:-translate-x-px hover:-translate-y-px active:translate-x-1 active:translate-y-1 active:shadow-none"
         >
-          <Plus size={13} />
-          Nueva lista
+          + Nueva lista
         </button>
-      </div>
+      </header>
 
-      {/* ── Grid ── */}
-      <div className="px-8 pb-12">
-        {gridLists.length === 0 ? (
-          <div className="py-24 text-center">
-            <p className="font-[family-name:var(--font-playfair)] text-2xl font-bold text-[#0A0A0A] mb-2">
-              Sin listas todavía
-            </p>
-            <p className="font-[family-name:var(--font-mono)] text-sm text-[#B0B7C3] mb-7">
-              Creá tu primera checklist para empezar a organizar.
-            </p>
+      {gridLists.length === 0 ? (
+        <div className="border-2 border-dashed border-muted-foreground px-6 py-16 text-center font-mono text-xs text-muted-foreground">
+          <pre aria-hidden className="mb-3 leading-tight">{"┌──────┐\n│ □ □  │\n│ □    │\n└──────┘"}</pre>
+          Sin listas todavía. Creá tu primera checklist para empezar a organizar.
+          <div className="mt-4">
             <button
               onClick={() => setModal({ type: "create" })}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0A0A0A] text-white font-[family-name:var(--font-mono)] text-sm hover:bg-[#2D2D2D] transition-colors"
+              className="border-2 border-foreground bg-card px-3.5 py-2 text-foreground uppercase shadow-hard active:translate-x-1 active:translate-y-1 active:shadow-none"
             >
-              <Plus size={14} />
-              Crear primera lista
+              + Crear primera lista
             </button>
           </div>
-        ) : (
-          <DndContext
-            sensors={gridSensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleGridDragEnd}
+        </div>
+      ) : (
+        <DndContext
+          id="lists-grid"
+          sensors={gridSensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleGridDragEnd}
+        >
+          <SortableContext items={gridLists.map(l => l.id)} strategy={rectSortingStrategy}>
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {gridLists.map(list => (
+                <SortableCard
+                  key={list.id}
+                  list={list}
+                  onEdit={() => setModal({ type: "edit", list })}
+                />
+              ))}
+
+              {gridLists.length < GRID_MAX && (
+                <button
+                  onClick={() => setModal({ type: "create" })}
+                  className="flex min-h-[280px] flex-col items-center justify-center gap-2 border-2 border-dashed border-muted-foreground font-mono text-[11px] text-muted-foreground uppercase hover:border-foreground hover:text-foreground"
+                >
+                  <span aria-hidden className="text-lg">+</span>
+                  nueva lista
+                </button>
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+
+      {overflowLists.length > 0 && (
+        <div className="flex flex-col gap-4">
+          <button
+            type="button"
+            aria-expanded={overflowOpen}
+            onClick={() => setOverflowOpen(o => !o)}
+            className="flex w-fit items-center gap-2 font-mono text-[11px] tracking-[0.06em] text-muted-foreground uppercase hover:text-foreground"
           >
-            <SortableContext items={gridLists.map(l => l.id)} strategy={rectSortingStrategy}>
-              <div className="grid grid-cols-3 gap-5">
-                {gridLists.map(list => (
-                  <SortableCard
-                    key={list.id}
-                    list={list}
-                    onEdit={() => setModal({ type: "edit", list })}
-                  />
-                ))}
+            <span aria-hidden>{overflowOpen ? "▾" : "▸"}</span>
+            {overflowLists.length} lista{overflowLists.length !== 1 ? "s" : ""} más
+          </button>
 
-                {/* Add card — only if < 6 lists */}
-                {gridLists.length < GRID_MAX && (
-                  <button
-                    onClick={() => setModal({ type: "create" })}
-                    className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#E5E7EB] text-[#C9C9C9] hover:border-[#9D4EDD] hover:text-[#9D4EDD] transition-all font-[family-name:var(--font-mono)] text-[11px]"
-                    style={{ minHeight: 280 }}
-                  >
-                    <Plus size={18} />
-                    nueva lista
-                  </button>
-                )}
-              </div>
-            </SortableContext>
-          </DndContext>
-        )}
-
-        {/* ── Overflow lists (> 6) ── */}
-        {overflowLists.length > 0 && (
-          <div className="mt-8">
-            <button
-              type="button"
-              onClick={() => setOverflowOpen(o => !o)}
-              className="flex items-center gap-2 font-[family-name:var(--font-mono)] text-[11px] text-[#9CA3AF] hover:text-[#0A0A0A] transition-colors mb-5"
-            >
-              <ChevronDown
-                size={13}
-                className="transition-transform duration-200"
-                style={{ transform: overflowOpen ? "rotate(0deg)" : "rotate(-90deg)" }}
-              />
-              {overflowLists.length} lista{overflowLists.length !== 1 ? "s" : ""} más
-            </button>
-
-            {overflowOpen && (
-              <div className="grid grid-cols-3 gap-5">
-                {overflowLists.map(list => (
-                  <ChecklistCard
-                    key={list.id}
-                    list={list}
-                    onEdit={() => setModal({ type: "edit", list })}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          {overflowOpen && (
+            <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+              {overflowLists.map(list => (
+                <ChecklistCard
+                  key={list.id}
+                  list={list}
+                  onEdit={() => setModal({ type: "edit", list })}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Modals ── */}
       {modal?.type === "create" && (
