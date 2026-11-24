@@ -16,15 +16,18 @@ import {
 } from "./actions";
 import Bitacora from "./Bitacora";
 import Onboarding from "./Onboarding";
+import Simulador from "./Simulador";
+import Tablero from "./Tablero";
 
 type Status = { kind: "idle" } | { kind: "saving" } | { kind: "saved" } | { kind: "error"; message: string };
 type NewWallet = { name: string; currency: string; kind: WalletKind };
 
 const TABS = [
-  { id: "tablero", label: "Tablero", ready: false },
-  { id: "bitacora", label: "Bitácora", ready: true },
-  { id: "simulador", label: "Simulador", ready: false },
+  { id: "tablero", label: "Tablero" },
+  { id: "bitacora", label: "Bitácora" },
+  { id: "simulador", label: "Simulador" },
 ] as const;
+type Tab = (typeof TABS)[number]["id"];
 
 export default function CombustibleClient({
   initialWallets,
@@ -43,6 +46,8 @@ export default function CombustibleClient({
 
   const rows = useMemo(() => computeMonths(wallets, months), [wallets, months]);
   const last = rows.at(-1);
+  const hasData = !!last && (last.patrimony !== 0 || last.month.income !== 0);
+  const [tab, setTab] = useState<Tab>(hasData ? "tablero" : "bitacora");
 
   function save(action: () => Promise<{ error: string | null }>) {
     setStatus({ kind: "saving" });
@@ -156,20 +161,25 @@ export default function CombustibleClient({
             {TABS.map((t) => (
               <button
                 key={t.id}
+                id={`tab-${t.id}`}
                 role="tab"
-                aria-selected={t.id === "bitacora"}
-                disabled={!t.ready}
+                aria-selected={tab === t.id}
+                aria-controls={`panel-${t.id}`}
+                onClick={() => setTab(t.id)}
                 className={`border-r-2 border-foreground px-5 py-2.5 font-mono text-xs tracking-[0.08em] whitespace-nowrap uppercase last:border-r-0 ${
-                  t.id === "bitacora" ? "bg-foreground text-background" : "text-muted-foreground"
-                } disabled:cursor-not-allowed`}
+                  tab === t.id ? "bg-foreground text-background" : "hover:bg-muted"
+                }`}
               >
                 {t.label}
-                {!t.ready && <span className="ml-2 text-[10px] opacity-70">pronto</span>}
               </button>
             ))}
           </div>
 
-          <Bitacora wallets={wallets} rows={rows} {...handlers} />
+          <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`}>
+            {tab === "tablero" && <Tablero rows={rows} wallets={wallets} onGoBitacora={() => setTab("bitacora")} />}
+            {tab === "bitacora" && <Bitacora wallets={wallets} rows={rows} {...handlers} />}
+            {tab === "simulador" && <Simulador rows={rows} />}
+          </div>
         </>
       )}
     </div>

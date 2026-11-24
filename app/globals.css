@@ -187,6 +187,14 @@
   .k-cursor { animation: none; }
 }
 
+/* Slider brutalista: track de 2px, thumb rectangular en acento. */
+.k-range { -webkit-appearance: none; appearance: none; width: 100%; height: 18px; background: transparent; cursor: pointer; }
+.k-range::-webkit-slider-runnable-track { height: 2px; background: var(--foreground); }
+.k-range::-moz-range-track { height: 2px; background: var(--foreground); }
+.k-range::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 18px; margin-top: -8px; background: var(--primary); border: 2px solid var(--foreground); border-radius: 0; }
+.k-range::-moz-range-thumb { width: 12px; height: 16px; background: var(--primary); border: 2px solid var(--foreground); border-radius: 0; }
+.k-range:focus-visible { outline: 2px solid var(--ring); outline-offset: 4px; }
+
 /* Egg animations */
 @keyframes egg-breathe {
   0%, 100% { transform: scale(1); }

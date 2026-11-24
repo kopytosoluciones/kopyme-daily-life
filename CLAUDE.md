@@ -70,7 +70,7 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 | Calendario | `app/(app)/calendar/CalendarClient.tsx` | localStorage `kopyme-cal-v1` | ✅ |
 | Diario Emocional | `app/(app)/diary/DiaryClient.tsx` | Supabase diary_entries | ✅ redesigned |
 | Vínculos | `app/(app)/connections/ConnectionsClient.tsx` | localStorage `kopyme-connections-v1` | ✅ redesigned |
-| Combustible | `app/(app)/combustible/` (Bitacora, Onboarding) + `lib/finance/` | Supabase finance_* | 🟡 Bitácora ✅ · Tablero y Simulador pendientes |
+| Combustible | `app/(app)/combustible/` (Tablero, Bitacora, Simulador, Onboarding, charts) + `lib/finance/` | Supabase finance_* | ✅ |
 | Ajustes | `app/(app)/settings/page.tsx` | cookie + profiles.theme | ✅ tema |
 | Avisos | `components/layout/NoticesPanel.tsx` + `lib/notifications.ts` | derivado | ✅ |
 | Metas | `app/(app)/goals/` | — | stub |
@@ -121,6 +121,7 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 - Estado local autoritativo: las actions de celdas **no** revalidan y no hay sync con props; `useState(initial)` alcanza. Solo `createNextMonth` y `markMonthReviewed` hacen `revalidatePath("/", "layout")` para refrescar Avisos.
 - `ensureCurrentMonths(userId)` usa `cache()` de React con **clave userId** (no el client de Supabase: cada `createClient()` es un objeto nuevo y rompería el cache). Lo llaman el layout (avisos) y la página.
 - Meses: se calculan en zona `America/Argentina/Buenos_Aires` (`APP_TIME_ZONE`), Vercel corre en UTC.
+- Gráficos: SVG propio en `combustible/charts.tsx` (`LineChart`, `DeviationBars`, `StackedArea`, `ScrambleNumber`), colores siempre por `var(--token)`. Para verificar con datos sin tocar la base: página temporal con mock que se borra antes del commit.
 - Números: `parseAmount` acepta "1.234,56", "1234.56" y "1.465" (= 1465). Formato `es-AR` con `−` real.
 
 ### Tema
@@ -184,14 +185,12 @@ Lista viva de lo que sigue abierto. La historia de cada sesión está en **`docs
 - Combustible: cargar saldos y tipo de cambio de noviembre 2026 y marcar ✓ listo.
 
 **Producto / código**
-- Combustible: Tablero y Simulador (diseño en `docs/mockups/combustible.html`).
 - Migrar módulos viejos a v2 (orden en `docs/DESIGN_MANUAL.md` → Migración). Backup del Diario antes de tocarlo.
 - Árbol de la vida: verificar/ajustar zonas SVG; decidir tratamiento visual en v2.
 - Avatar: definir tratamiento visual en v2.
 
 **Limpieza**
-- Worktrees viejos en `.claude/worktrees/` (uno con cambios sin commitear en `layout.tsx` y `JungleScene.tsx`): decidir si se borran.
-- Lint: errores preexistentes en Calendar, Connections, Habits y Todos.
+- Nada pendiente. (Los cambios sin commitear del worktree viejo quedaron en `.claude/archive/`, fuera de git.)
 
 ## Al cerrar una sesión
 

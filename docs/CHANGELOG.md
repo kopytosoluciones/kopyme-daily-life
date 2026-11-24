@@ -6,6 +6,32 @@ Lo que sigue abierto hoy vive en `CLAUDE.md` → **Pendiente**. Al cerrar una se
 
 ---
 
+### Sesión 2026-11-23
+
+**Commits**: `0b002cb` → (este cierre) · directo en `main`
+
+#### Qué se hizo
+
+| # | Qué | Archivos clave |
+|---|-----|----------------|
+| 1 | Worktrees viejos borrados (sus 0 commits ya estaban en main); cambios sin commitear guardados en `.claude/archive/` | `.gitignore` |
+| 2 | Lint en 0: errores preexistentes en Calendario, Vínculos, Checklists, Hábitos y Egg | `app/(app)/*`, `components/avatar/Egg.tsx` |
+| 3 | Combustible · **Tablero**: patrimonio con descifrado ASCII, KPIs, desvío con alerta, proyecciones 3m/1a/5a (plan vs ritmo real), gráfico histórico + proyección, distribución por billetera, desvío mes a mes | `combustible/Tablero.tsx`, `charts.tsx` |
+| 4 | Combustible · **Simulador**: 6 controles, patrimonio final vs "valores de hoy sin invertir", rendimiento, pista, área apilada, resumen ASCII | `combustible/Simulador.tsx`, `.k-range` en `globals.css` |
+| 5 | Tabs reales en Combustible; abre en Tablero si hay datos, si no en Bitácora | `CombustibleClient.tsx` |
+
+#### Lo que salió bien ✅
+- Verificar con una página temporal de datos de ejemplo: los números coinciden con el mockup (27.185 / +304 / 145.082) sin escribir en la base real.
+- Gráficos como componentes SVG con tokens: funcionan en claro y oscuro sin cambios.
+
+#### Lo que salió mal ❌
+- La terminal integrada a veces deniega una navegación del navegador del panel; reintentar alcanza.
+
+#### Pendiente (en ese momento)
+- En la base hay un mes **diciembre 2026** creado (probablemente con "+ Nuevo mes") aunque estamos en noviembre: revisar si fue intencional.
+
+---
+
 ### Sesión 2026-11-22
 
 **Commits**: `78d28b4` → `7cce481` · mergeado a `main` (fast-forward) y en producción
