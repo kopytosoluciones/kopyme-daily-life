@@ -130,6 +130,7 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 
 ### Supabase / Vercel MCP
 - Supabase MCP con **escritura** (scope local del proyecto). Regla: leer libremente; cualquier migración o escritura se muestra primero y se aplica solo con OK explícito de Pedro. Contar filas antes/después en tablas con datos reales.
+- Vercel: un solo proyecto, **kopyme** (team `dropes-games`, `kopyme.vercel.app`). El duplicado kopyme-daily-life se borró el 2026-11-23.
 - Vercel MCP (`https://mcp.vercel.com`) para deployments, logs, proyectos y env vars (no puede borrar proyectos).
 - Env vars en Vercel: `NEXT_PUBLIC_SUPABASE_URL` y `NEXT_PUBLIC_SUPABASE_ANON_KEY` en Production + Preview. `SUPABASE_SERVICE_ROLE_KEY` **solo Production** a propósito (clave de admin, las previews no la necesitan).
 - Git push: `.git/config` local fuerza el llavero (`credential.https://github.com.helper = osxkeychain`) porque el `~/.gitconfig` global usa `gh`, que está logueado con otra cuenta (pedrokopyto-sys).
@@ -180,7 +181,6 @@ Modelo completo en `docs/DATA_MODEL.md`.
 Lista viva de lo que sigue abierto. La historia de cada sesión está en **`docs/CHANGELOG.md`**.
 
 **Acciones de Pedro (fuera del código)** — los conectores no las permiten
-- Vercel: borrar el proyecto duplicado **kopyme-daily-life** (Settings → General → Delete Project). Vercel exige confirmación humana para borrar; el conector solo da el link. El real es **kopyme** (team `dropes-games`).
 - Supabase Auth: agregar `https://kopyme.vercel.app/auth/callback` a Redirect URLs (Authentication → URL Configuration). El conector de Supabase no accede a la config de Auth.
 - ~~Leaked password protection~~: requiere plan Pro de Supabase (la org Kopyme está en Free). Descartado mientras siga en Free.
 
