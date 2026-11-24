@@ -28,6 +28,7 @@ Lo que sigue abierto hoy vive en `CLAUDE.md` → **Pendiente**. Al cerrar una se
 - La terminal integrada a veces deniega una navegación del navegador del panel; reintentar alcanza.
 
 | 6 | Vercel: variables públicas de Supabase habilitadas también para Preview (la service role queda solo en Production) | Vercel MCP |
+| 7 | **Checklists migrado a v2** en rama `v2/checklists`: cards brutalistas, marcadores ASCII, color de lista solo como marcador, modal v2 con Esc, fix de hydration de dnd-kit, borrados 3 componentes muertos | `app/(app)/todos/` |
 
 #### Notas
 - Diciembre 2026 en Combustible fue creado a propósito por Pedro para proyectar.

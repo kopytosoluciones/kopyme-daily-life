@@ -66,7 +66,7 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 | Dashboard | `app/(app)/dashboard/` | Supabase profiles | ✅ |
 | Árbol de la vida | `app/(app)/tree/TreeClient.tsx` | Supabase life_tree_entries | ✅ |
 | Hábitos | `app/(app)/habits/` | Supabase | ✅ |
-| Checklists | `app/(app)/todos/TodosClient.tsx` | Supabase (todo_lists + todos) | ✅ redesigned |
+| Checklists | `app/(app)/todos/TodosClient.tsx` | Supabase (todo_lists + todos) | ✅ v2 |
 | Calendario | `app/(app)/calendar/CalendarClient.tsx` | localStorage `kopyme-cal-v1` | ✅ |
 | Diario Emocional | `app/(app)/diary/DiaryClient.tsx` | Supabase diary_entries | ✅ redesigned |
 | Vínculos | `app/(app)/connections/ConnectionsClient.tsx` | localStorage `kopyme-connections-v1` | ✅ redesigned |
@@ -75,7 +75,7 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 | Avisos | `components/layout/NoticesPanel.tsx` + `lib/notifications.ts` | derivado | ✅ |
 | Metas | `app/(app)/goals/` | — | stub |
 
-> Rediseño v2: Combustible, Ajustes, Avisos y el rail ya están en v2. Los demás módulos siguen con colores fijos en el código (se ven "islas blancas" en modo oscuro) hasta migrarlos uno por uno.
+> Rediseño v2: Combustible, Checklists, Ajustes, Avisos y el rail ya están en v2. Los demás módulos siguen con colores fijos en el código (se ven "islas blancas" en modo oscuro) hasta migrarlos uno por uno.
 | Recuerdos | `app/(app)/memories/` | — | stub |
 | Cartas & Regalos | `app/(app)/letters/` | — | stub |
 
@@ -144,7 +144,8 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 5. **State in wrong component** — if UI placement is uncertain, default to keeping state higher (parent). Moving state up later requires refactoring call sites.
 6. **Foco en `requestAnimationFrame`** — mover el foco de celda en un frame posterior hace que lo tipeado rápido después de Enter caiga en la celda anterior. Mover el foco síncrono.
 7. **setState dentro de useEffect** — el lint de React 19 lo marca como error. Pasar el valor inicial desde el server (ej. tema) o usar borrador solo mientras hay foco.
-8. **Migraciones creadas desde el dashboard** — `life_tree_entries` y `todo_lists` no tenían archivo. Toda tabla nueva va con migración en `supabase/migrations/`.
+8. **dnd-kit sin `id` en `DndContext`** — los `aria-describedby` autogenerados difieren entre server y cliente → hydration mismatch. Pasar siempre un `id` estable.
+9. **Migraciones creadas desde el dashboard** — `life_tree_entries` y `todo_lists` no tenían archivo. Toda tabla nueva va con migración en `supabase/migrations/`.
 
 ## DB schemas (detalle de tablas clave)
 
@@ -184,7 +185,7 @@ Lista viva de lo que sigue abierto. La historia de cada sesión está en **`docs
 - ~~Leaked password protection~~: requiere plan Pro de Supabase (la org Kopyme está en Free). Descartado mientras siga en Free.
 
 **Producto / código**
-- Migrar módulos viejos a v2 (orden en `docs/DESIGN_MANUAL.md` → Migración). Backup del Diario antes de tocarlo.
+- Migrar módulos viejos a v2, uno por rama `v2/<módulo>`: **Diario** (backup antes) → Hábitos → Calendario → Vínculos → Dashboard.
 - Árbol de la vida: verificar/ajustar zonas SVG; decidir tratamiento visual en v2.
 - Avatar: definir tratamiento visual en v2.
 

@@ -281,10 +281,12 @@ Los tokens del manual viven en CSS con los nombres de shadcn, así los component
 
 Orden propuesto, un módulo por vez:
 
-1. Tokens + fuentes + shadcn overrides + selector de tema (afecta todo, sin cambiar layouts).
-2. Rail lateral y layout general.
-3. **Combustible** (nuevo, nace con el sistema).
-4. Checklists → Diario → Hábitos → Calendario → Vínculos → Dashboard.
+1. ✅ Tokens + fuentes + shadcn overrides + selector de tema.
+2. ✅ Rail lateral y layout general (+ Avisos, Ajustes).
+3. ✅ **Combustible** (nació con el sistema).
+4. Checklists ✅ → Diario → Hábitos → Calendario → Vínculos → Dashboard.
+   - Cada módulo en su rama `v2/<módulo>`, verificado en preview y mergeado a `main`.
+   - El color propio de una entidad (ej. color de lista) se conserva como dato pero se muestra solo como **marcador cuadrado de 10px**, nunca como fondo de header.
 5. **Árbol de la vida**: decidir aparte. La ilustración actual choca con el sistema; opciones: redibujarlo en ASCII/línea, o mantenerlo como excepción explícita.
 6. **Avatar**: decidir aparte. Candidato natural: avatar en ASCII o pixel 1-bit que reaccione al estado.
 
