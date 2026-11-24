@@ -288,8 +288,8 @@ Orden propuesto, un módulo por vez:
    - Escala de ánimo (Diario): divergente con tokens — 1–3 `--destructive`, 4–6 `--muted-foreground`, 7–10 `--success`, mezclados con `color-mix` sobre `--card`.
    - Cada módulo en su rama `v2/<módulo>`, verificado en preview y mergeado a `main`.
    - El color propio de una entidad (ej. color de lista) se conserva como dato pero se muestra solo como **marcador cuadrado de 10px**, nunca como fondo de header.
-5. **Árbol de la vida**: decidir aparte. La ilustración actual choca con el sistema; opciones: redibujarlo en ASCII/línea, o mantenerlo como excepción explícita.
-6. **Avatar**: decidir aparte. Candidato natural: avatar en ASCII o pixel 1-bit que reaccione al estado.
+5. ✅ **Árbol de la vida**: la ilustración queda como **excepción explícita**, dentro de una caja v2 con `── ILUSTRACIÓN · excepción del sistema`. Hover/selección de zonas en `--primary` con trazo punteado; lista de zonas al costado como alternativa accesible.
+6. ✅ **Avatar**: huevo en **estilo línea** — contorno 2px `--foreground`, relleno `--card`, grietas en ángulo recto, pintitas como píxeles cuadrados, sin degradés ni animación orgánica. Badge de etapa y burbuja como cajas v2.
 
 ## Checklist por pantalla
 

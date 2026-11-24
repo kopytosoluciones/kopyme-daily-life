@@ -15,112 +15,61 @@ const stageMessages: Record<EggStage, string> = {
   self: "Acá estoy. Gracias por encontrarme.",
 };
 
+const stageBadge: Record<EggStage, string> = {
+  egg: "descubriéndote",
+  cracking: "algo se mueve",
+  hatching: "casi listo",
+  emerging: "tomando forma",
+  self: "sos vos",
+};
+
+const CRACKED: EggStage[] = ["cracking", "hatching", "emerging", "self"];
+const OPEN: EggStage[] = ["hatching", "emerging", "self"];
+
+/** Avatar v2: huevo en línea (2px, tokens), sin degradés ni sombras. Funciona igual en claro y oscuro. */
 export default function Egg({ stage = "egg", message }: EggProps) {
   const displayMessage = message || stageMessages[stage];
 
   return (
     <div className="flex flex-col items-center gap-6">
-      <div
-        className="relative"
-        style={{
-          animation: "egg-breathe 3s ease-in-out infinite, float 6s ease-in-out infinite",
-        }}
-      >
-        <svg
-          width="160"
-          height="200"
-          viewBox="0 0 160 200"
-          fill="none"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          {/* Egg body */}
-          <ellipse
-            cx="80"
-            cy="110"
-            rx="62"
-            ry="78"
-            fill="url(#eggGradient)"
-            stroke="#E5E7EB"
-            strokeWidth="1.5"
-          />
+      <div className="relative">
+        <svg width="160" height="200" viewBox="0 0 160 200" fill="none" aria-label={`Avatar: ${stageBadge[stage]}`} role="img">
+          <ellipse cx="80" cy="110" rx="62" ry="78" fill="var(--card)" stroke="var(--foreground)" strokeWidth="2.5" />
 
-          {/* Egg inner glow */}
-          <ellipse
-            cx="80"
-            cy="105"
-            rx="42"
-            ry="55"
-            fill="url(#innerGlow)"
-            opacity="0.4"
-          />
+          {/* Brillo: trazo corto en vez de degradé */}
+          <path d="M52 70 Q58 58 68 54" stroke="var(--muted-foreground)" strokeWidth="2" strokeLinecap="square" />
 
-          {/* Highlight */}
-          <ellipse
-            cx="62"
-            cy="75"
-            rx="14"
-            ry="18"
-            fill="white"
-            opacity="0.5"
-            transform="rotate(-15 62 75)"
-          />
-
-          {/* Cracks */}
-          {(stage === "cracking" || stage === "hatching" || stage === "emerging" || stage === "self") && (
-            <g stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" fill="none">
+          {/* Grietas */}
+          {CRACKED.includes(stage) && (
+            <g stroke="var(--foreground)" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter">
               <path d="M80 60 L74 75 L82 85 L76 100" />
               <path d="M82 85 L90 90" />
             </g>
           )}
-          {(stage === "hatching" || stage === "emerging" || stage === "self") && (
-            <g stroke="#9CA3AF" strokeWidth="1.5" strokeLinecap="round" fill="none">
+          {OPEN.includes(stage) && (
+            <g stroke="var(--foreground)" strokeWidth="2" strokeLinecap="square" strokeLinejoin="miter">
               <path d="M55 110 L62 120 L55 132" />
               <path d="M105 105 L98 118 L108 128" />
             </g>
           )}
 
-          {/* Speckles */}
-          <circle cx="95" cy="145" r="2.5" fill="#E5E7EB" opacity="0.8" />
-          <circle cx="65" cy="155" r="1.8" fill="#E5E7EB" opacity="0.6" />
-          <circle cx="105" cy="130" r="1.5" fill="#E5E7EB" opacity="0.5" />
-
-          <defs>
-            <radialGradient id="eggGradient" cx="40%" cy="35%" r="65%">
-              <stop offset="0%" stopColor="#FFFFFF" />
-              <stop offset="60%" stopColor="#F5F5F5" />
-              <stop offset="100%" stopColor="#E5E7EB" />
-            </radialGradient>
-            <radialGradient id="innerGlow" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor="#9D4EDD" stopOpacity="0.12" />
-              <stop offset="100%" stopColor="#9D4EDD" stopOpacity="0" />
-            </radialGradient>
-          </defs>
+          {/* Pintitas como píxeles */}
+          <rect x="93" y="143" width="4" height="4" fill="var(--muted-foreground)" />
+          <rect x="64" y="154" width="3" height="3" fill="var(--muted-foreground)" />
+          <rect x="104" y="129" width="3" height="3" fill="var(--muted-foreground)" />
         </svg>
 
-        {/* Stage badge */}
-        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-white border border-[#E5E7EB] rounded-full px-3 py-0.5 text-xs text-[#6B7280] whitespace-nowrap shadow-sm">
-          {stage === "egg"      && "descubriéndote"}
-          {stage === "cracking" && "algo se mueve"}
-          {stage === "hatching" && "casi listo"}
-          {stage === "emerging" && "tomando forma"}
-          {stage === "self"     && "sos vos"}
+        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 border-2 border-foreground bg-card px-2 py-0.5 font-mono text-[10px] tracking-[0.06em] whitespace-nowrap text-muted-foreground uppercase">
+          {stageBadge[stage]}
         </div>
       </div>
 
-      {/* Speech bubble */}
+      {/* Burbuja: caja v2 con pico hecho de dos triángulos (borde + relleno) */}
       <div className="relative max-w-xs">
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-0 h-0
-          border-l-[8px] border-l-transparent
-          border-r-[8px] border-r-transparent
-          border-b-[10px] border-b-[#E5E7EB]" />
-        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 w-0 h-0
-          border-l-[7px] border-l-transparent
-          border-r-[7px] border-r-transparent
-          border-b-[9px] border-b-white" />
-        <div className="bg-white border border-[#E5E7EB] rounded-2xl px-5 py-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
-          <p className="font-[family-name:var(--font-playfair)] italic text-[#0A0A0A] text-sm leading-relaxed text-center">
-            &ldquo;{displayMessage}&rdquo;
-          </p>
+        <div aria-hidden className="absolute -top-[11px] left-1/2 h-0 w-0 -translate-x-1/2 border-x-[9px] border-b-[11px] border-x-transparent border-b-foreground" />
+        <div aria-hidden className="absolute -top-[7px] left-1/2 h-0 w-0 -translate-x-1/2 border-x-[7px] border-b-[9px] border-x-transparent border-b-card" />
+        <div className="border-2 border-foreground bg-card px-5 py-3.5">
+          <p className="text-center text-sm leading-relaxed">&ldquo;{displayMessage}&rdquo;</p>
         </div>
       </div>
     </div>

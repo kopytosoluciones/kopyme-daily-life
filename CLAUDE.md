@@ -63,8 +63,8 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 
 | Módulo | Archivo principal | Backend | Estado |
 |---|---|---|---|
-| Dashboard | `app/(app)/dashboard/` | Supabase profiles | ✅ v2 (avatar pendiente) |
-| Árbol de la vida | `app/(app)/tree/TreeClient.tsx` | Supabase life_tree_entries | ✅ |
+| Dashboard | `app/(app)/dashboard/` + `components/avatar/Egg.tsx` | Supabase profiles | ✅ v2 |
+| Árbol de la vida | `app/(app)/tree/TreeClient.tsx` | Supabase life_tree_entries | ✅ v2 (ilustración = excepción) |
 | Hábitos | `app/(app)/habits/` | Supabase | ✅ v2 |
 | Checklists | `app/(app)/todos/TodosClient.tsx` | Supabase (todo_lists + todos) | ✅ v2 |
 | Calendario | `app/(app)/calendar/CalendarClient.tsx` | localStorage `kopyme-cal-v2` | ✅ v2 |
@@ -75,7 +75,7 @@ npx tsc --noEmit  # typecheck (no hay script "typecheck")
 | Avisos | `components/layout/NoticesPanel.tsx` + `lib/notifications.ts` | derivado | ✅ |
 | Metas | `app/(app)/goals/` | — | stub |
 
-> Rediseño v2: todos los módulos activos están en v2. Excepciones pendientes de decisión: **Árbol de la vida** (ilustración) y **Avatar/Egg** (colores propios, burbuja blanca en dark).
+> Rediseño v2: **toda la app está en v2**. Única excepción deliberada: la ilustración del Árbol (enmarcada en una caja v2, interacción con el acento). `JungleScene` no se usa en ninguna página.
 | Recuerdos | `app/(app)/memories/` | — | stub |
 | Cartas & Regalos | `app/(app)/letters/` | — | stub |
 
@@ -186,8 +186,9 @@ Lista viva de lo que sigue abierto. La historia de cada sesión está en **`docs
 - ~~Leaked password protection~~: requiere plan Pro de Supabase (la org Kopyme está en Free). Descartado mientras siga en Free.
 
 **Producto / código**
-- Árbol de la vida: verificar/ajustar zonas SVG; decidir tratamiento visual en v2.
-- Avatar: definir tratamiento visual en v2.
+- Árbol de la vida: ajustar coordenadas de zonas SVG si alguna queda desplazada (ahora hay lista de zonas como alternativa accesible).
+- Revisar paletas de color de usuario en Calendario y Vínculos (neón/negro se ven mal en dark).
+- Vínculos: evaluar volver a mostrar afinidad en el grosor de las curvas.
 
 **Limpieza**
 - Nada pendiente. (Los cambios sin commitear del worktree viejo quedaron en `.claude/archive/`, fuera de git.)
