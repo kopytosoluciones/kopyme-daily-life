@@ -561,7 +561,9 @@ export default function ConnectionsClient() {
   const [branchModal, setBranchModal] = useState<{ open: boolean; branch: Branch | null }>({ open: false, branch: null });
 
   // ── Persistence ──
+  // localStorage solo existe en el cliente: cargarlo en el render rompería la hidratación.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     try {
       const raw = localStorage.getItem(STORAGE_KEY);

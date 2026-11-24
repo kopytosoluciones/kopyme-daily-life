@@ -33,7 +33,7 @@ interface Props {
   canGoNext: boolean;
 }
 
-export default function HabitsGrid({ habits, logs, weekDays, weekStart, prevWeek, nextWeek, canGoNext }: Props) {
+export default function HabitsGrid({ habits, logs, weekDays, prevWeek, nextWeek, canGoNext }: Props) {
   const router = useRouter();
   const [showModal, setShowModal] = useState(false);
   const [editingName, setEditingName] = useState<string | null>(null);

@@ -27,11 +27,11 @@ export default function TodoPanel({ listId, listName, listColor, todos }: Props)
   const [filter, setFilter] = useState<"pending" | "completed">("pending");
   const [newTitle, setNewTitle] = useState("");
   const [newDate, setNewDate] = useState("");
-  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [, setShowDatePicker] = useState(false);
   const [, startTransition] = useTransition();
   const dateRef = useRef<HTMLInputElement>(null);
 
-  const now = Date.now();
+  const [now] = useState(() => Date.now());
 
   const pending = todos.filter(t =>
     !t.completed || (t.completed_at && now - new Date(t.completed_at).getTime() < TWELVE_HOURS_MS)

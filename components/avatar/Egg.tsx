@@ -119,7 +119,7 @@ export default function Egg({ stage = "egg", message }: EggProps) {
           border-b-[9px] border-b-white" />
         <div className="bg-white border border-[#E5E7EB] rounded-2xl px-5 py-3.5 shadow-[0_2px_8px_rgba(0,0,0,0.05)]">
           <p className="font-[family-name:var(--font-playfair)] italic text-[#0A0A0A] text-sm leading-relaxed text-center">
-            "{displayMessage}"
+            &ldquo;{displayMessage}&rdquo;
           </p>
         </div>
       </div>

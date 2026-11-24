@@ -189,7 +189,9 @@ export default function CalendarClient() {
   const [formDuration,   setFormDuration]   = useState(1);
   const [formNotes,      setFormNotes]      = useState("");
 
+  // localStorage y la fecha local solo existen en el cliente: cargarlos en el render rompería la hidratación.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setWeekStart(monday(new Date()));
     setEvents(loadEvents());
     setMounted(true);
